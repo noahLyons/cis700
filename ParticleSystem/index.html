@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+	<title>Learning WebGL &mdash; lesson 1</title>
+	<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+	<!-- glMatrix version 2.2.0 -->
+	<script type="text/javascript" src="gl-matrix-min.js"></script>
+	<script id="vertex-save" type="x-shader/x-vertex">
+		precision highp float;
+	    attribute vec3 aVertexVelocities;
+	    attribute vec2 aVertexIndex;
+
+ 	    uniform sampler2D uSamplerRead;
+	   
+	    varying vec3 newPosition;
+	   	
+	    void main(void) {
+		   	vec3 oldPosition = texture2D(uSamplerRead,((1.0 + vec2(aVertexIndex.s,aVertexIndex.t))/2.0)).rgb;
+		    newPosition = oldPosition + aVertexVelocities * 0.014; // updated position state to be written
+	    	gl_Position = vec4(aVertexIndex.s,aVertexIndex.t,0.0,1.0); // data write location
+	    	gl_PointSize = 1.0;
+	    }
+
+	</script>
+	<script id="fragment-save" type="x-shader/x-fragment">
+	    precision highp float;
+	 
+	    varying vec3 newPosition;
+	   	
+	    void main(void) {
+  				gl_FragColor = vec4(newPosition,1.0);
+	    }
+	</script>
+
+	<script id="vertex-render" type="x-shader/x-vertex">
+		precision highp float;
+	    attribute vec3 aVertexVelocities; 
+	    attribute vec2 aVertexIndex;
+
+	    //uniform float uResolution;
+	   
+ 	    uniform sampler2D uSamplerRead;
+	    uniform mat4 uMVMatrix;
+	    uniform mat4 uPMatrix;
+
+	    varying vec3 newPosition;
+	   	varying vec3 v_color;
+	    void main(void) {
+	    	//read the texture data from the correct index, given by aVertexIndex
+		   vec3 oldPosition = texture2D(uSamplerRead,((1.0 + vec2(aVertexIndex.s,aVertexIndex.t))/2.0)).rgb;
+		  	    	
+	    	// Index into the buffer uSamplerRead with aVertexIndex 
+	      // gl_Position = vec4(aVertexIndex.s,aVertexIndex.t,0.0,1.0);
+	       gl_Position = uPMatrix * vec4(oldPosition,1.0);
+	       	gl_PointSize = 1.0;
+	       v_color = aVertexVelocities * 2.0;
+	       v_color = vec3(1.0);
+		    
+	    }
+
+	</script>
+	<script id="fragment-render" type="x-shader/x-fragment">
+	    precision highp float;
+	    	
+	    varying vec3 newPosition;
+	   	varying vec3 v_color;
+	    void main(void) {
+	    	
+    			gl_FragColor = vec4(v_color,1.0);
+   		    }
+	</script>
+	<script src="Particle.js" type="text/javascript"></script>
+	<script src="ParticleSystem.js" type="text/javascript"></script>
+	<script src="View.js" type="text/javascript"></script>
+	<script src="Controller.js" type="text/javascript"></script>
+	<script src="Tear.js" type="text/javascript"></script>
+	<script src="Thelma.js" type="text/javascript"></script>
+	<script src="Model.js" type="text/javascript"></script>
+</head>
+
+<body onload="runGame();">
+	<canvas id="glcanvas" width="700" height="700">
+		Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
+	</canvas>
+</body>
+
+
+
