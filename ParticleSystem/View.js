@@ -19,9 +19,11 @@ var textureSize;
 var framebuffers = [];
 var textures = [];
 var swap = true;
+var systemCycles = 0;
 //--------------------------------------------------------------FUNCTIONS:
 
 function drawScene() {
+    systemCycles++;
     requestAnimationFrame(drawScene);
     //Determine which texture will be read from and which will be written to
     var srcIndex, destIndex;   
@@ -33,13 +35,8 @@ function drawScene() {
         srcIndex = 1;
         destIndex = 0;
     }
-
     
-    
-    //bind our custom frame buffer
-
     gl.useProgram(saveProgram);
-    gl.draw
     gl.bindFramebuffer(gl.FRAMEBUFFER, fboSave); 
     gl.viewport(0, 0, rowLength, rowLength);
     //set the texture to which the fboSave will save updated state
@@ -47,6 +44,7 @@ function drawScene() {
 
     //set the texture to read last state from
    // gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1f(saveProgram.uTime, systemCycles);
     gl.bindTexture(gl.TEXTURE_2D, textures[srcIndex]);
     gl.uniform1i(saveProgram.uSamplerReadsave, textures[srcIndex]);
       
@@ -54,12 +52,15 @@ function drawScene() {
     gl.disable(gl.DEPTH_TEST);
     gl.enableVertexAttribArray(saveProgram.vertexVelocities); 
     gl.enableVertexAttribArray(saveProgram.vertexIndexAttribute); 
+   
     gl.drawArrays(gl.POINTS, 0, system.Max_Particles); 
     
     //debug info about the texture memory (too slow for production)
+    /*
     var pixels = new Uint8Array( rowLength * rowLength * 4);
     gl.readPixels(0,0,rowLength,rowLength,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
-    
+    */
+
     gl.useProgram(renderProgram);
     gl.viewport(0,0, gl.viewportWidth, gl.viewportHeight)
     //update the texture to read newly written state
@@ -73,7 +74,6 @@ function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
    // gl.enableVertexAttribArray(renderProgram.vertexVelocities); 
     gl.enableVertexAttribArray(renderProgram.vertexIndexAttribute); 
-
     gl.drawArrays(gl.POINTS, 0, system.Max_Particles); 
 
     frameTurn = ! frameTurn;
@@ -197,7 +197,8 @@ function initShaders() {
     saveProgram.vertexIndexAttribute = gl.getAttribLocation(saveProgram,"aVertexIndex");
        
     saveProgram.uSamplerReadsave = gl.getUniformLocation(saveProgram, "uSamplerRead");
-        
+    
+    saveProgram.uTime = gl.getUniformLocation(saveProgram, "uTime");
 //    saveProgram.resolutionUniform = gl.getUniformLocation(saveProgram, "uResolution");
    
 }

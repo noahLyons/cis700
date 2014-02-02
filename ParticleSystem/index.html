@@ -8,24 +8,32 @@
 	<!-- glMatrix version 2.2.0 -->
 	<script type="text/javascript" src="gl-matrix-min.js"></script>
 	<script id="vertex-save" type="x-shader/x-vertex">
-		precision highp float;
+		precision lowp float;
 	    attribute vec3 aVertexVelocities;
 	    attribute vec2 aVertexIndex;
 
  	    uniform sampler2D uSamplerRead;
-	   
+	   	uniform float uTime;
 	    varying vec3 newPosition;
 	   	
 	    void main(void) {
-		   	vec3 oldPosition = texture2D(uSamplerRead,((1.0 + vec2(aVertexIndex.s,aVertexIndex.t))/2.0)).rgb;
+		   	vec3 oldPosition = texture2D(uSamplerRead,aVertexIndex).rgb;//((1.0 + vec2(aVertexIndex.s,aVertexIndex.t))/2.0)).rgb;
+	    	if(uTime > 500.0 && uTime < 1500.0){
+	    		 newPosition = oldPosition + aVertexVelocities * -0.028; // updated position state to be writtenn;
+				}
+			else
+			{
 		    newPosition = oldPosition + aVertexVelocities * 0.014; // updated position state to be written
+				
+			}
 	    	gl_Position = vec4(aVertexIndex.s,aVertexIndex.t,0.0,1.0); // data write location
+	    	//float somethingCool = (oldPosition.x % 19);
 	    	gl_PointSize = 1.0;
 	    }
 
 	</script>
 	<script id="fragment-save" type="x-shader/x-fragment">
-	    precision highp float;
+	    precision lowp float;
 	 
 	    varying vec3 newPosition;
 	   	
@@ -35,7 +43,7 @@
 	</script>
 
 	<script id="vertex-render" type="x-shader/x-vertex">
-		precision highp float;
+		precision lowp float;
 	    attribute vec3 aVertexVelocities; 
 	    attribute vec2 aVertexIndex;
 
@@ -45,18 +53,21 @@
 	    uniform mat4 uMVMatrix;
 	    uniform mat4 uPMatrix;
 
+
 	    varying vec3 newPosition;
 	   	varying vec3 v_color;
+	   	
 	    void main(void) {
 	    	//read the texture data from the correct index, given by aVertexIndex
-		   vec3 oldPosition = texture2D(uSamplerRead,((1.0 + vec2(aVertexIndex.s,aVertexIndex.t))/2.0)).rgb;
+
+		   vec3 oldPosition = texture2D(uSamplerRead,aVertexIndex).rgb;//((1.0 + vec2(aVertexIndex.s,aVertexIndex.t))/2.0)).rgb;
 		  	    	
 	    	// Index into the buffer uSamplerRead with aVertexIndex 
-	      // gl_Position = vec4(aVertexIndex.s,aVertexIndex.t,0.0,1.0);
+	      	gl_Position = vec4(aVertexIndex.s,aVertexIndex.t,0.0,1.0);
 	       gl_Position = uPMatrix * vec4(oldPosition,1.0);
 	       	gl_PointSize = 1.0;
-	       v_color = aVertexVelocities * 2.0;
-	       v_color = vec3(1.0);
+	       v_color = vec3(aVertexIndex.s,aVertexIndex.t,0.0);
+	      // v_color = vec3(1.0);
 		    
 	    }
 
@@ -77,7 +88,7 @@
 	</head>
 
 <body onload= "webGLStart();">
-	<canvas id="glcanvas" width="700" height="700">
+	<canvas id="glcanvas" width="1024" height="1024">
 		Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
 	</canvas>
 </body>
