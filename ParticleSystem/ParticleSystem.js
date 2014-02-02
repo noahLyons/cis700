@@ -9,7 +9,7 @@ var ParticleSystem = [];
 //------------------------------------------------------CONSTRUCTORS:
 
 	function particleSystem(maxVelocity){
-		this.Max_Particles = 512 * 512;
+		this.Max_Particles = 1024 * 1024;
 		this.particles = [];
 		this.maxVelocity = 1.0;
 		this.minVelocity = -1.0;

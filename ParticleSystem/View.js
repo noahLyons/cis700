@@ -312,13 +312,13 @@ function setMatrixUniforms() {
     gl.uniformMatrix4fv(renderProgram.mvMatrixUniform, false, mvMatrix);
 }
 
-function webGLStart(model) {
+function webGLStart() {
     frameTurn = true;
 
     canvas = document.getElementById("glcanvas");
     initGL(canvas);
     initShaders();
-    system = model.particleSystem;
+    system = new ParticleSystem();
     textureSize = system.Max_Particles;
     initBuffers(system);
    // initTextures();
