@@ -17,7 +17,8 @@
 	    varying vec3 newPosition;
 	   	
 	    void main(void) {
-		   	vec3 oldPosition = texture2D(uSamplerRead,aVertexIndex).rgb;//((1.0 + vec2(aVertexIndex.s,aVertexIndex.t))/2.0)).rgb;
+		   	//vec3 oldPosition = texture2D(uSamplerRead,aVertexIndex).rgb;
+		   	vec3 oldPosition = texture2D(uSamplerRead,(1.0 + vec2(aVertexIndex.s,aVertexIndex.t)/2.0)).rgb;
 	    	if(uTime > 500.0 && uTime < 1500.0){
 	    		 newPosition = oldPosition + aVertexVelocities * -0.028; // updated position state to be writtenn;
 				}
@@ -26,9 +27,12 @@
 		    newPosition = oldPosition + aVertexVelocities * 0.014; // updated position state to be written
 				
 			}
+			newPosition = oldPosition + aVertexVelocities * 0.014; // updated position state to be writtenn
+
 	    	gl_Position = vec4(aVertexIndex.s,aVertexIndex.t,0.0,1.0); // data write location
 	    	//float somethingCool = (oldPosition.x % 19);
 	    	gl_PointSize = 1.0;
+	    	
 	    }
 
 	</script>
@@ -53,20 +57,23 @@
 	    uniform mat4 uMVMatrix;
 	    uniform mat4 uPMatrix;
 
-
+	    
 	    varying vec3 newPosition;
 	   	varying vec3 v_color;
 	   	
 	    void main(void) {
 	    	//read the texture data from the correct index, given by aVertexIndex
 
-		   vec3 oldPosition = texture2D(uSamplerRead,aVertexIndex).rgb;//((1.0 + vec2(aVertexIndex.s,aVertexIndex.t))/2.0)).rgb;
+		   vec3 oldPosition = texture2D(uSamplerRead,aVertexIndex).rgb;
+		   oldPosition = texture2D(uSamplerRead,(vec2(1.0) + aVertexIndex) / 2.0).rgb;
 		  	    	
 	    	// Index into the buffer uSamplerRead with aVertexIndex 
-	      	gl_Position = vec4(aVertexIndex.s,aVertexIndex.t,0.0,1.0);
-	       gl_Position = uPMatrix * vec4(oldPosition,1.0);
+	      	//gl_Position = vec4(aVertexIndex.s,aVertexIndex.t,0.0,1.0);
+	       	gl_Position = vec4(aVertexIndex,0.0,1.0);
+	       	gl_Position = uPMatrix * vec4(oldPosition,1.0);
 	       	gl_PointSize = 1.0;
-	       v_color = vec3(aVertexIndex.s,aVertexIndex.t,0.0);
+	       //v_color = vec3((1.0 + aVertexIndex) /  2.0,0.0); //uv in texture space
+	       	v_color = oldPosition; // xyz in world space
 	      // v_color = vec3(1.0);
 		    
 	    }
