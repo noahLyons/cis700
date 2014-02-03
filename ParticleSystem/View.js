@@ -38,6 +38,7 @@ function drawScene() {
       
     // disble depth testing and update the state in texture memory
     gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
     gl.enableVertexAttribArray(saveProgram.vertexVelocities); 
     gl.enableVertexAttribArray(saveProgram.particleIndexAttribute); 
    
@@ -51,11 +52,14 @@ function drawScene() {
     gl.bindTexture(gl.TEXTURE_2D, textures[destIndex]);   
     gl.uniform1i(renderProgram.uParticleStartPositionsrender, textures[destIndex]);
 
-    //bind the default frame buffer, enable depth testing and draw particles to the screen
-    //gl.enable(gl.DEPTH_TEST);
+    //bind the default frame buffer, disable depth testing and enable alpha blending
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     gl.bindFramebuffer(gl.FRAMEBUFFER,null); //bind the default frame buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    //enable particle index and draw particles to the screen
     gl.enableVertexAttribArray(renderProgram.particleIndexAttribute); 
     gl.drawArrays(gl.POINTS, 0, system.maxParticles); 
 
