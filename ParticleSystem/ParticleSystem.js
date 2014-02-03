@@ -15,10 +15,11 @@ var ParticleSystem = [];
 		
 		this.particles = [];
 		this.velocities = [];
+		this.startPositions = [];
 		this.textureMemoryLocation = [];
 
-		this.maxVelocity = 1.0;
-		this.minVelocity = -1.0;
+		this.maxVelocity = 0.0014;
+		this.minVelocity = -0.0014;
 
 		this.init();
 	}
@@ -31,9 +32,9 @@ var ParticleSystem = [];
 
 		    var theta = Math.random() * Math.PI;
 		    var phi = 2 * (Math.random() * Math.PI - Math.PI / 2);
-		    var x = Math.cos(phi)*Math.cos(theta);
-		    var y = Math.sin(phi);
-		    var z = Math.cos(phi)*Math.sin(theta);
+		    var x = this.maxVelocity * Math.cos(phi)*Math.cos(theta);
+		    var y = this.maxVelocity * Math.sin(phi);
+		    var z = this.maxVelocity * Math.cos(phi)*Math.sin(theta);
 		    return vec3.fromValues(x,y,z);
 		},
 
@@ -52,6 +53,11 @@ var ParticleSystem = [];
 	       		this.velocities.push(particle.v0[1]);
 	       		this.velocities.push(particle.v0[2]);
 	       		
+	       		this.startPositions.push(particle.v0[0]);
+	       		this.startPositions.push(particle.v0[1]);
+	       		this.startPositions.push(particle.v0[2]);
+	       		this.startPositions.push(1.0);
+
 	       		var xIndex = Math.floor(i % this.rowLength) / this.rowLength ;
 		        var yIndex = i / this.maxParticles; 
 

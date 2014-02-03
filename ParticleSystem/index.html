@@ -21,12 +21,13 @@
 		   	vec3 oldPosition = texture2D(uParticleStartPositions, aParticleIndex).rgb;
 		   	// vec3 oldPosition = texture2D(uParticleStartPositions,(0.5 + vec2(aParticleIndex.s, aParticleIndex.t)/2.0)).rgb;
 
-	    	if (uTime > 500.0 && uTime < 1500.0) { // make dots reverse direction
-	    		 newPosition = oldPosition + aVertexVelocities * -0.028; 
+	    	if (uTime > 100.0 ) { // make dots reverse direction
+	    		 newPosition = oldPosition - (1.0 * aVertexVelocities);
 			}
 			// updated position to be written to texture in frag shader
-			newPosition = oldPosition + aVertexVelocities * 0.014; 
-
+			else {
+				newPosition = oldPosition + aVertexVelocities;
+			}
 			vec2 glSpaceIndex = 2.0 * (aParticleIndex - 0.5);
 			// set data write location 
 	    	gl_Position = vec4(glSpaceIndex, 0.0, 1.0); 
@@ -54,7 +55,7 @@
 	    attribute vec2 aParticleIndex; 
 	   
  	    uniform sampler2D uParticleStartPositions;  //rename uParticleStartPositions
-	    uniform mat4 uMVMatrix;
+	    uniform mat4 uMVMatrix; // necessary?
 	    uniform mat4 uPMatrix;
 	    
 	    varying vec3 newPosition; //necessary?
@@ -66,14 +67,14 @@
 			vec3 oldPosition = texture2D(uParticleStartPositions, aParticleIndex).rgb;
 				    		
 	       	gl_Position = uPMatrix * vec4(oldPosition, 1.0);//write 
-	       	
+
 	       	gl_PointSize = 1.0;
 
 	       	// ---SET COLOR
 			v_color = vec3(aParticleIndex, 0.0);
-			// v_color = vec3((0.5 + vec2(aParticleIndex.s, aParticleIndex.t) / 2.0), 0.0);
-			// v_color = (oldPosition); // xyz in world space
-			// v_color = vec3(1.0);
+			//gl_Position = vec4(v_color - 0.5,1.0);
+			//v_color = (oldPosition);
+			//v_color = vec3(1.0);
 		    // ---
 	    }
 
@@ -94,7 +95,7 @@
 	</head>
 
 <body onload= "webGLStart();">
-	<canvas id="glcanvas" width="512" height="512">
+	<canvas id="glcanvas" width="600" height="600">
 		Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
 	</canvas>
 </body>

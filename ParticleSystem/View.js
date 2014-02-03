@@ -32,7 +32,7 @@ function drawScene() {
                             textures[destIndex], 
                             0); 
 
-    gl.uniform1f(saveProgram.uTime, systemCycles);
+    gl.uniform1f(saveProgram.uTime, systemCycles % 200.0);
     gl.uniform1i(saveProgram.uParticleStartPositionssave, textures[srcIndex]);
     gl.bindTexture(gl.TEXTURE_2D, textures[srcIndex]);
       
@@ -164,6 +164,7 @@ function initShaders() {
     
     gl.useProgram(renderProgram);
     
+    renderProgram.vertexVelocities = gl.getAttribLocation(saveProgram,"aVertexVelocities");
     renderProgram.particleIndexAttribute = gl.getAttribLocation(renderProgram, "aParticleIndex");
     renderProgram.pMatrixUniform = gl.getUniformLocation(renderProgram, "uPMatrix");
     renderProgram.mvMatrixUniform = gl.getUniformLocation(renderProgram, "uMVMatrix");
@@ -224,6 +225,7 @@ function initBuffers(mySystem) {
 
 function generateTexture(){
 
+
     var texture = gl.createTexture();
 
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -233,7 +235,7 @@ function generateTexture(){
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
                     system.rowLength, system.rowLength, 
-                    0, gl.RGBA, gl.FLOAT, null); //new Float32Array(colors));
+                    0, gl.RGBA, gl.FLOAT, new Float32Array(system.startPositions));
     gl.bindTexture(gl.TEXTURE_2D, null);
     return texture;
 }
@@ -287,7 +289,7 @@ function webGLStart() {
                      gl.viewportWidth / gl.viewportHeight, 
                      0.1, 100.0);
     mat4.lookAt(mvMatrix, 
-                vec3.fromValues(0,0,7),
+                vec3.fromValues(0,0,1),
                 vec3.fromValues(0,0,0),
                 vec3.fromValues(0,1,0));
     mat4.mul(pMatrix, pMatrix, mvMatrix);
