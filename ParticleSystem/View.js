@@ -52,7 +52,7 @@ function drawScene() {
     gl.uniform1i(renderProgram.uParticleStartPositionsrender, textures[destIndex]);
 
     //bind the default frame buffer, enable depth testing and draw particles to the screen
-    gl.enable(gl.DEPTH_TEST);
+    //gl.enable(gl.DEPTH_TEST);
     gl.bindFramebuffer(gl.FRAMEBUFFER,null); //bind the default frame buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -121,10 +121,7 @@ function initGL(canvas) {
         //extension to use floating point values in textures
         gl.getExtension("OES_texture_float");  
         //extension allowing us to write to more than one buffer per render Pass
-        ext = gl.getExtension("WEBGL_draw_buffers"); 
-        if(! ext){
-            alert("Sorry, no Extension");
-        }
+        
         gl.viewportWidth = canvas.width;
         gl.viewportHeight = canvas.height;
     } 
@@ -289,7 +286,7 @@ function webGLStart() {
                      gl.viewportWidth / gl.viewportHeight, 
                      0.1, 100.0);
     mat4.lookAt(mvMatrix, 
-                vec3.fromValues(0,0,1),
+                vec3.fromValues(0,0,0.1),
                 vec3.fromValues(0,0,0),
                 vec3.fromValues(0,1,0));
     mat4.mul(pMatrix, pMatrix, mvMatrix);

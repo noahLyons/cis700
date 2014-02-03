@@ -15,10 +15,11 @@ var ParticleSystem = [];
 		
 		this.particles = [];
 		this.velocities = [];
+		this.accelerations = []; 
 		this.startPositions = [];
 		this.textureMemoryLocation = [];
 
-		this.maxVelocity = 0.0014;
+		this.maxVelocity = 0.014;
 		this.minVelocity = -0.0014;
 
 		this.init();
@@ -49,9 +50,9 @@ var ParticleSystem = [];
 	       		
 	       		var particle = new Particle(startingVelocity);
 
-	       		this.velocities.push(particle.v0[0]);
-	       		this.velocities.push(particle.v0[1]);
-	       		this.velocities.push(particle.v0[2]);
+	       		this.velocities.push(0.0);
+	       		this.velocities.push(0.0);
+	       		this.velocities.push(0.0);
 	       		
 	       		this.startPositions.push(particle.v0[0]);
 	       		this.startPositions.push(particle.v0[1]);
