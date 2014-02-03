@@ -2,26 +2,33 @@ var ParticleSystem = [];
 
 (function(){
 
-//--------------------------------------------------CONSTANTS/FIELDS:
+//-------------------------------------------------------CONSTANTS/FIELDS:
 
 	
 
-//------------------------------------------------------CONSTRUCTORS:
+//-----------------------------------------------------------CONSTRUCTORS:
 
-	function particleSystem(maxVelocity){
-		var half = 512;
-		this.Max_Particles = half * half;
+	function particleSystem(maxVelocity) {
+
+		this.rowLength = 512;
+		this.maxParticles = this.rowLength * this.rowLength;
+		
 		this.particles = [];
+		this.velocities = [];
+		this.textureMemoryLocation = [];
+
 		this.maxVelocity = 1.0;
 		this.minVelocity = -1.0;
+
 		this.init();
-	    
 	}
 	
-//-----------------------------------------------------------METHODS:
+//----------------------------------------------------------------METHODS:
 
 	particleSystem.prototype = {
-		 getStartingVelocity : function(maxVelocity){
+		
+		getStartingVelocity : function() {
+
 		    var theta = Math.random() * Math.PI;
 		    var phi = 2 * (Math.random() * Math.PI - Math.PI / 2);
 		    var x = Math.cos(phi)*Math.cos(theta);
@@ -30,23 +37,35 @@ var ParticleSystem = [];
 		    return vec3.fromValues(x,y,z);
 		},
 
-		init : function(){
-			var i, il;
+		init : function() {
 
-	    	for(i = 0, il = this.Max_Particles; i < il; i++){
-	       		var random = this.getStartingVelocity(Math.random() * this.maxVelocity);
-	       		this.particles.push(new Particle(random));
+			var i, max_parts = this.maxParticles;
+
+	    	for(i = 0; i < max_parts; i++) {
+
+	       		var startingVelocity = this.getStartingVelocity();
+
+	       		
+	       		var particle = new Particle(startingVelocity);
+
+	       		this.velocities.push(particle.v0[0]);
+	       		this.velocities.push(particle.v0[1]);
+	       		this.velocities.push(particle.v0[2]);
+	       		
+	       		var xIndex = Math.floor(i % this.rowLength) / this.rowLength ;
+		        var yIndex = i / this.maxParticles; 
+
+	       		this.textureMemoryLocation.push(xIndex);
+	       		this.textureMemoryLocation.push(yIndex);
 	       	}
 	    },
 	
-		update : function(time){
+		update : function(time) {
 			var i, il;
-			for(i = 0, il = this.Max_Particles; i < il; i++){
+			for(i = 0, il = this.maxParticles; i < il; i++){
 				this.particles[i].update();
 			}
 		}
-
 	}
-
 	ParticleSystem = particleSystem;
 })();

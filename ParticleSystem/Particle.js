@@ -7,7 +7,8 @@ var Particle = [];
 
 //------------------------------------------------------CONSTRUCTORS:
 
-	function particle(initialVelocity){
+	function particle(initialVelocity) {
+
 		this.position = [0,0,0];
 		this.acceleration = [0,-9.8,0];
 		this.v0 = initialVelocity;
@@ -19,7 +20,8 @@ var Particle = [];
 //-----------------------------------------------------------METHODS:
 
 	particle.prototype = {
-		update : function(){
+		
+		update : function() {
 
 			this.life += 0.016;
 			if(this.position[1] <= -1) this.position[1] = -1;
@@ -38,6 +40,5 @@ var Particle = [];
 			} 
 		}
 	}
-	
 	Particle = particle;
 })();
