@@ -10,37 +10,51 @@
 	<script id="vertex-save" type="x-shader/x-vertex">
 		
 		precision highp float;
-		attribute vec3 aVertexAccelerations;
+		//attribute vec3 aVertexAccelerations;
 	    //attribute vec3 aVertexVelocities; //rename aParticleVelocities
 	    attribute vec2 aParticleIndex; 
 
 
-	    uniform float uTextureSideLength;
+	    uniform int uTextureSideLength;
 	    uniform sampler2D uParticleVelocities;
  	    uniform sampler2D uParticlePositions; 
-
+ 	    const float cheatLength = 512.0;
+ 	    const int cheatLengthLoop = 512;
 
 	   	uniform float uTime;
 
 	    varying vec3 newPosition;
 	   	varying vec3 newVelocity;
-	   	/*
-	   	vec3 getAccellerationFromBody()
 	   	
-	   	vec3 accumulateAcceleration(){
-	   		vec3 accelleration = 0.0;
-	   		float uvStep = 1.0 / uTextureSideLength;
+	   	//vec3 getAccellerationFromBody(){}
+	   	
+	   	vec3 accumulateAcceleration(vec3 position){
+	   		vec3 accelleration = vec3(0.0);
+	   		float uvStep = 1.0 / cheatLength;
 	   		vec2 otherUv = vec2(0.0);
-	   		for(int i = 0; i < uTextureSideLength; i++){
+
+	   		for(int i = 0; i < cheatLengthLoop; i+= 128){
 	   			otherUv.x += uvStep; 
-	   			for(int j = 0; j < uTextureSideLength; j++){
+	   			for(int j = 0; j < cheatLengthLoop; j+=128){
+	   				
 	   				otherUv.y += uvStep;
-	   				vec3 other = texture2D(uParticlePositions, otherUv);
-	   				accelleration += 0.01;
+	   				
+	   				vec3 otherPosition = texture2D(uParticlePositions, otherUv).rgb;
+	   				vec3 distance = (otherPosition - position);
+	   				float distanceSquared = dot(distance,distance);
+
+	   				if(distanceSquared > 0.00000000001){
+						accelleration += distance * (0.000001 * 128.0 * (0.1/distanceSquared));
+	   					
+	   				}
+	   				
+	   				
+	   				// accelleration += 0.00000001 * length(otherPosition - position);
 	   			}
 	   		}
+	   		return accelleration;
 	   	}
-	*/
+	
 	    void main(void) {
 		   	vec3 oldPosition = texture2D(uParticlePositions, aParticleIndex).rgb;
 		   	vec3 oldVelocity = texture2D(uParticleVelocities, aParticleIndex).rgb;
@@ -52,24 +66,24 @@
 		   	}
 			*/
 
-
-			float yVariation = 0.1 + abs(oldPosition.y);
-		    newVelocity = oldVelocity + aVertexAccelerations;
+			vec3 accellerationFinal = accumulateAcceleration(oldPosition);
+			
+		    newVelocity = oldVelocity + accellerationFinal;
 		    // if(length(newVelocity) > 10.0){
 		    // 	newVelocity /= 50.0;
 		    // }
-		    if(length(newVelocity) > 20.0){
-		    	newVelocity *= -1.0;// length(newVelocity);
-		    }
+		    // if(length(newVelocity) > 20.0){
+		    // 	newVelocity *= -1.0;// length(newVelocity);
+		    // }
 		   
 
 			// updated position to be written to texture in frag shader
 			
 			newPosition = oldPosition + newVelocity;
-			if(length(newPosition) > 6.0)
-			{
-				newPosition = vec3(0.0);
-			}
+			// if(length(newPosition) > 6.0)
+			// {
+			// 	newPosition = vec3(0.0);
+			// }
 			vec2 glSpaceIndex = 2.0 * (aParticleIndex - 0.5);
 			// set data write location 
 	    	gl_Position = vec4(glSpaceIndex, 0.0, 1.0); 
@@ -95,7 +109,7 @@
 
 	<script id="vertex-render" type="x-shader/x-vertex">
 		
-		precision mediump float;
+		precision lowp float;
 
 	    //attribute vec3 aVertexVelocities; //rename aParticleVelocities
 	    attribute vec2 aParticleIndex; 
@@ -105,7 +119,7 @@
 	    uniform mat4 uMVMatrix; // necessary?
 	    uniform mat4 uPMatrix;
 	    
-	    varying vec3 newPosition; //necessary?
+	   
 	   	varying vec3 v_color;
 	   	
 	    void main(void) {
@@ -123,19 +137,18 @@
 			//gl_Position = vec4(v_color - 0.5,1.0);
 			//v_color = (oldPosition);
 			//v_color = vec3(1.0);
-			v_color = vec3(abs(oldPosition.z),(oldVelocity.x),(gl_Position).y);
+			v_color = abs(oldVelocity);
 		    // ---
 	    }
 
 	</script>
 	<script id="fragment-render" type="x-shader/x-fragment">
-	    precision mediump float;
+	    precision lowp float;
 	    	
-	    varying vec3 newPosition; //necessary?
 	   	varying vec3 v_color;
 	    void main(void) {
 	    	
-    			gl_FragColor = vec4(v_color, 0.1);
+    			gl_FragColor = vec4(v_color, 0.4);
    		    }
 	</script>
 	<script src="Particle.js" type="text/javascript"></script>

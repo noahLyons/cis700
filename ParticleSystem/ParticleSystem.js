@@ -66,9 +66,9 @@ var ParticleSystem = [];
 	       		this.velocities.push(0.0);
 	       		this.velocities.push(1.0);
 
-	       		this.startPositions.push(Math.random() * particle.v0[0]);
-	       		this.startPositions.push(Math.random() * particle.v0[1]);
-	       		this.startPositions.push(Math.random() * particle.v0[2]);
+	       		this.startPositions.push(particle.v0[0]);
+	       		this.startPositions.push(particle.v0[1]);
+	       		this.startPositions.push(particle.v0[2]);
 	       		this.startPositions.push(1.0);
 
 	       		var xIndex = Math.floor(i % this.textureSideLength) / this.textureSideLength ;

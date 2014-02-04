@@ -50,7 +50,7 @@ function drawScene() {
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
 
-    gl.enableVertexAttribArray(saveProgram.vertexAccelerations); 
+    //gl.enableVertexAttribArray(saveProgram.vertexAccelerations); 
    // gl.enableVertexAttribArray(saveProgram.vertexVelocities); 
     gl.enableVertexAttribArray(saveProgram.particleIndexAttribute); 
    
@@ -83,8 +83,8 @@ function drawScene() {
     systemCycles++; 
 
 
-    mat4.rotate(mvMatrix, mvMatrix, Math.PI/30.0, [1, 1, 0]);
-    setMatrixUniforms();   
+    // mat4.rotate(mvMatrix, mvMatrix, Math.PI/30.0, [1, 1, 0]);
+    // setMatrixUniforms();   
 }
 
 
@@ -199,7 +199,7 @@ function initShaders() {
     renderProgram.uParticleVelocitiesrender = gl.getUniformLocation(saveProgram, "uParticleVelocities");   
     
     gl.useProgram(saveProgram);
-    saveProgram.vertexAccelerations = gl.getAttribLocation(saveProgram,"aVertexAccelerations");
+    //saveProgram.vertexAccelerations = gl.getAttribLocation(saveProgram,"aVertexAccelerations");
     //saveProgram.vertexVelocities = gl.getAttribLocation(saveProgram,"aVertexVelocities");
     saveProgram.particleIndexAttribute = gl.getAttribLocation(saveProgram,"aParticleIndex");
     saveProgram.uParticlePositionssave = gl.getUniformLocation(saveProgram, "uParticlePositions");
@@ -229,14 +229,16 @@ function createBuffer(itemSize, numItems, content, locationRender, locationSave)
 function initBuffers(mySystem) {
     //initialize uniforms
     setMatrixUniforms();
-    gl.uniform1f(saveProgram.utextureSideLength, mySystem.textureSideLength);
+    gl.uniform1i(saveProgram.utextureSideLength, mySystem.textureSideLength);
 
     //create attribute buffers
+    /*
     createBuffer(3, //item size
                  mySystem.maxParticles, //num items
                  mySystem.accelerations, //data
                  renderProgram.vertexAccelerations,
                  saveProgram.vertexAccelerations); //location
+*/
     /*
     createBuffer(3, //item size
                  mySystem.maxParticles, //num items
