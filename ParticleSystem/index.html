@@ -8,53 +8,100 @@
 	<!-- glMatrix version 2.2.0 -->
 	<script type="text/javascript" src="gl-matrix-min.js"></script>
 	<script id="vertex-save" type="x-shader/x-vertex">
-		precision lowp float;
-	    attribute vec3 aVertexVelocities; //rename aParticleVelocities
+		
+		precision highp float;
+		attribute vec3 aVertexAccelerations;
+	    //attribute vec3 aVertexVelocities; //rename aParticleVelocities
 	    attribute vec2 aParticleIndex; 
 
- 	    uniform sampler2D uParticleStartPositions; //rename uParticleStartPositions
+
+	    uniform float uTextureSideLength;
+	    uniform sampler2D uParticleVelocities;
+ 	    uniform sampler2D uParticlePositions; 
+
+
 	   	uniform float uTime;
 
 	    varying vec3 newPosition;
+	   	varying vec3 newVelocity;
+	   	/*
+	   	vec3 getAccellerationFromBody()
 	   	
+	   	vec3 accumulateAcceleration(){
+	   		vec3 accelleration = 0.0;
+	   		float uvStep = 1.0 / uTextureSideLength;
+	   		vec2 otherUv = vec2(0.0);
+	   		for(int i = 0; i < uTextureSideLength; i++){
+	   			otherUv.x += uvStep; 
+	   			for(int j = 0; j < uTextureSideLength; j++){
+	   				otherUv.y += uvStep;
+	   				vec3 other = texture2D(uParticlePositions, otherUv);
+	   				accelleration += 0.01;
+	   			}
+	   		}
+	   	}
+	*/
 	    void main(void) {
-		   	vec3 oldPosition = texture2D(uParticleStartPositions, aParticleIndex).rgb;
-		   	// vec3 oldPosition = texture2D(uParticleStartPositions,(0.5 + vec2(aParticleIndex.s, aParticleIndex.t)/2.0)).rgb;
+		   	vec3 oldPosition = texture2D(uParticlePositions, aParticleIndex).rgb;
+		   	vec3 oldVelocity = texture2D(uParticleVelocities, aParticleIndex).rgb;
+		   /*
+		   	float moddy = mod(uTime,4.0);
+		   	if( moddy > 1.0 && moddy < 3.0){
 
-	    	if (uTime > 100.0 ) { // make dots reverse direction
-	    		 newPosition = oldPosition - (1.0 * aVertexVelocities);
-			}
+		   		oldVelocity *= -1.0;
+		   	}
+			*/
+
+
+			float yVariation = 0.1 + abs(oldPosition.y);
+		    newVelocity = oldVelocity + aVertexAccelerations;
+		    // if(length(newVelocity) > 10.0){
+		    // 	newVelocity /= 50.0;
+		    // }
+		    if(length(newVelocity) > 20.0){
+		    	newVelocity *= -1.0;// length(newVelocity);
+		    }
+		   
+
 			// updated position to be written to texture in frag shader
-			else {
-				newPosition = oldPosition + aVertexVelocities;
+			
+			newPosition = oldPosition + newVelocity;
+			if(length(newPosition) > 6.0)
+			{
+				newPosition = vec3(0.0);
 			}
 			vec2 glSpaceIndex = 2.0 * (aParticleIndex - 0.5);
 			// set data write location 
 	    	gl_Position = vec4(glSpaceIndex, 0.0, 1.0); 
-
+	    	
 	    	// Set particle size
 	    	gl_PointSize = 1.0;
 	    }
 
 	</script>
 	<script id="fragment-save" type="x-shader/x-fragment">
-	    precision lowp float;
+		#extension GL_EXT_draw_buffers : require
+	    precision highp float;
 	 
 	    varying vec3 newPosition;
-	   	
+	   	varying vec3 newVelocity;
+
 	    void main(void) {
-	    	// Saves the new position to location determined in vertex shader
-  			gl_FragColor = vec4(newPosition, 1.0);
+	    	// Saves the new position and accelleration to location determined in vertex shader
+  			gl_FragData[0] = vec4(newPosition, 1.0);
+  			gl_FragData[1] = vec4(newVelocity,1.0);
 	    }
 	</script>
 
 	<script id="vertex-render" type="x-shader/x-vertex">
-		precision lowp float;
+		
+		precision mediump float;
 
-	    attribute vec3 aVertexVelocities; //rename aParticleVelocities
+	    //attribute vec3 aVertexVelocities; //rename aParticleVelocities
 	    attribute vec2 aParticleIndex; 
 	   
- 	    uniform sampler2D uParticleStartPositions;  //rename uParticleStartPositions
+	   	uniform sampler2D uParticleVelocities;
+ 	    uniform sampler2D uParticlePositions;  //rename uParticlePositions
 	    uniform mat4 uMVMatrix; // necessary?
 	    uniform mat4 uPMatrix;
 	    
@@ -63,10 +110,11 @@
 	   	
 	    void main(void) {
 	    
-	    	// Index into the buffer uParticleStartPositions with aParticleIndex 
-			vec3 oldPosition = texture2D(uParticleStartPositions, aParticleIndex).rgb;
-				    		
-	       	gl_Position = uPMatrix * vec4(oldPosition, 1.0);//write 
+	    	// Index into the buffer uParticlePositions with aParticleIndex 
+			vec3 oldPosition = texture2D(uParticlePositions, aParticleIndex).rgb;
+			vec3 oldVelocity = texture2D(uParticleVelocities, aParticleIndex).rgb;	    		
+	       	gl_Position = uPMatrix * uMVMatrix * vec4(oldPosition, 1.0);//write 
+	       	//gl_Position = vec4(aParticleIndex,0.0,1.0);
 
 	       	gl_PointSize = 1.0;
 
@@ -75,18 +123,19 @@
 			//gl_Position = vec4(v_color - 0.5,1.0);
 			//v_color = (oldPosition);
 			//v_color = vec3(1.0);
+			v_color = vec3(abs(oldPosition.z),(oldVelocity.x),(gl_Position).y);
 		    // ---
 	    }
 
 	</script>
 	<script id="fragment-render" type="x-shader/x-fragment">
-	    precision highp float;
+	    precision mediump float;
 	    	
 	    varying vec3 newPosition; //necessary?
 	   	varying vec3 v_color;
 	    void main(void) {
 	    	
-    			gl_FragColor = vec4(v_color, 0.4);
+    			gl_FragColor = vec4(v_color, 0.1);
    		    }
 	</script>
 	<script src="Particle.js" type="text/javascript"></script>

@@ -10,16 +10,16 @@ var ParticleSystem = [];
 
 	function particleSystem(maxVelocity) {
 
-		this.rowLength = 512;
-		this.maxParticles = this.rowLength * this.rowLength;
+		this.textureSideLength = 512;
+		this.maxParticles = this.textureSideLength * this.textureSideLength;
 		
 		this.particles = [];
 		this.velocities = [];
 		this.accelerations = []; 
 		this.startPositions = [];
 		this.textureMemoryLocation = [];
-
-		this.maxVelocity = 0.014;
+		this.maxAcceleration = 0.05;
+		this.maxVelocity = 1.0;
 		this.minVelocity = -0.0014;
 
 		this.init();
@@ -38,6 +38,12 @@ var ParticleSystem = [];
 		    var z = this.maxVelocity * Math.cos(phi)*Math.sin(theta);
 		    return vec3.fromValues(x,y,z);
 		},
+		getRandomVec3 : function() {
+			var x = (Math.random() - 0.5) * this.maxAcceleration;
+			var y = (Math.random() - 0.5) * this.maxAcceleration;
+			var z = (Math.random() - 0.5) * this.maxAcceleration;
+			return vec3.fromValues(x,y,z);
+		},
 
 		init : function() {
 
@@ -46,20 +52,26 @@ var ParticleSystem = [];
 	    	for(i = 0; i < max_parts; i++) {
 
 	       		var startingVelocity = this.getStartingVelocity();
-
+	       		var startingAcceleration = this.getRandomVec3();
 	       		
 	       		var particle = new Particle(startingVelocity);
 
-	       		this.velocities.push(0.0);
-	       		this.velocities.push(0.0);
-	       		this.velocities.push(0.0);
+	       		this.accelerations.push(startingAcceleration[0]);
+	       		this.accelerations.push(startingAcceleration[1]);
+	       		this.accelerations.push(startingAcceleration[2]);
 	       		
-	       		this.startPositions.push(particle.v0[0]);
-	       		this.startPositions.push(particle.v0[1]);
-	       		this.startPositions.push(particle.v0[2]);
+
+	       		this.velocities.push(0.0);
+	       		this.velocities.push(0.0);
+	       		this.velocities.push(0.0);
+	       		this.velocities.push(1.0);
+
+	       		this.startPositions.push(Math.random() * particle.v0[0]);
+	       		this.startPositions.push(Math.random() * particle.v0[1]);
+	       		this.startPositions.push(Math.random() * particle.v0[2]);
 	       		this.startPositions.push(1.0);
 
-	       		var xIndex = Math.floor(i % this.rowLength) / this.rowLength ;
+	       		var xIndex = Math.floor(i % this.textureSideLength) / this.textureSideLength ;
 		        var yIndex = i / this.maxParticles; 
 
 	       		this.textureMemoryLocation.push(xIndex);
