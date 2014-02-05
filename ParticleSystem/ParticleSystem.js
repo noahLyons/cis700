@@ -10,7 +10,7 @@ var ParticleSystem = [];
 
 	function particleSystem(maxVelocity) {
 
-		this.textureSideLength = 512;
+		this.textureSideLength = 128;
 		this.maxParticles = this.textureSideLength * this.textureSideLength;
 		
 		this.particles = [];
@@ -19,7 +19,7 @@ var ParticleSystem = [];
 		this.startPositions = [];
 		this.textureMemoryLocation = [];
 		this.maxAcceleration = 0.05;
-		this.maxVelocity = 1.0;
+		this.maxVelocity = 2.0;
 		this.minVelocity = -0.0014;
 
 		this.init();
@@ -31,12 +31,18 @@ var ParticleSystem = [];
 		
 		getStartingVelocity : function() {
 
-		    var theta = Math.random() * Math.PI;
-		    var phi = 2 * (Math.random() * Math.PI - Math.PI / 2);
-		    var x = this.maxVelocity * Math.cos(phi)*Math.cos(theta);
-		    var y = this.maxVelocity * Math.sin(phi);
-		    var z = this.maxVelocity * Math.cos(phi)*Math.sin(theta);
-		    return vec3.fromValues(x,y,z);
+		    var theta = Math.random() * Math.PI * 2.0;
+		    var phi = (Math.random() * ((Math.PI * 1.0)));// - (Math.PI / 4)));
+		    var x = this.maxVelocity * Math.sin(phi)*Math.cos(theta);
+		    var z = this.maxVelocity * Math.cos(phi);
+		    var y = this.maxVelocity * Math.sin(phi)*Math.sin(theta);
+		    x = 2.0 * ( Math.random() - 0.5);
+		    y = 2.0 * ( Math.random() - 0.5);
+		    z = 2.0 * (Math.random() - 0.5);
+
+		    var result = vec3.fromValues(x,y,z);
+		    vec3.normalize(result,result);
+		    return result;
 		},
 		getRandomVec3 : function() {
 			var x = (Math.random() - 0.5) * this.maxAcceleration;
@@ -69,7 +75,7 @@ var ParticleSystem = [];
 	       		this.startPositions.push(particle.v0[0]);
 	       		this.startPositions.push(particle.v0[1]);
 	       		this.startPositions.push(particle.v0[2]);
-	       		this.startPositions.push(1.0);
+	       		this.startPositions.push(Math.random());
 
 	       		var xIndex = Math.floor(i % this.textureSideLength) / this.textureSideLength ;
 		        var yIndex = i / this.maxParticles; 

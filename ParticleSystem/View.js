@@ -62,11 +62,11 @@ function drawScene() {
     gl.viewport(0,0, gl.viewportWidth, gl.viewportHeight)
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, positionTextures[destIndex]);
+    gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
     gl.uniform1i(renderProgram.uParticlePositionsrender, 0);
 
     gl.activeTexture(gl.TEXTURE1)
-    gl.bindTexture(gl.TEXTURE_2D, velocityTextures[destIndex]);
+    gl.bindTexture(gl.TEXTURE_2D, velocityTextures[srcIndex]);
     gl.uniform1i(renderProgram.uParticleVelocitiesrender, 1);
 
     //bind the default frame buffer, disable depth testing and enable alpha blending
@@ -83,7 +83,7 @@ function drawScene() {
     systemCycles++; 
 
 
-    // mat4.rotate(mvMatrix, mvMatrix, Math.PI/30.0, [1, 1, 0]);
+   // mat4.rotate(mvMatrix, mvMatrix, Math.PI/200.0, [1, 1, 0]);
     // setMatrixUniforms();   
 }
 
@@ -340,7 +340,7 @@ function webGLStart() {
                      gl.viewportWidth / gl.viewportHeight, 
                      0.1, 100.0);
     mat4.lookAt(mvMatrix, 
-                vec3.fromValues(0,0,5),
+                vec3.fromValues(0,0,2),
                 vec3.fromValues(0,0,0),
                 vec3.fromValues(0,1,0));
     mat4.mul(pMatrix, pMatrix, mvMatrix);
