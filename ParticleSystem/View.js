@@ -1,6 +1,8 @@
 
 //----------------------------------------------------------------GLOBALS:
 
+var INITIAL_PARTICLES = 16;
+
 var canvas;
 var gl;
 var system;
@@ -13,7 +15,6 @@ var srcIndex, destIndex;
 var positionTextures = [];
 var velocityTextures = [];
 //--------------------------------------------------------------FUNCTIONS:
-
 
 
 function drawScene() {
@@ -207,7 +208,6 @@ function initShaders() {
     saveProgram.uParticleVelocitiessave = gl.getUniformLocation(saveProgram, "uParticleVelocities");
     saveProgram.uTime = gl.getUniformLocation(saveProgram, "uTime");
     saveProgram.uTextureSideLength = gl.getUniformLocation(saveProgram, "uTextureSideLength");
-
 }
 
 /*
@@ -224,35 +224,20 @@ function createBuffer(itemSize, numItems, content, locationRender, locationSave)
     gl.vertexAttribPointer(locationRender, itemSize, gl.FLOAT, false, 0, 0);  
     gl.vertexAttribPointer(locationSave, itemSize, gl.FLOAT, false, 0, 0);
    // gl.enableVertexAttribArray(locationSave);   
-
 }
  
 function initBuffers(mySystem) {
-    //initialize uniforms
+
+    // initialize uniforms
     setMatrixUniforms();
     gl.uniform1i(saveProgram.uTextureSideLength, mySystem.textureSideLength);
 
-    //create attribute buffers
-    /*
-    createBuffer(3, //item size
-                 mySystem.maxParticles, //num items
-                 mySystem.accelerations, //data
-                 renderProgram.vertexAccelerations,
-                 saveProgram.vertexAccelerations); //location
-*/
-    /*
-    createBuffer(3, //item size
-                 mySystem.maxParticles, //num items
-                 mySystem.velocities, //data
-                 renderProgram.vertexVelocities,
-                 saveProgram.vertexVelocities); //location
-*/
+    // create attribute bufferf
     createBuffer(2, //item size
                  mySystem.maxParticles, //num items
                  mySystem.textureMemoryLocation, //data
                  renderProgram.particleIndexAttribute,
                  saveProgram.particleIndexAttribute); //location
-
     
     positionTextures.length = 0;
     positionTextures.push(generateTexture(system.startPositions));
@@ -321,28 +306,54 @@ function swapSrcDestIndices() {
         destIndex = 0;
     }
 }
+
 function initSystem(count) {
     system = new ParticleSystem(count);
     textureSize = system.maxParticles;
     initBuffers(system);
 }
+
+function initUiButtons() {
+
+    var ui = new UI("uiWrapper");
+    
+    //-----PARTICLE COUNT
+    var countCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        // calc 
+        var textureEdgeLength = Math.pow(2, newSliderVal);
+        // 
+        system = new ParticleSystem(textureEdgeLength);
+        textureSize = system.maxParticles;
+        initBuffers(system);
+        // Return new label for slider
+        return Math.pow(textureEdgeLength, 2) + " Particles";
+    };
+
+    ui.addSlider(INITIAL_PARTICLES + " Particles ", 
+                 countCallback, 
+                 4, // value (power of 2)
+                 2, 8, // min, max
+                 1); // step
+    //-----
+}
+
+
+
 function webGLStart() {
+
+    canvas = document.getElementById("glcanvas");
 
     frameTurn = true;
 
-    canvas = document.getElementById("glcanvas");
-    var particleCountSlider = document.getElementById("particleCount");
-    particleCountSlider.addEventListener("input", function(e){
-        var count = e.target.value;
-        count = Math.pow(2,count);
-        var label = document.getElementById("particleCountid");
-        label.innerText = Math.pow(count,2) + " Particles";
-        initSystem(count);
-
-    } );
     initGL(canvas);
     initShaders();
-    initSystem(128);
+    initSystem(INITIAL_PARTICLES);
+
+    initUiButtons();
+
+
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
