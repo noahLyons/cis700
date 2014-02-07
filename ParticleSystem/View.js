@@ -10,7 +10,8 @@ var systemCycles = 0.0;
 var mvMatrix = mat4.create();
 var pMatrix = mat4.create();
 var srcIndex, destIndex;
-
+var positionTextures = [];
+var velocityTextures = [];
 //--------------------------------------------------------------FUNCTIONS:
 
 
@@ -229,7 +230,7 @@ function createBuffer(itemSize, numItems, content, locationRender, locationSave)
 function initBuffers(mySystem) {
     //initialize uniforms
     setMatrixUniforms();
-    gl.uniform1i(saveProgram.utextureSideLength, mySystem.textureSideLength);
+    gl.uniform1i(saveProgram.uTextureSideLength, mySystem.textureSideLength);
 
     //create attribute buffers
     /*
@@ -253,11 +254,11 @@ function initBuffers(mySystem) {
                  saveProgram.particleIndexAttribute); //location
 
     
-    positionTextures = [];
+    positionTextures.length = 0;
     positionTextures.push(generateTexture(system.startPositions));
     positionTextures.push(generateTexture(system.startPositions));
 
-    velocityTextures = [];
+    velocityTextures.length = 0;
     velocityTextures.push(generateTexture(system.velocities));
     velocityTextures.push(generateTexture(system.velocities));
 
@@ -320,17 +321,28 @@ function swapSrcDestIndices() {
         destIndex = 0;
     }
 }
-
+function initSystem(count) {
+    system = new ParticleSystem(count);
+    textureSize = system.maxParticles;
+    initBuffers(system);
+}
 function webGLStart() {
 
     frameTurn = true;
 
     canvas = document.getElementById("glcanvas");
+    var particleCountSlider = document.getElementById("particleCount");
+    particleCountSlider.addEventListener("input", function(e){
+        var count = e.target.value;
+        count = Math.pow(2,count);
+        var label = document.getElementById("particleCountid");
+        label.innerText = Math.pow(count,2) + " Particles";
+        initSystem(count);
+
+    } );
     initGL(canvas);
     initShaders();
-    system = new ParticleSystem();
-    textureSize = system.maxParticles;
-    initBuffers(system);
+    initSystem(128);
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 

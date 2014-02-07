@@ -8,9 +8,9 @@ var ParticleSystem = [];
 
 //-----------------------------------------------------------CONSTRUCTORS:
 
-	function particleSystem(maxVelocity) {
+	function particleSystem(count) {
 
-		this.textureSideLength = 128;
+		this.textureSideLength = count;
 		this.maxParticles = this.textureSideLength * this.textureSideLength;
 		
 		this.particles = [];

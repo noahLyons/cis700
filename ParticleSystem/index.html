@@ -9,7 +9,7 @@
 	<script type="text/javascript" src="gl-matrix-min.js"></script>
 	<script id="vertex-save" type="x-shader/x-vertex">
 		
-		precision lowp float;
+		precision mediump float;
 		//attribute vec3 aVertexAccelerations;
 	    //attribute vec3 aVertexVelocities; //rename aParticleVelocities
 	    attribute vec2 aParticleIndex; 
@@ -18,8 +18,7 @@
 	    uniform int uTextureSideLength;
 	    uniform sampler2D uParticleVelocities;
  	    uniform sampler2D uParticlePositions; 
- 	    const float cheatLength = 128.0;
- 	    const int cheatLengthLoop = 128;
+  	    const int max_Iterations = 64;
 
 	   	uniform float uTime;
 
@@ -33,9 +32,9 @@
 	   		
 	   		vec2 otherUv = vec2(0.0);
 
-	   		for(int i = 0; i < cheatLengthLoop; i+= 1){
+	   		for(int i = 0; i < max_Iterations; i++){
 	   			
-	   			for(int j = 0; j < cheatLengthLoop; j+= 1){
+	   			for(int j = 0; j < max_Iterations; j++){
 	   				
 	   				
 	   				
@@ -44,7 +43,7 @@
 	   				float distanceSquared = dot(distance,distance);
 
 	   				if(distanceSquared > 0.00000000001){
-						accelleration += position.a * otherPosition.a * distance * (0.0000001/distanceSquared);
+						accelleration += position.a * otherPosition.a * distance * (0.000001/distanceSquared);
 	   					
 	   				}
 	   				otherUv.y += uvStep;
@@ -69,7 +68,7 @@
 
 
 			//float uvStep = rand(aParticleIndex) * 0.030125;
-			float uvStep = 1.0 / 128.0;
+			float uvStep = 1.0 / float(max_Iterations);// float(uTextureSideLength);
 			vec3 accellerationFinal = accumulateAcceleration(oldPosition,uvStep);
 			
 		    newVelocity = oldVelocity.rgb + accellerationFinal;
@@ -84,6 +83,7 @@
 			// updated position to be written to texture in frag shader
 			
 			newPosition = vec4(oldPosition.rgb + newVelocity,oldPosition.a);
+
 			// if(length(newPosition) > 6.0)
 			// {
 			// 	newPosition = vec3(0.0);
@@ -99,7 +99,7 @@
 	</script>
 	<script id="fragment-save" type="x-shader/x-fragment">
 		#extension GL_EXT_draw_buffers : require
-	    precision lowp float;
+	    precision mediump float;
 	 
 	    varying vec4 newPosition;
 	   	varying vec3 newVelocity;
@@ -166,6 +166,8 @@
 	<canvas id="glcanvas" width="600" height="600">
 		Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
 	</canvas>
+	<label for="particleCount" id="particleCountid">1024 Particles</label>
+	<input id="particleCount" type="range" min=6 max=11 step=1 value=7>
 </body>
 
 
