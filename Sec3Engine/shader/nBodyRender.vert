@@ -1,4 +1,4 @@
-precision lowp float;
+precision mediump float;
 
 //attribute vec3 aVertexVelocities; //rename aParticleVelocities
 attribute vec2 aParticleIndex; 

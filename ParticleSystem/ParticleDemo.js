@@ -17,15 +17,18 @@ var velocityTextures = [];
 //--------------------------------------------------------------FUNCTIONS:
 
 function renderLoop() {
+
     requestAnimationFrame(renderLoop);
     drawScene();
 }
+
 function drawScene() {
 
 
     // Determine from which position particle info will be read and written
     swapSrcDestIndices();
 
+    //--------------------------------UPDATE PARTICLE POSITIONS:
 
     gl.useProgram(saveProgram.ref());
     gl.bindFramebuffer(gl.FRAMEBUFFER, fboPositions); 
@@ -42,7 +45,6 @@ function drawScene() {
                             velocityTextures[destIndex], 
                             0); 
 
-    gl.uniform1f(saveProgram.uTime,(systemCycles * 0.014));
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
     gl.uniform1i(saveProgram.uParticlePositionssave, 0);
@@ -55,22 +57,22 @@ function drawScene() {
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
 
-    //gl.enableVertexAttribArray(saveProgram.ref().vertexAccelerations); 
-   // gl.enableVertexAttribArray(saveProgram.ref().vertexVelocities); 
-    gl.enableVertexAttribArray(saveProgram.particleIndexAttribute); 
-   
-    gl.drawArrays(gl.POINTS, 0, system.maxParticles); 
-    
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.enableVertexAttribArray(saveProgram.aVertexPosition);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6); 
+    
+    //-------------------------------------------DRAW PARTICLES:
 
     gl.useProgram(renderProgram.ref());
-    gl.viewport(0,0, gl.viewportWidth, gl.viewportHeight)
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight)
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
     gl.uniform1i(renderProgram.uParticlePositionsrender, 0);
 
-    gl.activeTexture(gl.TEXTURE1)
+    gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, velocityTextures[srcIndex]);
     gl.uniform1i(renderProgram.uParticleVelocitiesrender, 1);
     gl.uniformMatrix4fv(renderProgram.mvMatrixUniform, false, camera.getViewTransform());
@@ -78,10 +80,11 @@ function drawScene() {
     gl.disable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    gl.bindFramebuffer(gl.FRAMEBUFFER,null); //bind the default frame buffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); //bind the default frame buffer
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     //enable particle index and draw particles to the screen
+    gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer);
     gl.enableVertexAttribArray(renderProgram.particleIndexAttribute); 
     gl.drawArrays(gl.POINTS, 0, system.maxParticles); 
 
@@ -127,23 +130,7 @@ function initGL(canvas) {
     }
 }
 
-function createProgram(fragName, vertName) {
 
-    var fragmentShader = getShader(gl, fragName);
-    var vertexShader = getShader(gl, vertName);
-    var shaderProgram = gl.createProgram();
-
-    gl.attachShader(shaderProgram, vertexShader);
-    gl.attachShader(shaderProgram, fragmentShader);
-
-    gl.linkProgram(shaderProgram);
-
-    if (! gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-
-        alert("failed to initialize shaders");
-    }
-    return shaderProgram;
-}
 
 function initShaders() {
 
@@ -153,11 +140,11 @@ function initShaders() {
     renderProgram = SEC3ENGINE.createShaderProgram();
     renderProgram.loadShader(gl, "Sec3Engine/shader/nBodyRender.vert", "Sec3Engine/shader/nBodyRender.frag");
     renderProgram.addCallback( function(){
-    renderProgram.particleIndexAttribute = gl.getAttribLocation(renderProgram.ref(), "aParticleIndex");
-    renderProgram.pMatrixUniform = gl.getUniformLocation(renderProgram.ref(), "uPMatrix");
-    renderProgram.mvMatrixUniform = gl.getUniformLocation(renderProgram.ref(), "uMVMatrix");
-    renderProgram.uParticlePositionsrender = gl.getUniformLocation(renderProgram.ref(), "uParticlePositions");
-    renderProgram.uParticleVelocitiesrender = gl.getUniformLocation(renderProgram.ref(), "uParticleVelocities");   
+        renderProgram.particleIndexAttribute = gl.getAttribLocation(renderProgram.ref(), "aParticleIndex");
+        renderProgram.pMatrixUniform = gl.getUniformLocation(renderProgram.ref(), "uPMatrix");
+        renderProgram.mvMatrixUniform = gl.getUniformLocation(renderProgram.ref(), "uMVMatrix");
+        renderProgram.uParticlePositionsrender = gl.getUniformLocation(renderProgram.ref(), "uParticlePositions");
+        renderProgram.uParticleVelocitiesrender = gl.getUniformLocation(renderProgram.ref(), "uParticleVelocities");   
         
     });
 
@@ -170,12 +157,9 @@ function initShaders() {
     saveProgram.loadShader(gl, "Sec3Engine/shader/nBodyUpdate.vert", "Sec3Engine/shader/nBodyUpdate.frag");
     saveProgram.addCallback( function(){
         gl.useProgram(saveProgram.ref());
-        //saveProgram.vertexAccelerations = gl.getAttribLocation(saveProgram,"aVertexAccelerations");
-        //saveProgram.vertexVelocities = gl.getAttribLocation(saveProgram,"aVertexVelocities");
-        saveProgram.particleIndexAttribute = gl.getAttribLocation(saveProgram.ref(),"aParticleIndex");
+        saveProgram.aVeretexPosition = gl.getAttribLocation(saveProgram.ref(),"aVertexPosition");
         saveProgram.uParticlePositionssave = gl.getUniformLocation(saveProgram.ref(), "uParticlePositions");
         saveProgram.uParticleVelocitiessave = gl.getUniformLocation(saveProgram.ref(), "uParticleVelocities");
-        saveProgram.uTime = gl.getUniformLocation(saveProgram.ref(), "uTime");
         saveProgram.uMassMultiplier = gl.getUniformLocation(saveProgram.ref(), "uMassMultiplier");
     });
 
@@ -185,7 +169,7 @@ function initShaders() {
 /*
  * Boolean useVetexShader 
  */
-function createBuffer(itemSize, numItems, content, locationRender, locationSave) {
+function createBuffer(itemSize, numItems, content, location) {
 
     var newBuffer = gl.createBuffer();  
     newBuffer.itemSize = itemSize;
@@ -193,9 +177,9 @@ function createBuffer(itemSize, numItems, content, locationRender, locationSave)
     gl.bindBuffer(gl.ARRAY_BUFFER, newBuffer);
     var vert32Array = new Float32Array(content);
     gl.bufferData(gl.ARRAY_BUFFER, vert32Array, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(locationRender, itemSize, gl.FLOAT, false, 0, 0);  
-    gl.vertexAttribPointer(locationSave, itemSize, gl.FLOAT, false, 0, 0);
-   // gl.enableVertexAttribArray(locationSave);   
+    gl.vertexAttribPointer(location, itemSize, gl.FLOAT, false, 0, 0);  
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    return newBuffer;
 }
  
 function initBuffers(mySystem) {
@@ -203,14 +187,26 @@ function initBuffers(mySystem) {
     // initialize uniforms
     setMatrixUniforms();
     gl.useProgram(saveProgram.ref());
+
     gl.uniform1f(saveProgram.uMassMultiplier, mySystem.massMultiplier);
 
+
+
     // create attribute bufferf
-    createBuffer(2, //item size
-                 mySystem.maxParticles, //num items
-                 mySystem.textureMemoryLocation, //data
-                 renderProgram.particleIndexAttribute,
-                 saveProgram.particleIndexAttribute); //location
+    indexBuffer = createBuffer(2, //item size
+                               mySystem.maxParticles, //num items
+                               mySystem.textureMemoryLocation, //data
+                               renderProgram.particleIndexAttribute); //location
+                   
+
+
+    var test = SEC3ENGINE.geometry.fullScreenQuad();
+    // create fullScreen Quad buffer
+    quadBuffer = createBuffer(2, 
+                 6,
+                 SEC3ENGINE.geometry.fullScreenQuad(),
+                 saveProgram.aVeretexPosition);
+
     
     positionTextures.length = 0;
     positionTextures.push(generateTexture(system.startPositions));
@@ -233,8 +229,7 @@ function initBuffers(mySystem) {
 }
 // creates an RGBA texture of particles x particles dimesnsions
 // and fills it with values 
-function generateTexture(values){
-
+function generateTexture(values) {
 
     var texture = gl.createTexture();
 
