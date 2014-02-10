@@ -59,6 +59,7 @@ function drawScene() {
 
 
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.vertexAttribPointer(saveProgram.aVertexPosition, 2, gl.FLOAT, false, 0, 0); 
     gl.enableVertexAttribArray(saveProgram.aVertexPosition);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6); 
@@ -85,6 +86,7 @@ function drawScene() {
 
     //enable particle index and draw particles to the screen
     gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer);
+    gl.vertexAttribPointer(renderProgram.particleIndexAttribute, 2, gl.FLOAT, false, 0, 0); 
     gl.enableVertexAttribArray(renderProgram.particleIndexAttribute); 
     gl.drawArrays(gl.POINTS, 0, system.maxParticles); 
 
@@ -94,9 +96,6 @@ function drawScene() {
    // mat4.rotate(mvMatrix, mvMatrix, Math.PI/200.0, [1, 1, 0]);
     // setMatrixUniforms();   
 }
-
-
-
 
 
 function initGL(canvas) {
