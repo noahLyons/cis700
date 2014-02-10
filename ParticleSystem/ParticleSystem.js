@@ -4,11 +4,38 @@ var ParticleSystem = [];
 
 //-------------------------------------------------------CONSTANTS/FIELDS:
 
-	
+	/*
+
+
+float duration; 		 The duration of the particle system in seconds
+emissionRate			// The rate of emission.
+enableEmission			When set to false, the particle system will not emit particles.
+gravityModifier			Scale being applied to the gravity defined by Physics.gravity.
+isPaused				Is the particle system paused right now ?
+isPlaying				Is the particle system playing right now ?
+isStopped				Is the particle system stopped right now ?
+loop					Is the particle system looping?
+maxParticles			The maximum number of particles to emit.
+particleCount			The current number of particles (Read Only).
+playbackSpeed			The playback speed of the particle system. 1 is normal playback speed.
+playOnAwake				If set to true, the particle system will automatically start playing on startup.
+randomSeed				Random seed used for the particle system emission. If set to 0, it will be assigned a random value on awake.
+safeCollisionEventSize	Safe array size for use with ParticleSystem.GetCollisionEvents.
+simulationSpace			This selects the space in which to simulate particles. It can be either world or local space.
+startColor				The initial color of particles when emitted.
+startDelay				Start delay in seconds.
+startLifetime			The total lifetime in seconds that particles will have when emitted. When using curves, this values acts as a scale on the curve. This value is set in the particle when it is create by the particle system.
+startRotation			The initial rotation of particles when emitted. When using curves, this values acts as a scale on the curve.
+startSize				The initial size of particles when emitted. When using curves, this values acts as a scale on the curve.
+startSpeed				The initial speed of particles when emitted. When using curves, this values acts as a scale on the curve.
+time					Playback position in seconds.
+
+
+	*/
 
 //-----------------------------------------------------------CONSTRUCTORS:
 
-	function particleSystem(count) {
+	function particleSystem(count,massMultiplier) {
 
 		this.textureSideLength = count;
 		this.maxParticles = this.textureSideLength * this.textureSideLength;
@@ -21,7 +48,7 @@ var ParticleSystem = [];
 		this.maxAcceleration = 0.05;
 		this.maxVelocity = 2.0;
 		this.minVelocity = -0.0014;
-
+		this.massMultiplier = massMultiplier;
 		this.init();
 	}
 	

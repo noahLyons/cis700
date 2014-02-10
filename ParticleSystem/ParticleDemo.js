@@ -1,8 +1,8 @@
 
 //----------------------------------------------------------------GLOBALS:
 
-var INITIAL_PARTICLES = 16;
-
+var INITIAL_PARTICLES = 128;
+var INITIAL_MASS_MULTIPLIER = 1.0;
 var canvas;
 var gl;
 var system;
@@ -16,15 +16,18 @@ var positionTextures = [];
 var velocityTextures = [];
 //--------------------------------------------------------------FUNCTIONS:
 
-
+function renderLoop() {
+    requestAnimationFrame(renderLoop);
+    drawScene();
+}
 function drawScene() {
 
-    requestAnimationFrame(drawScene);
+
     // Determine from which position particle info will be read and written
     swapSrcDestIndices();
 
 
-    gl.useProgram(saveProgram);
+    gl.useProgram(saveProgram.ref());
     gl.bindFramebuffer(gl.FRAMEBUFFER, fboPositions); 
     gl.viewport(0, 0, system.textureSideLength, system.textureSideLength);
     // set the texture to which the fboPositions will save updated state
@@ -52,15 +55,15 @@ function drawScene() {
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
 
-    //gl.enableVertexAttribArray(saveProgram.vertexAccelerations); 
-   // gl.enableVertexAttribArray(saveProgram.vertexVelocities); 
+    //gl.enableVertexAttribArray(saveProgram.ref().vertexAccelerations); 
+   // gl.enableVertexAttribArray(saveProgram.ref().vertexVelocities); 
     gl.enableVertexAttribArray(saveProgram.particleIndexAttribute); 
    
     gl.drawArrays(gl.POINTS, 0, system.maxParticles); 
     
 
 
-    gl.useProgram(renderProgram);
+    gl.useProgram(renderProgram.ref());
     gl.viewport(0,0, gl.viewportWidth, gl.viewportHeight)
 
     gl.activeTexture(gl.TEXTURE0);
@@ -70,7 +73,7 @@ function drawScene() {
     gl.activeTexture(gl.TEXTURE1)
     gl.bindTexture(gl.TEXTURE_2D, velocityTextures[srcIndex]);
     gl.uniform1i(renderProgram.uParticleVelocitiesrender, 1);
-
+    gl.uniformMatrix4fv(renderProgram.mvMatrixUniform, false, camera.getViewTransform());
     //bind the default frame buffer, disable depth testing and enable alpha blending
     gl.disable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
@@ -90,61 +93,19 @@ function drawScene() {
 }
 
 
-/*
- * gl - canvas context
- * id - DOM id of the shader
- */
-function getShader(gl, id) {
 
-    var shader;
-    var shaderScript = document.getElementById(id);
-    var str = "";
-    var k = shaderScript.firstChild;
 
-    if (! shaderScript)   { return null; }
-
-    while (k) {
-
-        if (k.nodeType == 3)   { str += k.textContent; }
-        k = k.nextSibling;
-    }
-
-    if (shaderScript.type == "x-shader/x-fragment") {
-
-        shader = gl.createShader(gl.FRAGMENT_SHADER);
-    } 
-    else if (shaderScript.type == "x-shader/x-vertex") {
-
-        shader = gl.createShader(gl.VERTEX_SHADER);
-    } 
-    else   { return null; }
-
-    gl.shaderSource(shader, str);
-    gl.compileShader(shader);
-
-    if (! gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-
-        alert(gl.getShaderInfoLog(shader));
-        return null;
-    }
-    return shader;
-}
-
-function handleTextureLoaded(image, texture) {
-
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.bindTexture(gl.TEXTURE_2D, null);
-}
 
 function initGL(canvas) {
+    var msg;
+    //get WebGL context
+    msg = document.getElementById("message");
 
-
+    gl = SEC3ENGINE.getWebGLContext( canvas, msg );
+    if( !gl ){
+        return;
+    }
     try {
-        gl = canvas.getContext("experimental-webgl");
         //extension to use floating point values in positionTextures
         gl.getExtension("OES_texture_float");  
         //extension allowing us to write to more than one buffer per render Pass
@@ -187,27 +148,38 @@ function createProgram(fragName, vertName) {
 function initShaders() {
 
     // Create shader programs, one to move particles and one to render
-    renderProgram = createProgram("fragment-render","vertex-render");
-    saveProgram = createProgram("fragment-save","vertex-save");
-    
-    gl.useProgram(renderProgram);
+
+
+    renderProgram = SEC3ENGINE.createShaderProgram();
+    renderProgram.loadShader(gl, "Sec3Engine/shader/nBodyRender.vert", "Sec3Engine/shader/nBodyRender.frag");
+    renderProgram.addCallback( function(){
+    renderProgram.particleIndexAttribute = gl.getAttribLocation(renderProgram.ref(), "aParticleIndex");
+    renderProgram.pMatrixUniform = gl.getUniformLocation(renderProgram.ref(), "uPMatrix");
+    renderProgram.mvMatrixUniform = gl.getUniformLocation(renderProgram.ref(), "uMVMatrix");
+    renderProgram.uParticlePositionsrender = gl.getUniformLocation(renderProgram.ref(), "uParticlePositions");
+    renderProgram.uParticleVelocitiesrender = gl.getUniformLocation(renderProgram.ref(), "uParticleVelocities");   
+        
+    });
+
+    SEC3ENGINE.registerAsyncObj(gl, renderProgram);
     
 
     //renderProgram.vertexVelocities = gl.getAttribLocation(saveProgram,"aVertexVelocities");
-    renderProgram.particleIndexAttribute = gl.getAttribLocation(renderProgram, "aParticleIndex");
-    renderProgram.pMatrixUniform = gl.getUniformLocation(renderProgram, "uPMatrix");
-    renderProgram.mvMatrixUniform = gl.getUniformLocation(renderProgram, "uMVMatrix");
-    renderProgram.uParticlePositionsrender = gl.getUniformLocation(renderProgram, "uParticlePositions");
-    renderProgram.uParticleVelocitiesrender = gl.getUniformLocation(saveProgram, "uParticleVelocities");   
     
-    gl.useProgram(saveProgram);
-    //saveProgram.vertexAccelerations = gl.getAttribLocation(saveProgram,"aVertexAccelerations");
-    //saveProgram.vertexVelocities = gl.getAttribLocation(saveProgram,"aVertexVelocities");
-    saveProgram.particleIndexAttribute = gl.getAttribLocation(saveProgram,"aParticleIndex");
-    saveProgram.uParticlePositionssave = gl.getUniformLocation(saveProgram, "uParticlePositions");
-    saveProgram.uParticleVelocitiessave = gl.getUniformLocation(saveProgram, "uParticleVelocities");
-    saveProgram.uTime = gl.getUniformLocation(saveProgram, "uTime");
-    saveProgram.uTextureSideLength = gl.getUniformLocation(saveProgram, "uTextureSideLength");
+    saveProgram = SEC3ENGINE.createShaderProgram();
+    saveProgram.loadShader(gl, "Sec3Engine/shader/nBodyUpdate.vert", "Sec3Engine/shader/nBodyUpdate.frag");
+    saveProgram.addCallback( function(){
+        gl.useProgram(saveProgram.ref());
+        //saveProgram.vertexAccelerations = gl.getAttribLocation(saveProgram,"aVertexAccelerations");
+        //saveProgram.vertexVelocities = gl.getAttribLocation(saveProgram,"aVertexVelocities");
+        saveProgram.particleIndexAttribute = gl.getAttribLocation(saveProgram.ref(),"aParticleIndex");
+        saveProgram.uParticlePositionssave = gl.getUniformLocation(saveProgram.ref(), "uParticlePositions");
+        saveProgram.uParticleVelocitiessave = gl.getUniformLocation(saveProgram.ref(), "uParticleVelocities");
+        saveProgram.uTime = gl.getUniformLocation(saveProgram.ref(), "uTime");
+        saveProgram.uMassMultiplier = gl.getUniformLocation(saveProgram.ref(), "uMassMultiplier");
+    });
+
+    SEC3ENGINE.registerAsyncObj( gl, saveProgram );
 }
 
 /*
@@ -230,7 +202,8 @@ function initBuffers(mySystem) {
 
     // initialize uniforms
     setMatrixUniforms();
-    gl.uniform1i(saveProgram.uTextureSideLength, mySystem.textureSideLength);
+    gl.useProgram(saveProgram.ref());
+    gl.uniform1f(saveProgram.uMassMultiplier, mySystem.massMultiplier);
 
     // create attribute bufferf
     createBuffer(2, //item size
@@ -279,16 +252,11 @@ function generateTexture(values){
 
 function setMatrixUniforms() {
 
-    gl.useProgram(renderProgram);
+    gl.useProgram(renderProgram.ref());
     gl.uniformMatrix4fv(renderProgram.pMatrixUniform, false, pMatrix);
-    gl.uniformMatrix4fv(renderProgram.mvMatrixUniform, false, mvMatrix);
+    gl.uniformMatrix4fv(renderProgram.mvMatrixUniform, false, camera.getViewTransform());
 }
 
-function setTexture(texture) {
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-}
 
 /*
  * Updates/toggles globals srcIndex and destIndex
@@ -307,8 +275,8 @@ function swapSrcDestIndices() {
     }
 }
 
-function initSystem(count) {
-    system = new ParticleSystem(count);
+function initSystem(count, massMultiplier) {
+    system = new ParticleSystem(count, massMultiplier);
     textureSize = system.maxParticles;
     initBuffers(system);
 }
@@ -324,19 +292,34 @@ function initUiButtons() {
         // calc 
         var textureEdgeLength = Math.pow(2, newSliderVal);
         // 
-        system = new ParticleSystem(textureEdgeLength);
-        textureSize = system.maxParticles;
-        initBuffers(system);
+        initSystem(textureEdgeLength, system.massMultiplier);
+        
         // Return new label for slider
         return Math.pow(textureEdgeLength, 2) + " Particles";
     };
 
     ui.addSlider(INITIAL_PARTICLES + " Particles ", 
                  countCallback, 
-                 4, // value (power of 2)
-                 2, 8, // min, max
+                 Math.log(INITIAL_PARTICLES), // value (power of 2)
+                 6, 10, // min, max
                  1); // step
     //-----
+
+    //-----PARTICLE MASS RANGE
+    var massCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        gl.useProgram(saveProgram.ref());
+        gl.uniform1f(saveProgram.uMassMultiplier, newSliderVal);
+        system.massMultiplier = newSliderVal;
+        return "Mass multiplier: " + newSliderVal;
+    }
+
+    ui.addSlider("Mass multiplier: " + INITIAL_MASS_MULTIPLIER,
+                 massCallback,
+                 1,
+                 1, 100,
+                 1);
 }
 
 
@@ -347,26 +330,27 @@ function webGLStart() {
 
     frameTurn = true;
 
+    camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
+    camera.goHome([0, 0, 4]);
+    interactor = SEC3ENGINE.CameraInteractor(camera, canvas);
+
     initGL(canvas);
     initShaders();
-    initSystem(INITIAL_PARTICLES);
+    initSystem(INITIAL_PARTICLES, INITIAL_MASS_MULTIPLIER);
 
     initUiButtons();
 
-
-
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
 
     // This is work for a Camera class
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     mat4.perspective(pMatrix, Math.PI / 4, 
                      gl.viewportWidth / gl.viewportHeight, 
                      0.1, 100.0);
-    mat4.lookAt(mvMatrix, 
-                vec3.fromValues(0,0,2),
-                vec3.fromValues(0,0,0),
-                vec3.fromValues(0,1,0));
-    mat4.mul(pMatrix, pMatrix, mvMatrix);
     setMatrixUniforms();
-    drawScene();
+
+    SEC3ENGINE.render = drawScene;
+    SEC3ENGINE.renderLoop = renderLoop;
+    SEC3ENGINE.run(gl);
 }

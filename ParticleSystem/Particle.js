@@ -26,13 +26,13 @@ var Particle = [];
 			this.life += 0.016;
 			if(this.position[1] <= -1) this.position[1] = -1;
 			else {
-				vec3.scale(this.position,this.v0,this.life);
+				vec3.scale(this.position, this.v0, this.life);
 				var time = this.life * this.life;
 				time *= 0.5;
-				vec3.scale(this.output,this.acceleration,time);
-				vec3.add(this.position,this.position,this.output);
+				vec3.scale(this.output, this.acceleration, time);
+				vec3.add(this.position, this.position, this.output);
 			}
-			if(this.life >= this.lifeSpan){
+			if(this.life >= this.lifeSpan) {
 				this.life = 0;
 				this.position[0] = 0;
 				this.position[1] = 0;
