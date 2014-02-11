@@ -33,10 +33,25 @@ var UI = [];
 			// create new div within button/slider div
 		},
 
+
+		addScrollCallback : function(callback) {
+			
+			// code written by Vitim.us via stackoverflow
+			window.onscroll = function(e) {
+				var scrollX = (this.x || window.pageXOffset) - window.pageXOffset;
+				var scrollY = (this.y || window.pageYOffset) - window.pageYOffset;
+
+				this.x = window.pageXOffset;
+				this.y = window.pageYOffset;
+				callback(scrollX, scrollY);
+			};
+
+		},
 		/*
 		 * String label - To be displayed
 		 * function onEvent - function to be executed upon slide
 		 */
+
 		addButton : function(label, onEvent) {
 			var newDiv = document.createElement("div");
 

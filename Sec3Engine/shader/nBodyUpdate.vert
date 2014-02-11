@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 const vec2 madd = vec2(0.5, 0.5);
 

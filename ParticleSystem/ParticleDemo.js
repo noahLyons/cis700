@@ -1,9 +1,10 @@
 
 //----------------------------------------------------------------GLOBALS:
 var INITIAL_DRAWSIZE = 0.8;
-var INITIAL_ALPHA = 0.1;
+var INITIAL_ALPHA = 0.04;
 var INITIAL_PARTICLES = 1024;
 var INITIAL_MASS_MULTIPLIER = 1.0;
+var INITIAL_DRAG = 1.01;
 
 var canvas;
 var gl;
@@ -170,8 +171,10 @@ function initShaders() {
         saveProgram.uParticleVelocitiessave = gl.getUniformLocation(saveProgram.ref(), "uParticleVelocities");
         saveProgram.uMassMultiplier = gl.getUniformLocation(saveProgram.ref(), "uMassMultiplier");
         saveProgram.uAttractor = gl.getUniformLocation(saveProgram.ref(), "uAttractor");
+        saveProgram.uDrag = gl.getUniformLocation(saveProgram.ref(), "uDrag");
         initSystem(INITIAL_PARTICLES,INITIAL_MASS_MULTIPLIER);
         gl.uniform1f(saveProgram.uMassMultiplier, system.massMultiplier);
+        gl.uniform1f(saveProgram.uDrag, INITIAL_DRAG);
         initUiButtons();
     });
 
@@ -331,7 +334,7 @@ function initUiButtons() {
     ui.addSlider("Mass multiplier: " + INITIAL_MASS_MULTIPLIER,
                  massCallback,
                  1,
-                 1, 100,
+                 -100, 100,
                  1);
     //-----
 
@@ -347,7 +350,7 @@ function initUiButtons() {
     ui.addSlider("Particle transparency: " + INITIAL_ALPHA,
                  alphaCallback,
                  INITIAL_ALPHA,
-                 0.001, 0.8,
+                 0.001, 0.2,
                  0.001);
     //-----
 
@@ -366,6 +369,32 @@ function initUiButtons() {
                  0.0, 20.0,
                  0.1);
     //-----
+
+    //------DRAG
+    var dragCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        gl.useProgram(saveProgram.ref());
+        gl.uniform1f(saveProgram.uDrag, newSliderVal);
+        return "Damping: " + newSliderVal;
+    };
+
+    ui.addSlider("Damping: " + INITIAL_DRAG,
+                 dragCallback,
+                 INITIAL_DRAG,
+                 1.0, 1.1,
+                 0.001);
+    //-----
+
+    //------CAMERA ZOOM
+    var scrollCallback = function(x,y) {
+
+        camInteractor.dolly(y);
+    };
+
+    ui.addScrollCallback(scrollCallback);
+    
+
 }
 
 
@@ -377,8 +406,8 @@ function webGLStart() {
     frameTurn = true;
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
-    camera.goHome([0, 0, 4]);
-    // interactor = SEC3ENGINE.CameraInteractor(camera, canvas);
+    camera.goHome([0, 0, 5]);
+    
     interactor = SEC3ENGINE.ParticleInteractor(canvas);
 
     // moved other inits into shader callbacks as they are dependent on async shader loading
