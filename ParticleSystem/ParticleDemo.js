@@ -5,6 +5,7 @@ var INITIAL_ALPHA = 0.04;
 var INITIAL_PARTICLES = 1024;
 var INITIAL_MASS_MULTIPLIER = 1.0;
 var INITIAL_DRAG = 1.01;
+var INITIAL_INTERACTIONS = 2;
 
 var canvas;
 var gl;
@@ -172,9 +173,11 @@ function initShaders() {
         saveProgram.uMassMultiplier = gl.getUniformLocation(saveProgram.ref(), "uMassMultiplier");
         saveProgram.uAttractor = gl.getUniformLocation(saveProgram.ref(), "uAttractor");
         saveProgram.uDrag = gl.getUniformLocation(saveProgram.ref(), "uDrag");
+        saveProgram.uInteractions = gl.getUniformLocation(saveProgram.ref(), "uInteractions");
         initSystem(INITIAL_PARTICLES,INITIAL_MASS_MULTIPLIER);
         gl.uniform1f(saveProgram.uMassMultiplier, system.massMultiplier);
         gl.uniform1f(saveProgram.uDrag, INITIAL_DRAG);
+        gl.uniform1f(saveProgram.uInteractions, INITIAL_INTERACTIONS);
         initUiButtons();
     });
 
@@ -386,13 +389,29 @@ function initUiButtons() {
                  0.001);
     //-----
 
-    //------CAMERA ZOOM
-    var scrollCallback = function(x,y) {
+    //------NUMBER OF INTERACTIONS
+    var interactionsCallback = function(e) {
 
-        camInteractor.dolly(y);
+        var newSliderVal = e.target.value;
+        gl.useProgram(saveProgram.ref());
+        gl.uniform1f(saveProgram.uInteractions, newSliderVal);
+        return Math.pow(newSliderVal, 2) + " Interactions";
     };
 
-    ui.addScrollCallback(scrollCallback);
+    ui.addSlider(Math.pow(INITIAL_INTERACTIONS, 2) + " Interactions",
+                 interactionsCallback,
+                 INITIAL_INTERACTIONS,
+                 0.0, 32.0,
+                 1.0);
+    //------
+
+    //------CAMERA ZOOM //TODO
+    // var scrollCallback = function(x,y) {
+
+    //     camInteractor.dolly(y);
+    // };
+
+    // ui.addScrollCallback(scrollCallback);
     
 
 }

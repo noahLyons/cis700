@@ -8,23 +8,29 @@ uniform sampler2D uParticleVelocities;
 uniform sampler2D uParticlePositions; 
 uniform vec3 uAttractor;
 uniform float uDrag;
-const int max_Iterations = 6;
+uniform float uInteractions;
+const int max_Iterations = 64;
 
 varying vec2 textureCoord;
 
 vec3 accumulateAcceleration(vec4 position, float uvStep) {
 	vec3 accelleration = vec3(0.0);
 	vec2 otherUv = vec2(0.0);
+	float ii = 0.0;
+	float jj = 0.0;
 	for(int i = 0; i < max_Iterations; i++){
-		
+		if(ii > uInteractions) { break; }
+		ii += 1.0;
+		jj = 0.0;
 		for(int j = 0; j < max_Iterations; j++){
+			if(jj > uInteractions) { break; }
+			jj += 1.0;
 			vec4 otherPosition = texture2D(uParticlePositions, otherUv);
 			vec3 distance = (otherPosition.rgb - position.rgb);
 			float distanceSquared = dot(distance,distance);
 
 			if(distanceSquared > 0.00000000001){
-			accelleration += uMassMultiplier * uMassMultiplier *position.a * otherPosition.a * normalize(distance) * (0.0000001/distanceSquared);
-				
+				accelleration += uMassMultiplier * uMassMultiplier *position.a * otherPosition.a * normalize(distance) * (0.0000001/distanceSquared);
 			}
 			otherUv.y += uvStep;
 			
