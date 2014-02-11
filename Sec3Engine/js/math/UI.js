@@ -37,6 +37,28 @@ var UI = [];
 		 * String label - To be displayed
 		 * function onEvent - function to be executed upon slide
 		 */
+		addButton : function(label, onEvent) {
+			var newDiv = document.createElement("div");
+
+			var newButton = document.createElement("input");
+
+			newButton.type = "button";
+			newButton.id = label;
+			newButton.value = label;
+
+			newDiv.appendChild(newButton);
+			uiDiv.appendChild(newDiv);
+			newButton.onclick = onEvent;
+		},
+
+
+		/*
+		 * Adds sliders to HTML DOM
+		 *
+		 */ 
+		// Called by the init() function of any o
+		// Appends HTML slider elements to DOM
+
 		addSlider : function(label, onEvent, value, min, max, step) {
 
 			var newDiv = document.createElement("div");
@@ -60,25 +82,14 @@ var UI = [];
 			this.addCallback(newSlider, onEvent);
 		},
 
-		/*
-		 * Adds sliders to HTML DOM
-		 *
-		 * callbackFunction MUST return a new label for the element
-		 */ 
-		addCallback : function(button, callbackFunction) {
-		// Called by the init() function of any o
-		// Appends HTML slider elements to DOM
-			
+		addCallback : function(button, callbackFunction) {			
 			button.addEventListener("input", function(e){
 				
 					var newText = callbackFunction(e);
 
-					if (newText == null) {
-
-						alert("Callback function to update button does not return " +
-							  "a new label!");
+					if (newText != null) {
+						button.nextSibling.innerText = newText;
 					}
-					button.nextSibling.innerText = newText;
 				});
 		}
 	}

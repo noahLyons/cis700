@@ -78,14 +78,6 @@ SEC3ENGINE.CameraInteractor = function(camera,canvas){
 			else if (key == 39){
 				camera.changeAzimuth(10);
 			}
-	        else if (key == 87) {  //w -wide
-	            if(fovy < 120) fovy+=5;
-	            console.info('FovY:'+fovy);
-	        }
-	        else if (key == 78) { //n - narrow
-	            if(fovy >15 ) fovy-=5;
-	            console.info('FovY:'+fovy);
-	        }
 		}
 	     
 	};

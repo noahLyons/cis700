@@ -4,7 +4,8 @@ precision mediump float;
 uniform float uMassMultiplier;
 uniform sampler2D uParticleVelocities;
 uniform sampler2D uParticlePositions; 
-const int max_Iterations = 1;
+uniform vec3 uAttractor;
+const int max_Iterations = 8;
 
 varying vec2 textureCoord;
 
@@ -19,7 +20,7 @@ vec3 accumulateAcceleration(vec4 position, float uvStep) {
 			float distanceSquared = dot(distance,distance);
 
 			if(distanceSquared > 0.00000000001){
-			accelleration += uMassMultiplier * uMassMultiplier *position.a * otherPosition.a * distance * (0.00001/distanceSquared);
+			accelleration += uMassMultiplier * uMassMultiplier *position.a * otherPosition.a * normalize(distance) * (0.000001/distanceSquared);
 				
 			}
 			otherUv.y += uvStep;
@@ -36,9 +37,15 @@ void main(void) {
 	vec4 oldPosition = texture2D(uParticlePositions, textureCoord);
 	vec4 oldVelocity = texture2D(uParticleVelocities, textureCoord);
 
-	float uvStep = 1.0 / 20.0;
+	float uvStep = 1.0 / float(max_Iterations);
 	vec3 accellerationFinal = accumulateAcceleration(oldPosition,uvStep);
-
+	vec3 attractorPos = vec3(uAttractor.xy,0.0);
+	vec3 distance = attractorPos - oldPosition.rgb;
+	float distanceSquared = dot(distance, distance);
+	accellerationFinal += distanceSquared * distance * uAttractor.z * 0.001;
+	// if(distanceSquared > 0.00000000001){
+	// 	accellerationFinal += (100.0 * uAttractor.z * normalize(distance)) * (0.00001/ distanceSquared);
+	// }
 	vec3 newVelocity = oldVelocity.rgb + accellerationFinal;
 	vec4 newPosition = vec4(oldPosition.rgb + newVelocity,oldPosition.a);
 		

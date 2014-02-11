@@ -49,6 +49,7 @@ time					Playback position in seconds.
 		this.maxVelocity = 2.0;
 		this.minVelocity = -0.0014;
 		this.massMultiplier = massMultiplier;
+		
 		this.init();
 	}
 	

@@ -1,8 +1,10 @@
 
 //----------------------------------------------------------------GLOBALS:
-
-var INITIAL_PARTICLES = 128;
+var INITIAL_DRAWSIZE = 0.8;
+var INITIAL_ALPHA = 0.1;
+var INITIAL_PARTICLES = 1024;
 var INITIAL_MASS_MULTIPLIER = 1.0;
+
 var canvas;
 var gl;
 var system;
@@ -62,6 +64,8 @@ function drawScene() {
     gl.vertexAttribPointer(saveProgram.aVertexPosition, 2, gl.FLOAT, false, 0, 0); 
     gl.enableVertexAttribArray(saveProgram.aVertexPosition);
 
+    gl.uniform3f(saveProgram.uAttractor, interactor.attractor[0], interactor.attractor[1], interactor.attractor[2]);
+
     gl.drawArrays(gl.TRIANGLES, 0, 6); 
     
     //-------------------------------------------DRAW PARTICLES:
@@ -74,8 +78,9 @@ function drawScene() {
     gl.uniform1i(renderProgram.uParticlePositionsrender, 0);
 
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, velocityTextures[srcIndex]);
-    gl.uniform1i(renderProgram.uParticleVelocitiesrender, 1);
+    gl.bindTexture(gl.TEXTURE_2D, spriteTex.tex);
+    gl.uniform1i(renderProgram.uSpriteTex, 1);
+   
     gl.uniformMatrix4fv(renderProgram.mvMatrixUniform, false, camera.getViewTransform());
     //bind the default frame buffer, disable depth testing and enable alpha blending
     gl.disable(gl.DEPTH_TEST);
@@ -143,8 +148,12 @@ function initShaders() {
         renderProgram.pMatrixUniform = gl.getUniformLocation(renderProgram.ref(), "uPMatrix");
         renderProgram.mvMatrixUniform = gl.getUniformLocation(renderProgram.ref(), "uMVMatrix");
         renderProgram.uParticlePositionsrender = gl.getUniformLocation(renderProgram.ref(), "uParticlePositions");
-        renderProgram.uParticleVelocitiesrender = gl.getUniformLocation(renderProgram.ref(), "uParticleVelocities");   
-        
+        renderProgram.uAlpha = gl.getUniformLocation(renderProgram.ref(), "uAlpha");
+        renderProgram.uSize = gl.getUniformLocation(renderProgram.ref(), "uSize");
+        renderProgram.uSpriteTex = gl.getUniformLocation(renderProgram.ref(), "uSpriteTex");
+         setMatrixUniforms();
+         gl.uniform1f(renderProgram.uAlpha, INITIAL_ALPHA);
+         gl.uniform1f(renderProgram.uSize, INITIAL_DRAWSIZE);
     });
 
     SEC3ENGINE.registerAsyncObj(gl, renderProgram);
@@ -160,6 +169,10 @@ function initShaders() {
         saveProgram.uParticlePositionssave = gl.getUniformLocation(saveProgram.ref(), "uParticlePositions");
         saveProgram.uParticleVelocitiessave = gl.getUniformLocation(saveProgram.ref(), "uParticleVelocities");
         saveProgram.uMassMultiplier = gl.getUniformLocation(saveProgram.ref(), "uMassMultiplier");
+        saveProgram.uAttractor = gl.getUniformLocation(saveProgram.ref(), "uAttractor");
+        initSystem(INITIAL_PARTICLES,INITIAL_MASS_MULTIPLIER);
+        gl.uniform1f(saveProgram.uMassMultiplier, system.massMultiplier);
+        initUiButtons();
     });
 
     SEC3ENGINE.registerAsyncObj( gl, saveProgram );
@@ -182,14 +195,6 @@ function createBuffer(itemSize, numItems, content, location) {
 }
  
 function initBuffers(mySystem) {
-
-    // initialize uniforms
-    setMatrixUniforms();
-    gl.useProgram(saveProgram.ref());
-
-    gl.uniform1f(saveProgram.uMassMultiplier, mySystem.massMultiplier);
-
-
 
     // create attribute bufferf
     indexBuffer = createBuffer(2, //item size
@@ -270,15 +275,29 @@ function swapSrcDestIndices() {
 }
 
 function initSystem(count, massMultiplier) {
-    system = new ParticleSystem(count, massMultiplier);
+    system = new ParticleSystem(count, massMultiplier );
     textureSize = system.maxParticles;
+    
     initBuffers(system);
 }
 
 function initUiButtons() {
 
+    //courtesy of http://stackoverflow.com/a/2901298
+    var numberWithCommas = function(x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    };
+
     var ui = new UI("uiWrapper");
-    
+        
+    //-----RESTART
+    var restartCallback = function() {
+        
+        initSystem(system.textureSideLength, system.massMultiplier);
+    };
+
+    ui.addButton("Restart", restartCallback);
+
     //-----PARTICLE COUNT
     var countCallback = function(e) {
 
@@ -289,13 +308,13 @@ function initUiButtons() {
         initSystem(textureEdgeLength, system.massMultiplier);
         
         // Return new label for slider
-        return Math.pow(textureEdgeLength, 2) + " Particles";
+        return numberWithCommas(Math.pow(textureEdgeLength, 2)) + " Particles";
     };
-
-    ui.addSlider(INITIAL_PARTICLES + " Particles ", 
+    
+    ui.addSlider(numberWithCommas(Math.pow(INITIAL_PARTICLES,2)) + " Particles ", 
                  countCallback, 
-                 Math.log(INITIAL_PARTICLES), // value (power of 2)
-                 6, 10, // min, max
+                 Math.log(INITIAL_PARTICLES) / Math.log(2), // value (power of 2)
+                 8, 12, // min, max
                  1); // step
     //-----
 
@@ -307,44 +326,76 @@ function initUiButtons() {
         gl.uniform1f(saveProgram.uMassMultiplier, newSliderVal);
         system.massMultiplier = newSliderVal;
         return "Mass multiplier: " + newSliderVal;
-    }
+    };
 
     ui.addSlider("Mass multiplier: " + INITIAL_MASS_MULTIPLIER,
                  massCallback,
                  1,
                  1, 100,
                  1);
-}
+    //-----
 
+    //--------PARTICLE ALPHA TRANSPARENCY
+    var alphaCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        gl.useProgram(renderProgram.ref());
+        gl.uniform1f(renderProgram.uAlpha, newSliderVal);
+        return "Particle transparency: " + newSliderVal;
+    };
+
+    ui.addSlider("Particle transparency: " + INITIAL_ALPHA,
+                 alphaCallback,
+                 INITIAL_ALPHA,
+                 0.001, 0.8,
+                 0.001);
+    //-----
+
+    //-------PARTICLE POINT SIZE
+    var sizeCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        gl.useProgram(renderProgram.ref());
+        gl.uniform1f(renderProgram.uSize, newSliderVal);
+        return "Particle draw size: " + newSliderVal;
+    };
+
+    ui.addSlider("Particle draw size: " + INITIAL_DRAWSIZE,
+                 sizeCallback,
+                 INITIAL_DRAWSIZE,
+                 0.0, 20.0,
+                 0.1);
+    //-----
+}
 
 
 function webGLStart() {
 
     canvas = document.getElementById("glcanvas");
+    initGL(canvas);
 
     frameTurn = true;
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
     camera.goHome([0, 0, 4]);
-    interactor = SEC3ENGINE.CameraInteractor(camera, canvas);
+    // interactor = SEC3ENGINE.CameraInteractor(camera, canvas);
+    interactor = SEC3ENGINE.ParticleInteractor(canvas);
 
-    initGL(canvas);
+    // moved other inits into shader callbacks as they are dependent on async shader loading
     initShaders();
-    initSystem(INITIAL_PARTICLES, INITIAL_MASS_MULTIPLIER);
-
-    initUiButtons();
-
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
 
     // This is work for a Camera class
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     mat4.perspective(pMatrix, Math.PI / 4, 
                      gl.viewportWidth / gl.viewportHeight, 
                      0.1, 100.0);
-    setMatrixUniforms();
+    
+    spriteTex = new Texture();
+    spriteTex.setImage("Sec3Engine/textures/spark.png");
 
     SEC3ENGINE.render = drawScene;
     SEC3ENGINE.renderLoop = renderLoop;
     SEC3ENGINE.run(gl);
+
 }
