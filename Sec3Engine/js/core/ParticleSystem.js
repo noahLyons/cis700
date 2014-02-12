@@ -27,7 +27,6 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 
 //-------------------------------------------------------CONSTANTS/FIELDS:
 	
- FIELDS
 	var frameTurn = true;
 	var srcIndex, destIndex;
 	var positionTextures = [];
