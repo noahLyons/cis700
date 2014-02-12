@@ -1,16 +1,35 @@
 
 //----------------------------------------------------------------GLOBALS:
 
+var particleSpecs = {
+    maxParticles : 1000000,
+    emitters : [],
+    gravityModifier : 1.0,
+    RGBA : [0.0, 0.2, 0.9, 0.2],
+    damping : 1.01,
+    type : "nBody",
+    activeBodies : 4,
+    particleSize : 0.4,
+
+    //TODO phi and theta?
+};
+
+var emitterSpecs = {
+    emissionRate : 10,
+}
 
 var canvas;
 var gl;
 var system;
 
-
 var mvMatrix = mat4.create();
 var pMatrix = mat4.create();
 
 //--------------------------------------------------------------FUNCTIONS:
+
+function drawScene() {
+    system.draw();
+}
 
 function renderLoop() {
 
@@ -20,11 +39,6 @@ function renderLoop() {
     requestAnimationFrame(renderLoop);
     drawScene();
 }
-
-function drawScene() {
-    system.draw();
-}
-
 
 function initGL(canvas) {
     var msg;
@@ -62,8 +76,8 @@ function initUiButtons() {
     SEC3ENGINE.ui = new UI("uiWrapper");
 
     //courtesy of http://stackoverflow.com/a/2901298
-    var numberWithCommas = function(x) {
-        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    var numberWithCommas = function(stringMe) {
+        return stringMe.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     };
         
     //-----RESTART
@@ -82,16 +96,15 @@ function initUiButtons() {
         var textureEdgeLength = Math.pow(2, newSliderVal);
         // 
         system.textureSideLength = textureEdgeLength;
-        system.maxParticles = textureEdgeLength * textureEdgeLength;    
+        system.maxParticles = textureEdgeLength * textureEdgeLength;
         system.restart();
-        
         // Return new label for slider
-        return numberWithCommas(Math.pow(textureEdgeLength, 2)) + " Particles";
+        return numberWithCommas(system.maxParticles) + " Particles";
     };
     
-    SEC3ENGINE.ui.addSlider(numberWithCommas(Math.pow(INITIAL_PARTICLES,2)) + " Particles ", 
+    SEC3ENGINE.ui.addSlider(numberWithCommas(system.maxParticles) + " Particles ", 
                  countCallback, 
-                 Math.log(INITIAL_PARTICLES) / Math.log(2), // value (power of 2)
+                 Math.log(Math.sqrt(system.maxParticles)) / Math.log(2), // value (power of 2)
                  8, 12, // min, max
                  1); // step
     //-----
@@ -101,15 +114,16 @@ function initUiButtons() {
 
         var newSliderVal = e.target.value;
         gl.useProgram(system.stepProgram.ref());
-        gl.uniform1f(system.stepProgram.uMassMultiplier, newSliderVal);
-        system.massMultiplier = newSliderVal;
-        return "Mass multiplier: " + newSliderVal;
+        gl.uniform1f(system.stepProgram.uGravityModifier, newSliderVal);
+        system.massMultiplier = newSliderVal;        
+        // Return new label for slider
+        return "Gravity: " + newSliderVal;
     };
 
-    SEC3ENGINE.ui.addSlider("Mass multiplier: " + INITIAL_MASS_MULTIPLIER,
+    SEC3ENGINE.ui.addSlider("Gravity: " + system.gravityModifier,
                  massCallback,
                  1,
-                 -100, 100,
+                 -1000, 1000,
                  1);
     //-----
 
@@ -122,9 +136,9 @@ function initUiButtons() {
         return "Particle transparency: " + newSliderVal;
     };
 
-    SEC3ENGINE.ui.addSlider("Particle transparency: " + INITIAL_ALPHA,
+    SEC3ENGINE.ui.addSlider("Particle transparency: " + system.RGBA[3],
                  alphaCallback,
-                 INITIAL_ALPHA,
+                 system.RGBA[3],
                  0.001, 0.2,
                  0.001);
     //-----
@@ -138,26 +152,27 @@ function initUiButtons() {
         return "Particle draw size: " + newSliderVal;
     };
 
-    SEC3ENGINE.ui.addSlider("Particle draw size: " + INITIAL_DRAWSIZE,
+    SEC3ENGINE.ui.addSlider("Particle draw size: " + system.particleSize,
                  sizeCallback,
-                 INITIAL_DRAWSIZE,
+                 system.particleSize,
                  0.0, 20.0,
                  0.1);
     //-----
 
-    //------DRAG
-    var dragCallback = function(e) {
+    //------Damping
+    var dampingCallback = function(e) {
 
         var newSliderVal = e.target.value;
         gl.useProgram(system.stepProgram.ref());
-        gl.uniform1f(system.stepProgram.uDrag, newSliderVal);
+        gl.uniform1f(system.stepProgram.uDamping, newSliderVal);
+        system.damping = newSliderVal;
         return "Damping: " + newSliderVal;
     };
 
-    SEC3ENGINE.ui.addSlider("Damping: " + INITIAL_DRAG,
-                 dragCallback,
-                 INITIAL_DRAG,
-                 1.0, 1.1,
+    SEC3ENGINE.ui.addSlider("Damping: " + system.damping,
+                 dampingCallback,
+                 system.damping,
+                 1.0, 1.2,
                  0.001);
     //-----
 
@@ -167,18 +182,33 @@ function initUiButtons() {
         var newSliderVal = e.target.value;
         gl.useProgram(system.stepProgram.ref());
         gl.uniform1f(system.stepProgram.uInteractions, newSliderVal);
+        system.activeBodies = newSliderVal;
         return Math.pow(newSliderVal, 2) + " Interactions";
     };
 
-    SEC3ENGINE.ui.addSlider(Math.pow(INITIAL_INTERACTIONS, 2) + " Interactions",
+    SEC3ENGINE.ui.addSlider(Math.pow(system.activeBodies, 2) + " Interactions",
                  interactionsCallback,
-                 INITIAL_INTERACTIONS,
+                 system.activeBodies,
                  0.0, 32.0,
                  1.0);
     //------
-
 }
 
+function startDemo() {
+    // READ IN JSON FROM FILE
+    // Gen texture for spark particles
+    spriteTex = new Texture();
+    spriteTex.setImage("Sec3Engine/textures/spark.png");
+
+    // FEED SPECS INTO IT
+    interactor = SEC3ENGINE.ParticleInteractor(canvas);//SEC3ENGINE.CameraInteractor(camera, canvas);
+    // moved other inits into shader callbacks as they are dependent on async shader loading
+    system = SEC3ENGINE.createParticleSystem(particleSpecs);
+
+    SEC3ENGINE.render = drawScene;
+    SEC3ENGINE.renderLoop = renderLoop;
+    SEC3ENGINE.run(gl);
+}
 
 function webGLStart() {
 
@@ -187,21 +217,9 @@ function webGLStart() {
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
     camera.goHome([0, 0, 5]);
-    
-    interactor = SEC3ENGINE.ParticleInteractor(canvas);//SEC3ENGINE.CameraInteractor(camera, canvas);
-    //load WEBGL_Draw_Buffers extension
-
-    // moved other inits into shader callbacks as they are dependent on async shader loading
-    system = SEC3ENGINE.createParticleSystem(INITIAL_PARTICLES,INITIAL_MASS_MULTIPLIER);
-    
+        
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     
-    spriteTex = new Texture();
-    spriteTex.setImage("Sec3Engine/textures/spark.png");
-
-    SEC3ENGINE.render = drawScene;
-    SEC3ENGINE.renderLoop = renderLoop;
-    SEC3ENGINE.run(gl);
-
+    startDemo();
 }
