@@ -16,7 +16,7 @@ void main(void) {
 	// Index into the buffer uParticlePositions with aParticleIndex 
 	vec4 oldPosition = texture2D(uParticlePositions, aParticleIndex);
 	// vec3 oldVelocity = 0.2 + 3.0 * texture2D(uParticleVelocities, aParticleIndex).rgb;	    		
-   	gl_Position = uPMatrix * uMVMatrix * vec4(oldPosition.rgb, 1.0);//write 
+   	gl_Position = uMVMatrix * vec4(oldPosition.rgb, 1.0);//write 
    	//gl_Position =0c4(aParticleIndex,0.0,1.0);
 
    	gl_PointSize = uSize +  0.4 * oldPosition.a;

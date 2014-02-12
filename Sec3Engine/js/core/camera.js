@@ -11,6 +11,9 @@ var SEC3ENGINE = SEC3ENGINE || {};
 var CAMERA_ORBIT_TYPE    = 1;
 var CAMERA_TRACKING_TYPE = 2;
 
+
+SEC3ENGINE.currentCamera = {};
+
 SEC3ENGINE.createCamera = function(t){
     var matrix     = mat4.create();
     var up         = vec3.create();
@@ -22,7 +25,10 @@ SEC3ENGINE.createCamera = function(t){
     var elevation  = 0.0;
     var type       = t;
     var steps      = 0;
-
+    var persp = mat4.create();
+    mat4.perspective(persp, Math.PI / 4, 
+                     gl.viewportWidth / gl.viewportHeight, 
+                     0.1, 100.0);
     
     setType = function(t){
         
@@ -143,6 +149,7 @@ SEC3ENGINE.createCamera = function(t){
         var m = mat4.create();
         //mat4.inverse(matrix, m);
         mat4.invert( m, matrix );
+        mat4.multiply(m, persp, m);
         return m;
     };
 
@@ -158,6 +165,7 @@ SEC3ENGINE.createCamera = function(t){
     newObj.update = update;    
     newObj.getViewTransform = getViewTransform;
 
+    SEC3ENGINE.currentCamera = newObj;
     return newObj;
 };
 
