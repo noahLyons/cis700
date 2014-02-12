@@ -319,17 +319,15 @@ SEC3ENGINE.createParticleSystem = function(specs) {
     	for(i = 0; i < max_parts; i++) {
 
        		var startingVelocity = getStartingVelocity();
-       		
-       		var particle = new Particle(startingVelocity);
-       		
+
        		velocities.push(0.0);
        		velocities.push(0.0);
        		velocities.push(0.0);
        		velocities.push(1.0);
 
-       		startPositions.push(particle.v0[0]);
-       		startPositions.push(particle.v0[1]);
-       		startPositions.push(particle.v0[2]);
+       		startPositions.push(startingVelocity[0]);
+       		startPositions.push(startingVelocity[1]);
+       		startPositions.push(startingVelocity[2]);
        		startPositions.push(Math.random());
 
        		var xIndex = Math.floor(i % self.textureSideLength) / self.textureSideLength ;
