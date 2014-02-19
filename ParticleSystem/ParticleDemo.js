@@ -202,6 +202,7 @@ function startDemo() {
 
     // FEED SPECS INTO IT
     interactor = SEC3ENGINE.ParticleInteractor(canvas);//SEC3ENGINE.CameraInteractor(camera, canvas);
+    // camInteractor = SEC3ENGINE.CameraInteractor(camera, canvas);
     // moved other inits into shader callbacks as they are dependent on async shader loading
     system = SEC3ENGINE.createParticleSystem(particleSpecs);
 
@@ -217,7 +218,7 @@ function webGLStart() {
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
     camera.goHome([0, 0, 5]);
-        
+     
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     

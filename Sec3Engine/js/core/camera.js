@@ -154,6 +154,7 @@ SEC3ENGINE.createCamera = function(t){
     };
 
     var newObj = {};
+    newObj.matrix = matrix;
     newObj.setType = setType;
     newObj.goHome = goHome;
     newObj.dolly = dolly;
