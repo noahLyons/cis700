@@ -2,7 +2,7 @@
 //----------------------------------------------------------------GLOBALS:
 
 var particleSpecs = {
-    maxParticles : 1000000,
+    maxParticles : 10000,
     emitters : [],
     gravityModifier : 1.0,
     RGBA : [0.0, 0.2, 0.9, 0.2],

@@ -17,7 +17,7 @@ void main(void) {
 	// Index into the buffer uParticlePositions with aParticleIndex 
 	vec4 oldPosition = texture2D(uParticlePositions, aParticleIndex);
 
-	vec3 lightSpaceCoord = (uShadowMapTransform * vec4(oldPosition.rgb, 1.0)).xyz;
+	vec4 lightSpaceCoord = (uShadowMapTransform * vec4(oldPosition.rgb, 1.0));
 	lightSpaceCoord = lightSpaceCoord / lightSpaceCoord.w;
 	float shadowDepth = texture2D(uShadowMap, 0.5 * (1.0 + lightSpaceCoord.xy)).b;
 

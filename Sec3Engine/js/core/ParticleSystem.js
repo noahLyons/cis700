@@ -126,16 +126,16 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 	    gl.bindFramebuffer(gl.FRAMEBUFFER, depthBuffer); //bind the depth buffer
 	   	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	   	gl.bindTexture(gl.TEXTURE_2D, shadowMapTexture);
+	   	
 	    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowMapTexture, 0);
-
-	    gl.bindTexture(gl.TEXTURE_2D, nullTexture);
+	    
 	    gl.framebufferTexture2D(gl.FRAMEBUFFER, 
 	                            SEC3ENGINE.extensions.drawBuffers(gl).COLOR_ATTACHMENT0_WEBGL, 
 	                            gl.TEXTURE_2D, 
 	                            nullTexture, 
 	                            0);
-
+		
+		
 	    gl.drawArrays(gl.POINTS, 0, self.maxParticles); 
 
 	}
@@ -198,8 +198,8 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 		self.damping = specs.damping;
 		self.RGBA = specs.RGBA;	
 		light = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
-		light.goHome([0, 5, 0]);
-		// mat4.rotate(light.matrix, light.matrix, Math.PI/2.0, vec3.fromValues(0, 1, 0));		
+		light.goHome([5, 0, 0]);
+		mat4.rotate(light.matrix, light.matrix, Math.PI/2.0, vec3.fromValues(0, 1, 0));		
 		self.light = light;
     };
 
