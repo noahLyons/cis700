@@ -9,7 +9,7 @@
 var SEC3ENGINE = SEC3ENGINE || {};
 
 
-SEC3ENGINE.CameraInteractor = function(camera,canvas){
+SEC3ENGINE.cameraInteractor = function(camera,canvas){
     
     var camera = camera;
     var canvas = canvas;
@@ -123,8 +123,8 @@ SEC3ENGINE.CameraInteractor = function(camera,canvas){
 	var rotate = function(dx, dy){
 		
 		
-		var delta_elevation = -20.0 / canvas.height;
-		var delta_azimuth   = -20.0 / canvas.width;
+		var delta_elevation = -4.0 / canvas.height;
+		var delta_azimuth   = -4.0 / canvas.width;
 					
 		var nAzimuth = dx * delta_azimuth * MOTION_FACTOR;
 		var nElevation = dy * delta_elevation * MOTION_FACTOR;

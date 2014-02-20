@@ -24,8 +24,8 @@ SEC3ENGINE.ParticleInteractor = function(canvas){
         x -= 0.5;
         y -= 0.5;
 
-        x *= 4.0;
-        y *= -4.0;
+        x *= 12.0;
+        y *= -12.0;
         attractor[0] = x;
         attractor[1] = y;
     };

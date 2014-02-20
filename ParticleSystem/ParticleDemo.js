@@ -10,7 +10,7 @@ var particleSpecs = {
     type : "nBody",
     activeBodies : 0,
     particleSize : 0.4,
-
+    luminence : 20.0
     //TODO phi and theta?
 };
 
@@ -123,8 +123,8 @@ function initUiButtons() {
     SEC3ENGINE.ui.addSlider("Gravity: " + system.gravityModifier,
                  massCallback,
                  1,
-                 -1000, 1000,
-                 1);
+                 -100, 100,
+                 0.1);
     //-----
 
     //--------PARTICLE ALPHA TRANSPARENCY
@@ -139,7 +139,7 @@ function initUiButtons() {
     SEC3ENGINE.ui.addSlider("Particle transparency: " + system.RGBA[3],
                  alphaCallback,
                  system.RGBA[3],
-                 0.001, 0.2,
+                 0.001, 0.4,
                  0.001);
     //-----
 
@@ -155,7 +155,23 @@ function initUiButtons() {
     SEC3ENGINE.ui.addSlider("Particle draw size: " + system.particleSize,
                  sizeCallback,
                  system.particleSize,
-                 0.0, 20.0,
+                 0.0, 4.0,
+                 0.01);
+    //-----
+
+    //--------- Light intensity 
+    var luminenceCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        gl.useProgram(system.renderProgram.ref());
+        gl.uniform1f(system.renderProgram.uLuminence, newSliderVal);
+        return "luminence: " + newSliderVal;
+    };
+
+    SEC3ENGINE.ui.addSlider("luminence: " + system.luminence,
+                 luminenceCallback,
+                 system.luminence,
+                 0.0, 100.0,
                  0.1);
     //-----
 
@@ -189,7 +205,7 @@ function initUiButtons() {
     SEC3ENGINE.ui.addSlider(Math.pow(system.activeBodies, 2) + " Interactions",
                  interactionsCallback,
                  system.activeBodies,
-                 0.0, 32.0,
+                 0.0, 16.0,
                  1.0);
     //------
 }
@@ -201,8 +217,8 @@ function startDemo() {
     spriteTex.setImage("Sec3Engine/textures/spark.png");
 
     // FEED SPECS INTO IT
-    interactor = SEC3ENGINE.ParticleInteractor(canvas);//SEC3ENGINE.CameraInteractor(camera, canvas);
-    // camInteractor = SEC3ENGINE.CameraInteractor(camera, canvas);
+    // interactor = SEC3ENGINE.ParticleInteractor(canvas);//SEC3ENGINE.CameraInteractor(camera, canvas);
+    
     // moved other inits into shader callbacks as they are dependent on async shader loading
     system = SEC3ENGINE.createParticleSystem(particleSpecs);
 
@@ -217,7 +233,10 @@ function webGLStart() {
     initGL(canvas);
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
-    camera.goHome([0, 0, 4]);
+    camera.goHome([0.0, 0.0, 12.0]);
+    
+    interactor = SEC3ENGINE.ParticleInteractor(canvas);// SEC3ENGINE.cameraInteractor(camera, canvas);
+    // interactor.attractor = [0.0, 0.0, 0.01];
      
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);

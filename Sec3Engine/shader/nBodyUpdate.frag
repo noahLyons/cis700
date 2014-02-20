@@ -29,7 +29,7 @@ vec3 accumulateAcceleration(vec4 position, float uvStep) {
 			vec3 distance = (otherPosition.rgb - position.rgb);
 			float distanceSquared = dot(distance,distance);
 
-			if(distanceSquared > 0.00001){
+			if(distanceSquared > 0.000001){
 				accelleration += uGravityModifier * uGravityModifier *position.a * otherPosition.a * normalize(distance) * (0.0000001/distanceSquared);
 			}
 			otherUv.y += uvStep;
@@ -53,8 +53,8 @@ void main(void) {
 	vec3 attractorPos = vec3(uAttractor.xy,0.0);
 	vec3 distance = attractorPos - oldPosition.rgb;
 	float distanceSquared = dot(distance, distance);
-	accellerationFinal += distanceSquared * distance * uAttractor.z * 0.0002; // anti-diffusion
-	accellerationFinal += (uAttractor.z * normalize(distance)) * min((0.0002/ distanceSquared),0.02);
+	accellerationFinal += distanceSquared * distance * uAttractor.z * 0.000006; // anti-diffusion
+	accellerationFinal += (uAttractor.z * normalize(distance)) * min((0.002/ distanceSquared),0.02);
 	vec3 newVelocity = (oldVelocity.rgb + accellerationFinal) / uDamping;
 	vec4 newPosition = vec4(oldPosition.rgb + newVelocity,oldPosition.a);
 		

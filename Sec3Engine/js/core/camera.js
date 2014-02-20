@@ -26,9 +26,9 @@ SEC3ENGINE.createCamera = function(t){
     var type       = t;
     var steps      = 0;
     var persp = mat4.create();
-    mat4.perspective(persp, Math.PI / 4, 
+    mat4.perspective(persp, 60*3.1415926/180, 
                      gl.viewportWidth / gl.viewportHeight, 
-                     0.1, 10.0);
+                     0.1, 20.0);
     
     setType = function(t){
         
@@ -156,7 +156,7 @@ SEC3ENGINE.createCamera = function(t){
     getPosition = function(){
         var p = position;
         return p;
-    }
+    };
 
     var newObj = {};
     newObj.matrix = matrix;
@@ -172,7 +172,7 @@ SEC3ENGINE.createCamera = function(t){
     newObj.getViewTransform = getViewTransform;
     newObj.getPosition = getPosition;
 
-    SEC3ENGINE.currentCamera = newObj;
+    // SEC3ENGINE.currentCamera = newObj;
     return newObj;
 };
 
