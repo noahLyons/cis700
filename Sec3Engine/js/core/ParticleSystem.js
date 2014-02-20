@@ -21,7 +21,7 @@
 
 */
 
-var SHADOWMAP_SIZE = 512;
+var SHADOWMAP_SIZE = 2048;
 
 var SEC3ENGINE = SEC3ENGINE || {};
 
@@ -107,6 +107,7 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 	 */
 	var updateShadowMap = function () {
 
+		gl.colorMask(false,false,false,false);
 	    gl.useProgram(self.shadowProgram.ref());
 	    gl.viewport(0, 0, SHADOWMAP_SIZE, SHADOWMAP_SIZE)
 
@@ -137,13 +138,17 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 		
 		
 	    gl.drawArrays(gl.POINTS, 0, self.maxParticles); 
-
+	    gl.colorMask(true,true,true,true);
 	}
 
 	/*
 	 * Draws all particles in system
 	 */
 	var renderParticles = function () {
+		//light setup
+		// light.changeAzimuth(0.1);
+		var lightPosition = light.getPosition();
+	    gl.uniform3f(shadowProgram.uLightPosition, lightPosition[0], lightPosition[1], lightPosition[2]);
 
 	    gl.useProgram(renderProgram.ref());
 	    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -158,10 +163,12 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 	   	
 	   	gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, light.getViewTransform());
 	    gl.uniformMatrix4fv(renderProgram.mvMatrixUniform, false, camera.getViewTransform());
+
 	    //bind the default frame buffer, disable depth testing and enable alpha blending
-	    gl.enable(gl.BLEND);
-	    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 	    gl.bindFramebuffer(gl.FRAMEBUFFER, null); //bind the default frame buffer
+	    gl.disable(gl.DEPTH_TEST);
+	    gl.enable(gl.BLEND);
+	    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.SRC_ALPHA, gl.ONE);
 	    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	    //enable particle index and draw particles to the screen
@@ -198,8 +205,13 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 		self.damping = specs.damping;
 		self.RGBA = specs.RGBA;	
 		light = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
-		light.goHome([5, 0, 0]);
-		mat4.rotate(light.matrix, light.matrix, Math.PI/2.0, vec3.fromValues(0, 1, 0));		
+		light.goHome([0, 2, 0]);
+		light.changeAzimuth(35);
+		light.changeElevation(-95);	
+
+
+		
+		// mat4.rotate(light.matrix, light.matrix, Math.PI/2.0, vec3.fromValues(0, 1, 0));		
 		self.light = light;
     };
 
@@ -245,8 +257,8 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 		gl.bindTexture(gl.TEXTURE_2D, shadowMapTexture);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-	    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 	    gl.texImage2D(gl.TEXTURE_2D,
 	    			  0, 
 	    			  gl.DEPTH_COMPONENT,
@@ -318,10 +330,13 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 	        renderProgram.uSpriteTex = gl.getUniformLocation(renderProgram.ref(), "uSpriteTex");
 	        renderProgram.uShadowMap = gl.getUniformLocation(renderProgram.ref(), "uShadowMap");
 	        renderProgram.uShadowMapTransform = gl.getUniformLocation(renderProgram.ref(), "uShadowMapTransform")
+			renderProgram.uLightPosition = gl.getUniformLocation(renderProgram.ref(), "uLightPosition");
 	        gl.useProgram(renderProgram.ref());
     		gl.uniformMatrix4fv(renderProgram.mvMatrixUniform, false, SEC3ENGINE.currentCamera.getViewTransform());
    	        gl.uniform1f(renderProgram.uAlpha, self.RGBA[3]);
 	        gl.uniform1f(renderProgram.uSize, self.particleSize);
+	        var lightPosition = light.getPosition();
+	        gl.uniform3f(shadowProgram.uLightPosition, lightPosition[0], lightPosition[1], lightPosition[2]);
 	        self.renderProgram = renderProgram;
 	    });
 
@@ -407,14 +422,42 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 
 	};
 
+	var getUniformPointOnSphere = function(radius) {
+
+		var x = (Math.random() - 0.5) * 0.5;
+		var y = (Math.random() - 0.5) * 0.5;
+		var z = (Math.random() - 0.5) * 0.5;
+		var vec = vec3.fromValues(x,y,z);
+		vec3.normalize(vec, vec);
+		vec3.scale(vec, vec, radius);
+		return vec;
+	};
+
+	var getUniformPointInSphere = function(radius) {
+		var radiusSquared = radius * radius;
+		var squareLength = radiusSquared + 1;
+		var x, y, z, vec;
+
+		while(squareLength > radiusSquared) {
+			x = (Math.random() - 0.5) * 2.0;
+			y = (Math.random() - 0.5) * 2.0;
+			z = (Math.random() - 0.5) * 2.0;
+			vec = vec3.fromValues(x,y,z);
+			vec3.scale(vec, vec, radius); 
+			squareLength = vec3.dot(vec, vec);
+		}
+		return vec;
+	};
+
     var createParticlesInSphere = function() {
 
 		var i, max_parts = self.maxParticles;
 
     	for(i = 0; i < max_parts; i++) {
 
-       		var startingVelocity = getStartingVelocity();
-
+       		var startingVelocity = getUniformPointInSphere(0.3);
+       		// var startingVelocity = getUniformPointOnSphere(0.4);
+            
        		velocities.push(0.0);
        		velocities.push(0.0);
        		velocities.push(0.0);

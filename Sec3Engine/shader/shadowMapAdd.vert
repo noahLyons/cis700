@@ -17,6 +17,6 @@ void main(void) {
 	// vec3 oldVelocity = 0.2 + 3.0 * texture2D(uParticleVelocities, aParticleIndex).rgb;	    		
    	gl_Position = uMVMatrix * vec4(oldPosition.rgb, 1.0);//write 
 
-   	gl_PointSize = uSize +  0.4 * oldPosition.a;
+   	gl_PointSize = 1.0;
    	
 }

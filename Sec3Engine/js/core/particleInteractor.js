@@ -9,7 +9,7 @@ SEC3ENGINE.ParticleInteractor = function(canvas){
     var newObj={}; 
     
     var onMouseUp = function(ev){
-        attractor[2] = 0.05;
+        attractor[2] = 0.0;
     };
     var onMouseDown = function(ev){
         attractor[2] = 1.0;
@@ -24,7 +24,7 @@ SEC3ENGINE.ParticleInteractor = function(canvas){
         x -= 0.5;
         y -= 0.5;
 
-        x *= 8.0;
+        x *= 4.0;
         y *= -4.0;
         attractor[0] = x;
         attractor[1] = y;

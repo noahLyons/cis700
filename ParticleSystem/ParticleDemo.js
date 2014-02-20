@@ -2,13 +2,13 @@
 //----------------------------------------------------------------GLOBALS:
 
 var particleSpecs = {
-    maxParticles : 10000,
+    maxParticles : 1000000,
     emitters : [],
     gravityModifier : 1.0,
-    RGBA : [0.0, 0.2, 0.9, 0.2],
-    damping : 1.01,
+    RGBA : [0.0, 0.2, 0.9, 0.08],
+    damping : 1.04,
     type : "nBody",
-    activeBodies : 4,
+    activeBodies : 0,
     particleSize : 0.4,
 
     //TODO phi and theta?
@@ -217,7 +217,7 @@ function webGLStart() {
     initGL(canvas);
 
     camera = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
-    camera.goHome([0, 0, 5]);
+    camera.goHome([0, 0, 4]);
      
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
