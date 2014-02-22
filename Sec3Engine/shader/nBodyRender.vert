@@ -3,7 +3,7 @@ precision highp float;
 
 attribute vec2 aParticleIndex; 
 
-uniform sampler2D uParticlePositions;  //rename uParticlePositions
+uniform sampler2D uParticlePositions; 
 uniform mat4 uCameraTransform;
 uniform float uSize;
 

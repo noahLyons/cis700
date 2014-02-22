@@ -21,7 +21,7 @@
 
 */
 
-var SHADOWMAP_SIZE = 2048;
+var SHADOWMAP_SIZE = 1024;
 
 var SEC3ENGINE = SEC3ENGINE || {};
 
