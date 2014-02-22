@@ -24,7 +24,7 @@ bool withinLightFrustum(vec2 coordinate) {
 
 void main(void) {
 	
-	float rootLum = sqrt(uLuminence);	
+		
 	vec4 lightSpacePos = uShadowMapTransform * vec4(worldPosition, 1.0);
 	lightSpacePos /= lightSpacePos.w;
 
@@ -45,17 +45,17 @@ void main(void) {
 		discard;
 	}
 
+	vec3 lightFalloff = color / lightSquaredDistance;
 	if(EPSILON + shadowDepth < lightSpacePos.z) {  // current particle is 
-		float occluderDistance = lightSpacePos.z - shadowDepth;
-		occluderDistance *= uScale;
+		
+		float occluderDistance = (lightSpacePos.z - shadowDepth) * uScale;
 		float occluderDistanceSquared = occluderDistance * occluderDistance;
-		// v_color = vec4(vec3(0.0),uAlpha);
-		v_color = vec4( (( uScatterMultiply * color * rootLum / lightSquaredDistance) * (1.0 / (1.0 + occluderDistanceSquared)))
-				+ (uShadowMultiply * shadowColor ), uAlpha);
+		float falloff = uLuminence / (1.0 + occluderDistanceSquared);
+		v_color = vec4( (( uScatterMultiply * lightFalloff) * falloff) + (uShadowMultiply * shadowColor ), uAlpha);
 		
 	}
 	else {
-		v_color = vec4( color * uLuminence / lightSquaredDistance, uAlpha);// + (uAlpha * uLuminence * 0.06 / max(1.0, lightSquaredDistance) ));//	 + min((2.0/ lightSquaredDistance),uAlpha));
+		v_color = vec4( lightFalloff * uLuminence * uLuminence, uAlpha);// + (uAlpha * uLuminence * 0.06 / max(1.0, lightSquaredDistance) ));//	 + min((2.0/ lightSquaredDistance),uAlpha));
 	}
 	gl_FragColor = v_color;
 	// float magnitude = length(gl_FragColor);
