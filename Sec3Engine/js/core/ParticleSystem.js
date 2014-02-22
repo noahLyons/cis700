@@ -21,7 +21,7 @@
 
 */
 
-var SHADOWMAP_SIZE = 1024;
+var SHADOWMAP_SIZE = 2048;
 
 var SEC3ENGINE = SEC3ENGINE || {};
 
@@ -147,7 +147,7 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 	var renderParticles = function () {
 		//light setup
 		// light.changeAzimuth(0.1);
-
+		// mat4.rotate(light.matrix)
 	    gl.useProgram(self.renderProgram.ref());
 	    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 
@@ -207,10 +207,13 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 		self.RGBA = specs.RGBA;	
 
 		self.luminence = specs.luminence;
+		self.scatterMultiply = specs.scatterMultiply;
+		self.shadowMultiply = specs.shadowMultiply;
+		self.scale = specs.scale;
 		light = SEC3ENGINE.createCamera(CAMERA_TRACKING_TYPE);
-		light.goHome([5.0, 7.0, 1.5]);
-		light.setAzimuth(45.0);
-		light.setElevation(-60.0);	
+		light.goHome([0.0, 12.0, 0.0]);
+		light.setAzimuth(0.0);
+		light.setElevation(-90.0);
 		self.light = light;
 		
     };
@@ -328,12 +331,18 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 	        renderProgram.uShadowMapTransform = gl.getUniformLocation(renderProgram.ref(), "uShadowMapTransform")
 			renderProgram.uLightPosition = gl.getUniformLocation(renderProgram.ref(), "uLightPosition");
 			renderProgram.uLuminence = gl.getUniformLocation(renderProgram.ref(), "uLuminence");
+			renderProgram.uScatterMultiply = gl.getUniformLocation(renderProgram.ref(), "uScatterMultiply");
+			renderProgram.uShadowMultiply = gl.getUniformLocation(renderProgram.ref(), "uShadowMultiply");
+			renderProgram.uScale = gl.getUniformLocation(renderProgram.ref(), "uScale");
 	        gl.useProgram(renderProgram.ref());
 	        // gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, light.getViewTransform());
     		// gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, camera.getViewTransform());
     		gl.uniform1f(renderProgram.uLuminence, self.luminence);	
    	        gl.uniform1f(renderProgram.uAlpha, self.RGBA[3]);
 	        gl.uniform1f(renderProgram.uSize, self.particleSize);
+	        gl.uniform1f(renderProgram.uShadowMultiply, self.shadowMultiply);
+	        gl.uniform1f(renderProgram.uScatterMultiply, self.scatterMultiply);
+	        gl.uniform1f(renderProgram.uScale, self.scale);
 
 	        var lightPosition = self.light.getPosition();
 	        gl.uniform3f(renderProgram.uLightPosition, lightPosition[0], lightPosition[1], lightPosition[2]);

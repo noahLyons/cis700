@@ -28,7 +28,7 @@ SEC3ENGINE.createCamera = function(t){
     var persp = mat4.create();
     mat4.perspective(persp, 60*3.1415926/180, 
                      gl.viewportWidth / gl.viewportHeight, 
-                     0.1, 20.0);
+                     1.0, 16.0);
     
     setType = function(t){
         
