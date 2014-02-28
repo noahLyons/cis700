@@ -1,4 +1,4 @@
-// By Cheng
+
 /**
 * Camera Interactor
 *
@@ -6,10 +6,10 @@
 *
 * Based on the code sample from WebGL Beginner's Guide.
 */
-var SEC3ENGINE = SEC3ENGINE || {};
+var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
 
 
-SEC3ENGINE.cameraInteractor = function(camera,canvas){
+CIS700WEBGLCORE.CameraInteractor = function(camera,canvas){
     
     var camera = camera;
     var canvas = canvas;
@@ -78,6 +78,25 @@ SEC3ENGINE.cameraInteractor = function(camera,canvas){
 			else if (key == 39){
 				camera.changeAzimuth(10);
 			}
+			else if( key == 87 ){
+				camera.moveForward();
+			}
+			else if( key == 65){
+				camera.moveLeft();
+			}
+			else if( key == 83 ){
+				camera.moveBackward();
+			}
+			else if( key == 68 ){
+				camera.moveRight();
+			}
+			else if( key == 82 ){
+				camera.moveUp();
+			}
+			else if( key == 70 ){
+				camera.moveDown();
+			}
+	
 		}
 	     
 	};
@@ -105,6 +124,7 @@ SEC3ENGINE.cameraInteractor = function(camera,canvas){
 		
 		window.onkeydown = function(ev){
 			onKeyDown(ev);
+			
 		}
 		
 		window.onkeyup = function(ev){
@@ -123,8 +143,8 @@ SEC3ENGINE.cameraInteractor = function(camera,canvas){
 	var rotate = function(dx, dy){
 		
 		
-		var delta_elevation = -4.0 / canvas.height;
-		var delta_azimuth   = -4.0 / canvas.width;
+		var delta_elevation = -20.0 / canvas.height;
+		var delta_azimuth   = -20.0 / canvas.width;
 					
 		var nAzimuth = dx * delta_azimuth * MOTION_FACTOR;
 		var nElevation = dy * delta_elevation * MOTION_FACTOR;

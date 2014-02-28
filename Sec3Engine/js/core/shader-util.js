@@ -1,12 +1,11 @@
-// By Cheng
 
-//SEC3ENGINE is a core function interface
-var SEC3ENGINE = SEC3ENGINE || {};
+//CIS700WEBGLCORE is a core function interface
+var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
 
 //createShaderProgram returns an object representing a shader program
 //The shader sources are asynchronouosly retrieved
 //from the server when loadShader is called
-SEC3ENGINE.createShaderProgram = function(){
+CIS700WEBGLCORE.createShaderProgram = function(){
     "use strict"
 
     var VERTEX_SHADER_SRC = null;    //string content of vertex shader
@@ -33,11 +32,11 @@ SEC3ENGINE.createShaderProgram = function(){
 	{
 		if( type === gl.VERTEX_SHADER ){
 			VERTEX_SHADER_SRC = fileString;
-            console.log( fileString );
+            //console.log( fileString );
 		}
 		else if( type === gl.FRAGMENT_SHADER ){
 			FRAGMENT_SHADER_SRC = fileString;
-            console.log( fileString );
+            //console.log( fileString );
 		}
 
 		if( VERTEX_SHADER_SRC && FRAGMENT_SHADER_SRC ){

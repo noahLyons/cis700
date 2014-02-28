@@ -125,18 +125,9 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 	    gl.enableVertexAttribArray(shadowProgram.particleIndexAttribute); 
 
 	    gl.bindFramebuffer(gl.FRAMEBUFFER, depthBuffer); //bind the depth buffer
-	   	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	   	gl.clear(gl.DEPTH_BUFFER_BIT);
 
-	   	
-	    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowMapTexture, 0);
-	    
-	    gl.framebufferTexture2D(gl.FRAMEBUFFER, 
-	                            SEC3ENGINE.extensions.drawBuffers(gl).COLOR_ATTACHMENT0_WEBGL, 
-	                            gl.TEXTURE_2D, 
-	                            nullTexture, 
-	                            0);
-		
-		
+	   			
 	    gl.drawArrays(gl.POINTS, 0, self.maxParticles); 
 	    gl.colorMask(true,true,true,true);
 	}
@@ -282,6 +273,14 @@ SEC3ENGINE.createParticleSystem = function(specs) {
 	                            gl.TEXTURE_2D, 
 	                            nullTexture, 
 	                            0); 
+
+	    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowMapTexture, 0);
+	    
+	    gl.framebufferTexture2D(gl.FRAMEBUFFER, 
+	                            SEC3ENGINE.extensions.drawBuffers(gl).COLOR_ATTACHMENT0_WEBGL, 
+	                            gl.TEXTURE_2D, 
+	                            nullTexture, 
+	                            0);
 	   	
 	};
 

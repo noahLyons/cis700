@@ -1,20 +1,15 @@
-// By Cheng
-
 /**
- *   Camera object
- *   Based on the code sample from WebGL Beginner's Guide.
- */
+*   Camera object
+*   Based on the code sample from WebGL Beginner's Guide.
+*/
 
-//SEC3ENGINE is a core function interface
-var SEC3ENGINE = SEC3ENGINE || {};
+//CIS700WEBGLCORE is a core function interface
+var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
 
 var CAMERA_ORBIT_TYPE    = 1;
 var CAMERA_TRACKING_TYPE = 2;
 
-
-SEC3ENGINE.currentCamera = {};
-
-SEC3ENGINE.createCamera = function(t){
+CIS700WEBGLCORE.createCamera = function(t){
     var matrix     = mat4.create();
     var up         = vec3.create();
     var right      = vec3.create();
@@ -25,10 +20,7 @@ SEC3ENGINE.createCamera = function(t){
     var elevation  = 0.0;
     var type       = t;
     var steps      = 0;
-    var persp = mat4.create();
-    mat4.perspective(persp, 60*3.1415926/180, 
-                     gl.viewportWidth / gl.viewportHeight, 
-                     1.0, 30.0);
+
     
     setType = function(t){
         
@@ -66,6 +58,9 @@ SEC3ENGINE.createCamera = function(t){
         vec4.transformMat4( right, [1,0,0,0], m );
         vec4.transformMat4( up, [0,1,0,0], m );
         vec4.transformMat4( normal, [0,0,1,0], m );
+        vec3.normalize( normal, normal );
+        vec3.normalize( up, up );
+        vec3.normalize( right, right );
 
         if(type == CAMERA_TRACKING_TYPE){
             //mat4.multiplyVec4(m, [0, 0, 0, 1], position);
@@ -149,17 +144,46 @@ SEC3ENGINE.createCamera = function(t){
         var m = mat4.create();
         //mat4.inverse(matrix, m);
         mat4.invert( m, matrix );
-        mat4.multiply(m, persp, m);
         return m;
     };
 
-    getPosition = function(){
-        var p = position;
-        return p;
+    moveForward = function(){
+       
+        vec3.scaleAndAdd( position, position, normal, -0.1 );
+        update();
+    };
+
+    moveBackward = function(){
+       
+        vec3.scaleAndAdd( position, position, normal, 0.1 );
+        update();
+    };
+
+    moveLeft = function(){
+        
+        vec3.scaleAndAdd( position, position, right, -0.1 );
+        update();
+    };
+
+    moveRight = function(){
+        
+        vec3.scaleAndAdd( position, position, right, 0.1 );
+        update();
+    };
+
+    moveUp= function(){
+        
+        vec3.scaleAndAdd( position, position, up, 0.1 );
+        update();
+    };
+
+    moveDown = function(){
+        
+        vec3.scaleAndAdd( position, position, up, -0.1 );
+        update();
     };
 
     var newObj = {};
-    newObj.matrix = matrix;
     newObj.setType = setType;
     newObj.goHome = goHome;
     newObj.dolly = dolly;
@@ -170,9 +194,12 @@ SEC3ENGINE.createCamera = function(t){
     newObj.changeElevation = changeElevation;
     newObj.update = update;    
     newObj.getViewTransform = getViewTransform;
-    newObj.getPosition = getPosition;
+    newObj.moveForward = moveForward; 
+    newObj.moveBackward = moveBackward; 
+    newObj.moveLeft = moveLeft;
+    newObj.moveRight = moveRight; 
+    newObj.moveUp = moveUp;
+    newObj.moveDown = moveDown;
 
-    // SEC3ENGINE.currentCamera = newObj;
     return newObj;
 };
-

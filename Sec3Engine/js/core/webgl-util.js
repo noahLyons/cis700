@@ -1,8 +1,8 @@
-// By Cheng
-//SEC3ENGINE is a core function interface
-var SEC3ENGINE = SEC3ENGINE || {};
 
-SEC3ENGINE.getWebGLContext = function( canvas, message ){
+//CIS700WEBGLCORE is a core function interface
+var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
+
+CIS700WEBGLCORE.getWebGLContext = function( canvas, message ){
 
     var ctx = null;
     var names = [ "webgl", "experimental-webgl", "webkit-3d" ];
@@ -27,7 +27,7 @@ SEC3ENGINE.getWebGLContext = function( canvas, message ){
 };
 
 //
-SEC3ENGINE.registerAsyncObj = function( gl, asyncObj ){
+CIS700WEBGLCORE.registerAsyncObj = function( gl, asyncObj ){
     if( !gl.asyncObjArray ){
         gl.asyncObjArray = [];
     }
@@ -35,7 +35,7 @@ SEC3ENGINE.registerAsyncObj = function( gl, asyncObj ){
 };
 
 //Make sure all objects with asynchronously-requested resources are ready before starting the rendering loop
-SEC3ENGINE.run = function(gl){
+CIS700WEBGLCORE.run = function(gl){
     var i;
     var n;
 
@@ -52,9 +52,9 @@ SEC3ENGINE.run = function(gl){
 
 
     if( n === 0 ){
-       SEC3ENGINE.renderLoop(); 
+       CIS700WEBGLCORE.renderLoop(); 
     }
     else{
-        window.setTimeout( SEC3ENGINE.run, 500, gl );
+        window.setTimeout( CIS700WEBGLCORE.run, 500, gl );
     }
 };

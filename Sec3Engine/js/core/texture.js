@@ -1,5 +1,3 @@
-// By Cheng
-
 function Texture(img){
 	var self = this;
 	this.tex = gl.createTexture();
@@ -8,17 +6,17 @@ function Texture(img){
 		self.handleLoadedTexture();
 	}
     if (img != null){
-    	log.console( "no image loaded"); 
+    	log.console( "no image loaded");
         this.setImage(img);
     }
 
 };
 
-Texture.prototype.setImage = function(file) {
+Texture.prototype.setImage = function(file){
 	this.image.src = file;
 };
 
-Texture.prototype.handleLoadedTexture = function() {
+Texture.prototype.handleLoadedTexture = function(){
 	console.info('loading image '+this.image.src);
 	gl.bindTexture(gl.TEXTURE_2D, this.tex);
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.image);
