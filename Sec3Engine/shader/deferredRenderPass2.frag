@@ -5,6 +5,8 @@ precision highp float;
 #define DISPLAY_COLOR 3
 #define DISPLAY_DEPTH 4
 
+//--------------------------------------------------------------VARIABLES:
+
 uniform sampler2D u_positionTex;
 uniform sampler2D u_normalTex;
 uniform sampler2D u_colorTex;
@@ -16,12 +18,16 @@ uniform int u_displayType;
 
 varying vec2 v_texcoord;
 
-float linearizeDepth( float exp_depth, float near, float far ){
+//---------------------------------------------------------HELPER METHODS:
+
+float linearizeDepth( float exp_depth, float near, float far ) {
 	return ( 2.0 * near ) / ( far + near - exp_depth * ( far - near ) );
 }
 
-void main()
-{
+//-------------------------------------------------------------------MAIN:
+
+void main() {
+
 	vec3 normal = texture2D( u_normalTex, v_texcoord ).xyz;
 	vec3 position = texture2D( u_positionTex, v_texcoord ).xyz;
 	vec4 color = texture2D( u_colorTex, v_texcoord );

@@ -1,3 +1,6 @@
+/*
+ * By Cheng-Tso Lin
+ */
 
 //CIS700WEBGLCORE is a core function interface
 var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
