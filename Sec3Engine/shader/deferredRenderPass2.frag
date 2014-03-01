@@ -21,6 +21,7 @@ varying vec2 v_texcoord;
 //---------------------------------------------------------HELPER METHODS:
 
 float linearizeDepth( float exp_depth, float near, float far ) {
+	
 	return ( 2.0 * near ) / ( far + near - exp_depth * ( far - near ) );
 }
 
@@ -36,11 +37,11 @@ void main() {
 	depth = linearizeDepth( depth, u_zNear, u_zFar );
 
     if( u_displayType == DISPLAY_DEPTH )
-	    gl_FragColor = vec4( depth, depth, depth, 1 );
+	    gl_FragData[0] = vec4( depth, depth, depth, 1 );
 	else if( u_displayType == DISPLAY_COLOR )
-	    gl_FragColor = color;
+	    gl_FragData[0] = color;
 	else if( u_displayType == DISPLAY_NORMAL )
-	    gl_FragColor = vec4( normal, 1 );
+	    gl_FragData[0] = vec4( normal, 1 );
 	else
-	    gl_FragColor = vec4( position, 1 );
+	    gl_FragData[0] = vec4( position, 1 );
 }

@@ -18,16 +18,20 @@ var quad_texcoordVBO;
 var model_vertexVBOs = [];   //buffer object for loaded model (vertex)
 var model_indexVBOs = [];    //buffer object for loaded model (index)
 var model_normalVBOs = [];   //buffer object for loaded model (normal)
-var model_texcoordVBOs = []; //buffer object for loaded model (normal)
+var model_texcoordVBOs = []; //buffer object for loaded model (texture)
 
 var passProg;           //shader program passing data to FBO
 var renderQuadProg;     //shader program showing the FBO buffers
+var blurProg;
 
-var fbo;    //Framebuffer object storing information for postprocessing effects
+var fbo;    //Framebuffer object storing data for postprocessing effects
+var displayBuffer; //Framebuffer object for storing unprocessed image
+var blurFBO;
 
 var zFar = 30;
 var zNear = 0.1;
 var texToDisplay = 1;
+var secondPass = renderQuadProg;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -35,9 +39,9 @@ var texToDisplay = 1;
  * Creates shader programs and sets uniforms
  */
 var createShaders = function() {
+    //----------------------------------------------------FIRST PASS:
     //Create a shader program for output scene data to FB
     passProg = CIS700WEBGLCORE.createShaderProgram();
-
     //Load the shader source asynchronously
     passProg.loadShader( gl, 
                          "/../shader/deferredRenderPass1.vert", 
@@ -61,6 +65,7 @@ var createShaders = function() {
     //asynchronously-requested resources are loaded using AJAX 
     CIS700WEBGLCORE.registerAsyncObj( gl, passProg );
 
+    //----------------------------------------------------SECOND PASS:
     //Create a shader program for displaying FBO contents
     renderQuadProg = CIS700WEBGLCORE.createShaderProgram();
     renderQuadProg.loadShader( gl, 
@@ -82,6 +87,25 @@ var createShaders = function() {
         renderQuadProg.uDisplayTypeLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_displayType" );
     } );
     CIS700WEBGLCORE.registerAsyncObj( gl, renderQuadProg );
+
+    //----------------------------------------------------BLUR PASS:
+    //Create a shader program for displaying FBO contents
+    blurProg = CIS700WEBGLCORE.createShaderProgram();
+    blurProg.loadShader( gl, 
+                         "/../shader/texture.vert", 
+                         "/../shader/gaussianBlur.frag" );
+
+    blurProg.addCallback( function(){
+        //query the locations of shader parameters
+        blurProg.aVertexPosLoc = gl.getAttribLocation( blurProg.ref(), "a_pos" );
+        blurProg.aVertexTexcoordLoc = gl.getAttribLocation( blurProg.ref(), "a_texcoord");
+        blurProg.uSourceLoc = gl.getUniformLocation( blurProg.ref(), "u_source");
+        blurProg.uBlurDirectionLoc = gl.getUniformLocation( blurProg.ref(), "u_blurDirection");
+        
+
+    } );
+
+    CIS700WEBGLCORE.registerAsyncObj( gl, blurProg );
 }
 
 var drawModel = function(){
@@ -154,6 +178,8 @@ var deferredRenderPass1 = function(){
  */
 var deferredRenderPass2 = function() {
 
+    displayBuffer.bind(gl);
+
     gl.useProgram( renderQuadProg.ref() );
     gl.disable( gl.DEPTH_TEST );
 
@@ -181,7 +207,6 @@ var deferredRenderPass2 = function() {
     gl.vertexAttribPointer( renderQuadProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
     gl.enableVertexAttribArray( renderQuadProg.aVertexPosLoc );
 
-    //Bind vertex texcoord buffer
     gl.bindBuffer( gl.ARRAY_BUFFER, quad_texcoordVBO );
     gl.vertexAttribPointer( renderQuadProg.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
     gl.enableVertexAttribArray( renderQuadProg.aVertexTexcoordLoc );
@@ -191,15 +216,77 @@ var deferredRenderPass2 = function() {
 
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
+
+    displayBuffer.unbind(gl);
 };
+
+/*
+ * Two passes, one to blur vertically and one to blur horizontally
+ */
+var blurPasses = function() {
+    var vertical = 1;
+    var horizontal = 0;
+
+    
+    gl.useProgram( blurProg.ref() );
+    gl.disable( gl.DEPTH_TEST );
+
+     // first, displayBuffer texture is our source
+    setActiveTexture(gl, 1);
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(2) );
+    gl.uniform1i( blurProg.uSourceLoc, 2 );
+    // blurFBO slot 0 will be written to with the vertical blur
+    // making a vertical smear (1 = Vertical Pass)
+    gl.uniform1i( blurProg.uBlurDirectionLoc, vertical );
+    // and draw!
+
+    gl.bindBuffer( gl.ARRAY_BUFFER, quad_vertexVBO );
+    gl.vertexAttribPointer( blurProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( blurProg.aVertexPosLoc );
+
+    gl.bindBuffer( gl.ARRAY_BUFFER, quad_texcoordVBO );
+    gl.vertexAttribPointer( blurProg.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( blurProg.aVertexTexcoordLoc );
+
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, quad_indexVBO );
+
+
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
+
+    // then, vertically blured texture is source (old dest)
+
+    setActiveTexture(gl, 2);
+    gl.bindTexture( gl.TEXTURE_2D, blurFBO.texture(1) );
+    gl.uniform1i( blurProg.uSourceLoc, 1 );
+    gl.uniform1i( blurProg.uBlurDirectionLoc, horizontal );
+
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, quad_indexVBO );
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
+
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
+    gl.bindBuffer( gl.ARRAY_BUFFER, null );
+  
+};
+
+
+
+var myRender = function() {
+
+    deferredRenderPass1();
+
+    // if (secondPass === renderQuadProg) {
+        // deferredRenderPass2();
+    // }
+    // else if (secondPass === blurProg) {
+        blurPasses();
+    // }
+}
 
 // Customized looping function
 var myRenderLoop = function() {
 
     window.requestAnimationFrame( myRenderLoop );
-
-    deferredRenderPass1();
-    deferredRenderPass2();
+    myRender();
 };
 
 var main = function( canvasId, messageId ){
@@ -228,6 +315,24 @@ var main = function( canvasId, messageId ){
     
 };
 
+var setActiveTexture = function(gl, texNum) {
+    
+    switch (texNum) {
+        case 0:
+            gl.activeTexture( gl.TEXTURE0 );
+            break;
+        case 1:
+            gl.activeTexture( gl.TEXTURE1 );
+            break;
+        case 2:
+            gl.activeTexture( gl.TEXTURE2 );
+            break;
+        case 3:
+            gl.activeTexture( gl.TEXTURE3 );
+            break;
+
+    }
+}
 
 //-----------------------------------------------------------STANDARD SETUP METHODS:
 
@@ -300,13 +405,16 @@ var loadObjects = function() {
 
 var setKeyInputs = function() {
     
-    window.onkeydown = function(ev){
+    window.onkeydown = function(ev) {
+
         interactor.onKeyDown(ev);
         switch( ev.keyCode ){
-          case 49: texToDisplay = 1; break; //show position texture
-          case 50: texToDisplay = 2; break;//show position texture
-          case 51: texToDisplay = 3; break;//show position texture
-          case 52: texToDisplay = 4; break;//show position texture
+          case 49: texToDisplay = 1; break;     //show position texture
+          case 50: texToDisplay = 2; break;     //show normal texture
+          case 51: texToDisplay = 3; break;     //show texture texture
+          case 52: texToDisplay = 4; break;     //show depth texture
+
+          case 'b': secondPass = blurProg; break;
         }
     }; 
 }
@@ -351,6 +459,18 @@ var setupScene = function(canvasId, messageId ) {
     fbo = CIS700WEBGLCORE.createFBO();
     if (! fbo.initialize( gl, canvas.width, canvas.height )) {
         console.log( "FBO initialization failed.");
+        return;
+    }
+
+    displayBuffer = CIS700WEBGLCORE.createFBO();
+    if (! displayBuffer.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "display FBO initialization failed.");
+        return;
+    }
+
+    blurFBO = CIS700WEBGLCORE.createFBO();
+    if (! blurFBO.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "blurFBO initialization failed.");
         return;
     }
 };
