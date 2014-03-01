@@ -101,7 +101,7 @@ var createShaders = function() {
         blurProg.aVertexTexcoordLoc = gl.getAttribLocation( blurProg.ref(), "a_texcoord");
         blurProg.uSourceLoc = gl.getUniformLocation( blurProg.ref(), "u_source");
         blurProg.uBlurDirectionLoc = gl.getUniformLocation( blurProg.ref(), "u_blurDirection");
-        
+        blurProg.uLilSigLoc = gl.getUniformLocation( blurProg.ref(), "u_lilSigster");
 
     } );
 
@@ -233,7 +233,7 @@ var blurPasses = function() {
 
      // first, displayBuffer texture is our source
     setActiveTexture(gl, 1);
-    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(2) );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
     gl.uniform1i( blurProg.uSourceLoc, 2 );
     // blurFBO slot 0 will be written to with the vertical blur
     // making a vertical smear (1 = Vertical Pass)
