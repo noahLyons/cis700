@@ -1,9 +1,9 @@
 precision highp float;
 
-#define DISPLAY_POS 1
-#define DISPLAY_NORMAL 2
-#define DISPLAY_COLOR 3
-#define DISPLAY_DEPTH 4
+#define DISPLAY_POS 0
+#define DISPLAY_NORMAL 1
+#define DISPLAY_COLOR 2
+#define DISPLAY_DEPTH 3
 
 //--------------------------------------------------------------VARIABLES:
 

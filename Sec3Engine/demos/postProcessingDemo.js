@@ -31,7 +31,7 @@ var blurFBO;
 var zFar = 30;
 var zNear = 0.1;
 var texToDisplay = 1;
-var secondPass = renderQuadProg;
+var secondPass;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -85,6 +85,8 @@ var createShaders = function() {
         renderQuadProg.uZNearLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_zNear" );
         renderQuadProg.uZFarLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_zFar" );
         renderQuadProg.uDisplayTypeLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_displayType" );
+
+        secondPass = renderQuadProg;
     } );
     CIS700WEBGLCORE.registerAsyncObj( gl, renderQuadProg );
 
@@ -101,7 +103,13 @@ var createShaders = function() {
         blurProg.aVertexTexcoordLoc = gl.getAttribLocation( blurProg.ref(), "a_texcoord");
         blurProg.uSourceLoc = gl.getUniformLocation( blurProg.ref(), "u_source");
         blurProg.uBlurDirectionLoc = gl.getUniformLocation( blurProg.ref(), "u_blurDirection");
-        blurProg.uLilSigLoc = gl.getUniformLocation( blurProg.ref(), "u_lilSigster");
+        blurProg.ulilSigLoc = gl.getUniformLocation( blurProg.ref(), "u_lilSig");
+        blurProg.uPixDimLoc = gl.getUniformLocation( blurProg.ref(), "u_pixDim");
+        gl.useProgram(blurProg.ref());
+        var width = CIS700WEBGLCORE.canvas.width;
+        var height = CIS700WEBGLCORE.canvas.height;
+        gl.uniform2fv(blurProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
+        gl.uniform1f(blurProg.uLilSigLoc, 8.0);
 
     } );
 
@@ -178,7 +186,7 @@ var deferredRenderPass1 = function(){
  */
 var deferredRenderPass2 = function() {
 
-    displayBuffer.bind(gl);
+    // displayBuffer.bind(gl);
 
     gl.useProgram( renderQuadProg.ref() );
     gl.disable( gl.DEPTH_TEST );
@@ -217,7 +225,7 @@ var deferredRenderPass2 = function() {
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 
-    displayBuffer.unbind(gl);
+    // displayBuffer.unbind(gl);
 };
 
 /*
@@ -227,14 +235,14 @@ var blurPasses = function() {
     var vertical = 1;
     var horizontal = 0;
 
-    
+    blurFBO.bind(gl);
     gl.useProgram( blurProg.ref() );
     gl.disable( gl.DEPTH_TEST );
 
      // first, displayBuffer texture is our source
-    setActiveTexture(gl, 1);
+    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
-    gl.uniform1i( blurProg.uSourceLoc, 2 );
+    gl.uniform1i( blurProg.uSourceLoc, gl.TEXTURE0 );
     // blurFBO slot 0 will be written to with the vertical blur
     // making a vertical smear (1 = Vertical Pass)
     gl.uniform1i( blurProg.uBlurDirectionLoc, vertical );
@@ -252,12 +260,13 @@ var blurPasses = function() {
 
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
+    blurFBO.unbind(gl);
 
     // then, vertically blured texture is source (old dest)
 
-    setActiveTexture(gl, 2);
+     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture( gl.TEXTURE_2D, blurFBO.texture(1) );
-    gl.uniform1i( blurProg.uSourceLoc, 1 );
+    gl.uniform1i( blurProg.uSourceLoc, gl.TEXTURE0);
     gl.uniform1i( blurProg.uBlurDirectionLoc, horizontal );
 
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, quad_indexVBO );
@@ -274,12 +283,12 @@ var myRender = function() {
 
     deferredRenderPass1();
 
-    // if (secondPass === renderQuadProg) {
-        // deferredRenderPass2();
-    // }
-    // else if (secondPass === blurProg) {
+    if (secondPass === renderQuadProg) {
+        deferredRenderPass2();
+    }
+    else if (secondPass === blurProg) {
         blurPasses();
-    // }
+    }
 }
 
 // Customized looping function
@@ -409,12 +418,13 @@ var setKeyInputs = function() {
 
         interactor.onKeyDown(ev);
         switch( ev.keyCode ){
-          case 49: texToDisplay = 1; break;     //show position texture
-          case 50: texToDisplay = 2; break;     //show normal texture
-          case 51: texToDisplay = 3; break;     //show texture texture
-          case 52: texToDisplay = 4; break;     //show depth texture
+          case 49: texToDisplay = 0; break;     //show position texture
+          case 50: texToDisplay = 1; break;     //show normal texture
+          case 51: texToDisplay = 2; break;     //show texture texture
+          case 52: texToDisplay = 3; break;     //show depth texture
 
-          case 'b': secondPass = blurProg; break;
+          case 53: secondPass = blurProg; break;
+          case 54: secondPass = renderQuadProg; break;
         }
     }; 
 }
@@ -428,6 +438,7 @@ var setupScene = function(canvasId, messageId ) {
     //----SETUP SCENE
     //get WebGL context
     canvas = document.getElementById( canvasId );
+    CIS700WEBGLCORE.canvas = canvas;
     msg = document.getElementById( messageId );
     gl = CIS700WEBGLCORE.getWebGLContext( canvas, msg );
     if (! gl) {
