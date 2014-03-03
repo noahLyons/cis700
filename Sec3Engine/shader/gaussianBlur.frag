@@ -2,8 +2,8 @@ precision highp float;
 
 #define VERTICAL 1
 #define HORIZONTAL 0
-const int NUM_WEIGHTS = 3;
-const int PIXELS_SAMPLED_PER_DIR = 3;
+const int NUM_WEIGHTS = 10;
+const int PIXELS_SAMPLED_PER_DIR = 10;
 const int PIXELS_PER_WEIGHT = PIXELS_SAMPLED_PER_DIR / NUM_WEIGHTS;
 //--------------------------------------------------------------VARIABLES:
 
@@ -18,7 +18,7 @@ varying float v_weight[NUM_WEIGHTS];
 varying vec2 v_texcoord;
 
 
-//----------------------
+//----------------------------------------------------------------METHODS:
 vec2 getTexelUv( vec2 offset) {
 	return offset * u_pixDim + v_texcoord;
 }
@@ -27,7 +27,7 @@ vec4 getPixelColor(vec2 direction) {
 	vec4 color = texture2D( u_source, v_texcoord ) * v_weight[0];
 
 	for( int i = 1; i < PIXELS_SAMPLED_PER_DIR; i++) {
-			float weight = v_weight[ i / PIXELS_PER_WEIGHT ];
+			float weight = v_weight[i];
 
 			vec2 uv = getTexelUv(direction * float(i));
 			vec4 weightedColorAbove = texture2D( u_source, uv) * weight;

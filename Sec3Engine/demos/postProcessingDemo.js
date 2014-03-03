@@ -23,9 +23,11 @@ var model_texcoordVBOs = []; //buffer object for loaded model (texture)
 var passProg;           //shader program passing data to FBO
 var renderQuadProg;     //shader program showing the FBO buffers
 var blurProg;
+var downsampleProg;
+var dofProg;
 
 var fbo;    //Framebuffer object storing data for postprocessing effects
-var displayBuffer; //Framebuffer object for storing unprocessed image
+var lowResFBO; //Framebuffer object for storing unprocessed image
 var workingFBO;
 
 var zFar = 30;
@@ -33,6 +35,7 @@ var zNear = 0.1;
 var texToDisplay = 1;
 var secondPass;
 
+var SIGMA_START = 2.0;
 //--------------------------------------------------------------------------METHODS:
 
 /*
@@ -126,11 +129,33 @@ var createShaders = function() {
         var width = CIS700WEBGLCORE.canvas.width;
         var height = CIS700WEBGLCORE.canvas.height;
         gl.uniform2fv(blurProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
-        gl.uniform1f(blurProg.uLilSigLoc, 6.0);
-
+        gl.uniform1f(blurProg.uLilSigLoc, 4.0);
+        initUiButtons(); //TODO: awful : (
     } );
 
     CIS700WEBGLCORE.registerAsyncObj( gl, blurProg );
+
+    //----------------------------------------------------DOWNSAMPLE PASS:
+    //Create a shader program for displaying FBO contents
+    downsampleProg = CIS700WEBGLCORE.createShaderProgram();
+    downsampleProg.loadShader( gl, 
+                         "/../shader/finalPass.vert", 
+                         "/../shader/downSample.frag" );
+
+    downsampleProg.addCallback( function(){
+        //query the locations of shader parameters
+        downsampleProg.aVertexPosLoc = gl.getAttribLocation( downsampleProg.ref(), "a_pos" );
+        downsampleProg.aVertexTexcoordLoc = gl.getAttribLocation( downsampleProg.ref(), "a_texcoord");
+        downsampleProg.uSourceLoc = gl.getUniformLocation( downsampleProg.ref(), "u_source");
+        downsampleProg.uPixDimLoc = gl.getUniformLocation( downsampleProg.ref(), "u_pixDim");
+        gl.useProgram(downsampleProg.ref());
+        var width = CIS700WEBGLCORE.canvas.width;
+        var height = CIS700WEBGLCORE.canvas.height;
+        gl.uniform2fv(downsampleProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
+
+    } );
+
+    CIS700WEBGLCORE.registerAsyncObj( gl, downsampleProg );
 }
 
 var drawModel = function(){
@@ -180,6 +205,26 @@ var drawModel = function(){
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
     } 
 };
+
+function initUiButtons() {
+    
+    CIS700WEBGLCORE.ui = new UI("uiWrapper");
+
+    var lilSigCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        gl.useProgram(blurProg.ref());
+        gl.uniform1f(blurProg.uLilSigLoc, newSliderVal);
+
+        return "Sigma: " + newSliderVal;
+    };
+
+    CIS700WEBGLCORE.ui.addSlider("Sigma: " + SIGMA_START,
+                 lilSigCallback,
+                 SIGMA_START,
+                 0.1, 50.0,
+                 0.1);
+}
 
 /*
  * Renders the geometry and output color, normal, depth information
@@ -248,7 +293,6 @@ var blurPasses = function(sourceTexture) {
 
     workingFBO.bind(gl);
     gl.useProgram( blurProg.ref() );
-    gl.uniform1f( blurProg.uLilSigLoc, 1.0);
     gl.disable( gl.DEPTH_TEST );
 
      // first, texToDisplay texture is source
@@ -265,8 +309,7 @@ var blurPasses = function(sourceTexture) {
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
     
     // then, vertically blured texture is source (old dest)
-    // gl.activeTexture(gl.TEXTURE0);
-
+    
     gl.bindTexture( gl.TEXTURE_2D, workingFBO.texture(0) );
     gl.uniform1i( blurProg.uSourceLoc, 0);
 
@@ -281,17 +324,36 @@ var blurPasses = function(sourceTexture) {
    
 };
 
+var downsamplePass = function(hiResTex){
+
+    gl.useProgram( downsampleProg.ref() );
+    workingFBO.bind(gl);
+
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, hiResTex );
+    gl.uniform1i( downsampleProg.uSourceLoc, 0 );
+
+    gl.disable( gl.DEPTH_TEST );
+    bindQuadBuffers(downsampleProg);
+
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
+    gl.bindBuffer( gl.ARRAY_BUFFER, null );
+
+}
+
 var finalPass = function(){
 
     gl.useProgram(finalPassProg.ref());
     gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, workingFBO.texture(0));
     gl.uniform1i(finalPassProg.uFinalImageLoc, 0);
 
     gl.disable( gl.DEPTH_TEST );
     bindQuadBuffers(finalPassProg);
-
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 
@@ -310,9 +372,10 @@ var myRender = function() {
     }
     else if (secondPass === blurProg) {
         blurPasses(fbo.texture(texToDisplay));
-        // finalPass();
     }
-
+    else if (secondPass === dofProg) {
+        downsamplePass(fbo.texture(texToDisplay));
+    }
     finalPass();
 }
 
@@ -431,6 +494,7 @@ var setKeyInputs = function() {
 
           case 53: secondPass = blurProg; break;
           case 54: secondPass = renderQuadProg; break;
+          case 55: secondPass = dofProg; break;
         }
     }; 
 }
@@ -479,8 +543,8 @@ var setupScene = function(canvasId, messageId ) {
         return;
     }
 
-    displayBuffer = CIS700WEBGLCORE.createFBO();
-    if (! displayBuffer.initialize( gl, canvas.width, canvas.height )) {
+    lowResFBO = CIS700WEBGLCORE.createFBO();
+    if (! lowResFBO.initialize( gl, canvas.width / 4, canvas.height / 4)) {
         console.log( "display FBO initialization failed.");
         return;
     }

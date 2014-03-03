@@ -1,29 +1,29 @@
-//A wrapper for creating framebuffer objects
+    //A wrapper for creating framebuffer objects
 
-//CIS700WEBGLCORE is a core function interface
-var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
+    //CIS700WEBGLCORE is a core function interface
+    var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
 
-CIS700WEBGLCORE.createFBO = function(){
+    CIS700WEBGLCORE.createFBO = function() {
     "use strict"
 
-     var textures = [];
-     var depthTex = null;
-     var fbo = null;
+    var textures = [];
+    var depthTex = null;
+    var fbo = null;
 
-     function init( gl, width, height ){
-     	gl.getExtension( "OES_texture_float" );
-     	gl.getExtension( "OES_texture_float_linear" );
-     	var extDrawBuffers = gl.getExtension( "WEBGL_draw_buffers");
-     	var extDepthTex = gl.getExtension( "WEBGL_depth_texture" );
+    function init( gl, width, height ){
+    	gl.getExtension( "OES_texture_float" );
+    	gl.getExtension( "OES_texture_float_linear" );
+    	var extDrawBuffers = gl.getExtension( "WEBGL_draw_buffers");
+    	var extDepthTex = gl.getExtension( "WEBGL_depth_texture" );
 
-     	if( !extDepthTex || !extDrawBuffers ){
-     		alert("Depth texture extension unavailable on your browser!");
-     		return false;
-     	}
+    	if( !extDepthTex || !extDrawBuffers ){
+    		alert("Depth texture extension unavailable on your browser!");
+    		return false;
+    	}
 
-     	//Create depth texture 
-     	depthTex = gl.createTexture();
-     	gl.bindTexture( gl.TEXTURE_2D, depthTex );
+    	//Create depth texture 
+    	depthTex = gl.createTexture();
+    	gl.bindTexture( gl.TEXTURE_2D, depthTex );
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -68,9 +68,9 @@ CIS700WEBGLCORE.createFBO = function(){
         gl.bindFramebuffer( gl.FRAMEBUFFER, null );
         gl.bindTexture( gl.TEXTURE_2D, null );
         return true;
-     }
+        }
 
-    return {
+        return {
         ref: function(){
         	return fbo;
         },
