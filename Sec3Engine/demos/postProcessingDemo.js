@@ -120,13 +120,13 @@ var createShaders = function() {
         blurProg.aVertexTexcoordLoc = gl.getAttribLocation( blurProg.ref(), "a_texcoord");
         blurProg.uSourceLoc = gl.getUniformLocation( blurProg.ref(), "u_source");
         blurProg.uBlurDirectionLoc = gl.getUniformLocation( blurProg.ref(), "u_blurDirection");
-        blurProg.ulilSigLoc = gl.getUniformLocation( blurProg.ref(), "u_lilSig");
+        blurProg.uLilSigLoc = gl.getUniformLocation( blurProg.ref(), "u_lilSig");
         blurProg.uPixDimLoc = gl.getUniformLocation( blurProg.ref(), "u_pixDim");
         gl.useProgram(blurProg.ref());
         var width = CIS700WEBGLCORE.canvas.width;
         var height = CIS700WEBGLCORE.canvas.height;
         gl.uniform2fv(blurProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
-        gl.uniform1f(blurProg.uLilSigLoc, 8.0);
+        gl.uniform1f(blurProg.uLilSigLoc, 6.0);
 
     } );
 
@@ -203,7 +203,7 @@ var deferredRenderPass1 = function(){
  */
 var deferredRenderPass2 = function() {
 
-    // displayBuffer.bind(gl);
+    workingFBO.bind(gl);
 
     gl.useProgram( renderQuadProg.ref() );
     gl.disable( gl.DEPTH_TEST );
@@ -228,14 +228,14 @@ var deferredRenderPass2 = function() {
     gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture() );
     gl.uniform1i( renderQuadProg.uDepthSamplerLoc, 3 );
 
-    bindQuadBuffers();
+    bindQuadBuffers(renderQuadProg);
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 
-    // displayBuffer.unbind(gl);
+    workingFBO.unbind(gl);
 };
 
 
@@ -248,47 +248,50 @@ var blurPasses = function(sourceTexture) {
 
     workingFBO.bind(gl);
     gl.useProgram( blurProg.ref() );
+    gl.uniform1f( blurProg.uLilSigLoc, 1.0);
     gl.disable( gl.DEPTH_TEST );
 
      // first, texToDisplay texture is source
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture( gl.TEXTURE_2D, sourceTexture );
-    gl.uniform1i( blurProg.uSourceLoc, gl.TEXTURE0 );
+    gl.uniform1i( blurProg.uSourceLoc, 0 );
     // workingFBO slot 0 will be written to with the vertical blur
     // making a vertical smear (1 = Vertical Pass)
     gl.uniform1i( blurProg.uBlurDirectionLoc, vertical );
     // and draw!
 
-    bindQuadBuffers();
+    bindQuadBuffers(blurProg);
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
     
-
-
     // then, vertically blured texture is source (old dest)
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture( gl.TEXTURE_2D, workingFBO.texture(1) );
-    gl.uniform1i( blurProg.uSourceLoc, gl.TEXTURE0);
+    // gl.activeTexture(gl.TEXTURE0);
+
+    gl.bindTexture( gl.TEXTURE_2D, workingFBO.texture(0) );
+    gl.uniform1i( blurProg.uSourceLoc, 0);
+
     gl.uniform1i( blurProg.uBlurDirectionLoc, horizontal );
 
-    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, quad_indexVBO );
+    bindQuadBuffers(blurProg);
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
     workingFBO.unbind(gl);
-    return workingFBO.texture(0);
+   
 };
 
-var finalPass = function(finalImage){
-    gl.useProgram(finalPassProg.ref());
+var finalPass = function(){
 
+    gl.useProgram(finalPassProg.ref());
+    gl.bindFramebuffer( gl.FRAMEBUFFER, null );
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, finalImage);
+    gl.bindTexture(gl.TEXTURE_2D, workingFBO.texture(0));
     gl.uniform1i(finalPassProg.uFinalImageLoc, 0);
 
     gl.disable( gl.DEPTH_TEST );
-    bindQuadBuffers();
+    bindQuadBuffers(finalPassProg);
+
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 
@@ -306,10 +309,11 @@ var myRender = function() {
         deferredRenderPass2();
     }
     else if (secondPass === blurProg) {
-        finalImage = blurPasses(fbo.texture(texToDisplay));
-        finalPass(finalImage);
+        blurPasses(fbo.texture(texToDisplay));
+        // finalPass();
     }
 
+    finalPass();
 }
 
 // Customized looping function
@@ -490,15 +494,15 @@ var setupScene = function(canvasId, messageId ) {
 
 //--------------------------------------------------------------------------HELPERS:
 
-var bindQuadBuffers = function() {
+var bindQuadBuffers = function(program) {
 
     gl.bindBuffer( gl.ARRAY_BUFFER, quad_vertexVBO );
-    gl.vertexAttribPointer( blurProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( blurProg.aVertexPosLoc );
+    gl.vertexAttribPointer( program.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( program.aVertexPosLoc );
 
     gl.bindBuffer( gl.ARRAY_BUFFER, quad_texcoordVBO );
-    gl.vertexAttribPointer( blurProg.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( blurProg.aVertexTexcoordLoc );
+    gl.vertexAttribPointer( program.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
+    gl.enableVertexAttribArray( program.aVertexTexcoordLoc );
 
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, quad_indexVBO );  
 }

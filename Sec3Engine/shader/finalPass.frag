@@ -13,5 +13,5 @@ void main() {
 
 	vec4 color = texture2D( u_colorTex, v_texcoord );
 
-	 gl_FragData[0] = color;
+	 gl_FragColor = color;
 }
