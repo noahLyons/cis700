@@ -89,6 +89,10 @@ var createShaders = function() {
         renderQuadProg.uZFarLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_zFar" );
         renderQuadProg.uDisplayTypeLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_displayType" );
 
+        gl.useProgram( renderQuadProg.ref() );
+        gl.uniform1f( renderQuadProg.uZNearLoc, zNear );
+        gl.uniform1f( renderQuadProg.uZFarLoc, zFar );
+
         secondPass = renderQuadProg;
     } );
     CIS700WEBGLCORE.registerAsyncObj( gl, renderQuadProg );
@@ -148,6 +152,7 @@ var createShaders = function() {
         downsampleProg.aVertexTexcoordLoc = gl.getAttribLocation( downsampleProg.ref(), "a_texcoord");
         downsampleProg.uSourceLoc = gl.getUniformLocation( downsampleProg.ref(), "u_source");
         downsampleProg.uPixDimLoc = gl.getUniformLocation( downsampleProg.ref(), "u_pixDim");
+        downsampleProg.uWriteSlotLoc = gl.getUniformLocation( downsampleProg.ref(), "u_writeSlot");
         gl.useProgram(downsampleProg.ref());
         var width = CIS700WEBGLCORE.canvas.width;
         var height = CIS700WEBGLCORE.canvas.height;
@@ -156,6 +161,34 @@ var createShaders = function() {
     } );
 
     CIS700WEBGLCORE.registerAsyncObj( gl, downsampleProg );
+
+    //-------------------------------------------------DOFDOWNSAMPLE PASS:
+    //Create a shader program for displaying FBO contents
+    dofDownsampleProg = CIS700WEBGLCORE.createShaderProgram();
+    dofDownsampleProg.loadShader( gl, 
+                         "/../shader/finalPass.vert", 
+                         "/../shader/dofDownSample.frag" );
+
+    dofDownsampleProg.addCallback( function(){
+        //query the locations of shader parameters
+        dofDownsampleProg.aVertexPosLoc = gl.getAttribLocation( dofDownsampleProg.ref(), "a_pos" );
+        dofDownsampleProg.aVertexTexcoordLoc = gl.getAttribLocation( dofDownsampleProg.ref(), "a_texcoord");
+        dofDownsampleProg.uSourceLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_source");
+        dofDownsampleProg.uDepthLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_depth");
+        dofDownsampleProg.uPixDimLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_pixDim");
+        dofDownsampleProg.uNearLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_near");
+        dofDownsampleProg.uFarLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_far");
+        gl.useProgram(dofDownsampleProg.ref());
+        var width = CIS700WEBGLCORE.canvas.width;
+        var height = CIS700WEBGLCORE.canvas.height;
+        gl.uniform2fv(dofDownsampleProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
+        gl.uniform1f( dofDownsampleProg.uNearLoc, zNear );
+        gl.uniform1f( dofDownsampleProg.uFarLoc, zFar );
+    } );
+
+    CIS700WEBGLCORE.registerAsyncObj( gl, dofDownsampleProg );
+
+
 }
 
 var drawModel = function(){
@@ -213,10 +246,11 @@ function initUiButtons() {
     var lilSigCallback = function(e) {
 
         var newSliderVal = e.target.value;
+        var sigmaSquared = newSliderVal * newSliderVal;
         gl.useProgram(blurProg.ref());
-        gl.uniform1f(blurProg.uLilSigLoc, newSliderVal);
+        gl.uniform1f(blurProg.uLilSigLoc, sigmaSquared);
 
-        return "Sigma: " + newSliderVal;
+        return "Sigma: " + (newSliderVal * newSliderVal);
     };
 
     CIS700WEBGLCORE.ui.addSlider("Sigma: " + SIGMA_START,
@@ -253,8 +287,6 @@ var deferredRenderPass2 = function() {
     gl.useProgram( renderQuadProg.ref() );
     gl.disable( gl.DEPTH_TEST );
 
-    gl.uniform1f( renderQuadProg.uZNearLoc, zNear );
-    gl.uniform1f( renderQuadProg.uZFarLoc, zFar );
     gl.uniform1i( renderQuadProg.uDisplayTypeLoc, texToDisplay );
 
     gl.activeTexture( gl.TEXTURE0 );  //position
@@ -324,7 +356,31 @@ var blurPasses = function(sourceTexture) {
    
 };
 
-var downsamplePass = function(hiResTex){
+var dofPass = function(){
+
+    gl.useProgram( dofDownsampleProg.ref() );
+    lowResFBO.bind(gl);
+    gl.viewport( 0, 0, CIS700WEBGLCORE.canvas.width / 2.0, CIS700WEBGLCORE.canvas.height / 2.0 );
+
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
+    gl.uniform1i( dofDownsampleProg.uSourceLoc, 0);
+
+    gl.activeTexture( gl.TEXTURE1 );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture() );
+    gl.uniform1i( dofDownsampleProg.uDepthLoc, 1);
+
+    gl.disable( gl.DEPTH_TEST );
+    bindQuadBuffers(dofDownsampleProg);
+
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.bindBuffer( gl.ARRAY_BUFFER, null );
+    gl.viewport( 0, 0, CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height );
+}
+
+var downsamplePass = function(hiResTex, writeSlot){
 
     gl.useProgram( downsampleProg.ref() );
     workingFBO.bind(gl);
@@ -332,6 +388,8 @@ var downsamplePass = function(hiResTex){
     gl.activeTexture( gl.TEXTURE0 );
     gl.bindTexture( gl.TEXTURE_2D, hiResTex );
     gl.uniform1i( downsampleProg.uSourceLoc, 0 );
+
+    gl.uniform1i( downsampleProg.uWriteSlotLoc, writeSlot);
 
     gl.disable( gl.DEPTH_TEST );
     bindQuadBuffers(downsampleProg);
@@ -343,13 +401,13 @@ var downsamplePass = function(hiResTex){
 
 }
 
-var finalPass = function(){
+var finalPass = function(texture){
 
     gl.useProgram(finalPassProg.ref());
     gl.bindFramebuffer( gl.FRAMEBUFFER, null );
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, workingFBO.texture(0));
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(finalPassProg.uFinalImageLoc, 0);
 
     gl.disable( gl.DEPTH_TEST );
@@ -369,14 +427,17 @@ var myRender = function() {
 
     if (secondPass === renderQuadProg) {
         deferredRenderPass2();
+        finalPass(workingFBO.texture(0));
     }
     else if (secondPass === blurProg) {
         blurPasses(fbo.texture(texToDisplay));
+        finalPass(workingFBO.texture(0));
     }
     else if (secondPass === dofProg) {
-        downsamplePass(fbo.texture(texToDisplay));
+        dofPass();
+        finalPass(lowResFBO.texture(1));
     }
-    finalPass();
+    
 }
 
 // Customized looping function
@@ -544,7 +605,7 @@ var setupScene = function(canvasId, messageId ) {
     }
 
     lowResFBO = CIS700WEBGLCORE.createFBO();
-    if (! lowResFBO.initialize( gl, canvas.width / 4, canvas.height / 4)) {
+    if (! lowResFBO.initialize( gl, canvas.width / 2.0, canvas.height / 2.0)) {
         console.log( "display FBO initialization failed.");
         return;
     }
