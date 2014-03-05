@@ -2,9 +2,9 @@ precision highp float;
 
 #define VERTICAL 1
 #define HORIZONTAL 0
-const int NUM_WEIGHTS = 10;
-const int PIXELS_SAMPLED_PER_DIR = 10;
-const int PIXELS_PER_WEIGHT = PIXELS_SAMPLED_PER_DIR / NUM_WEIGHTS;
+const int NUM_WEIGHTS = 15;
+const int PIXELS_SAMPLED_PER_DIR = 15;
+const float PIXELS_PER_WEIGHT = float(PIXELS_SAMPLED_PER_DIR) / float(NUM_WEIGHTS);
 //--------------------------------------------------------------VARIABLES:
 
 //uniform sampler2D u_positionTex;
@@ -27,8 +27,13 @@ vec4 getPixelColor(vec2 direction) {
 	vec4 color = texture2D( u_source, v_texcoord ) * v_weight[0];
 
 	for( int i = 1; i < PIXELS_SAMPLED_PER_DIR; i++) {
-			float weight = v_weight[i];
 
+			// float bias = mod(float(i), PIXELS_PER_WEIGHT) / PIXELS_PER_WEIGHT; 
+			// float largeWeight = v_weight[1 + ( (i / int(PIXELS_PER_WEIGHT)))];
+			// float smallWeight = v_weight[i / int(PIXELS_PER_WEIGHT)];
+			// float weight = (1.0 - bias) * smallWeight + bias * largeWeight;
+
+			float weight = v_weight[i];
 			vec2 uv = getTexelUv(direction * float(i));
 			vec4 weightedColorAbove = texture2D( u_source, uv) * weight;
 
@@ -37,20 +42,23 @@ vec4 getPixelColor(vec2 direction) {
 
 			color += weightedColorAbove;
 			color += weightedColorBelow;
+
 	}
-	return color;// / float(PIXELS_PER_WEIGHT);
+	return color;
 }
 //-------------------------------------------------------------------MAIN:
 
 void main() {
 	
-	
+	vec4 color;
 	if( u_blurDirection == VERTICAL) {
-	    gl_FragData[0] = getPixelColor(vec2(0.0, 1.0));
+	    color = getPixelColor(vec2(0.0, 1.0));
+	    
 	}
 
-	if( u_blurDirection == HORIZONTAL ) {
-	    gl_FragData[0] = getPixelColor(vec2(1.0, 0.0));
+	else if ( u_blurDirection == HORIZONTAL ) {
+	    color = getPixelColor(vec2(1.0, 0.0));
 	}
-	// gl_FragData[0] = color;	
+	    gl_FragData[0] = color;
+	
 }

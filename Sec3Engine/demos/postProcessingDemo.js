@@ -35,7 +35,15 @@ var zNear = 0.1;
 var texToDisplay = 1;
 var secondPass;
 
-var SIGMA_START = 2.0;
+var nearSlope = -3.6;
+var nearIntercept = 1.0;
+
+var blurSigma = 2.0;
+
+var SMALL_BLUR = 1.8;
+var MEDIUM_BLUR = 16.0;
+var LARGE_BLUR = 25.0;
+
 //--------------------------------------------------------------------------METHODS:
 
 /*
@@ -134,7 +142,7 @@ var createShaders = function() {
         var height = CIS700WEBGLCORE.canvas.height;
         gl.uniform2fv(blurProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
         gl.uniform1f(blurProg.uLilSigLoc, 4.0);
-        initUiButtons(); //TODO: awful : (
+        initBlurButtons(); //TODO: awful : (
     } );
 
     CIS700WEBGLCORE.registerAsyncObj( gl, blurProg );
@@ -163,7 +171,7 @@ var createShaders = function() {
     CIS700WEBGLCORE.registerAsyncObj( gl, downsampleProg );
 
     //-------------------------------------------------DOFDOWNSAMPLE PASS:
-    //Create a shader program for displaying FBO contents
+  
     dofDownsampleProg = CIS700WEBGLCORE.createShaderProgram();
     dofDownsampleProg.loadShader( gl, 
                          "/../shader/finalPass.vert", 
@@ -178,16 +186,55 @@ var createShaders = function() {
         dofDownsampleProg.uPixDimLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_pixDim");
         dofDownsampleProg.uNearLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_near");
         dofDownsampleProg.uFarLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_far");
+        dofDownsampleProg.uDofEqLoc = gl.getUniformLocation( dofDownsampleProg.ref(), "u_dofEq");
         gl.useProgram(dofDownsampleProg.ref());
         var width = CIS700WEBGLCORE.canvas.width;
         var height = CIS700WEBGLCORE.canvas.height;
         gl.uniform2fv(dofDownsampleProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
         gl.uniform1f( dofDownsampleProg.uNearLoc, zNear );
         gl.uniform1f( dofDownsampleProg.uFarLoc, zFar );
+        gl.uniform2fv( dofDownsampleProg.uDofEqLoc, vec2.fromValues( -6.0, 1.8));
+        initDofButtons();
     } );
 
     CIS700WEBGLCORE.registerAsyncObj( gl, dofDownsampleProg );
 
+    //-----------------------------------------------DOFCOMP PASS:
+    
+    dofCompProg = CIS700WEBGLCORE.createShaderProgram();
+    dofCompProg.loadShader( gl,
+                            "/../shader/finalPass.vert",
+                            "/../shader/dofComp.frag");
+
+    dofCompProg.addCallback( function(){
+
+        dofCompProg.aVertexPosLoc = gl.getAttribLocation( dofCompProg.ref(), "a_pos" );
+        dofCompProg.aVertexTexcoordLoc = gl.getAttribLocation( dofCompProg.ref(), "a_texcoord" );
+        dofCompProg.uBlurredForegroundLoc = gl.getUniformLocation( dofCompProg.ref(), "u_blurredForeground" );
+        dofCompProg.uUnalteredImageLoc = gl.getUniformLocation( dofCompProg.ref(), "u_unalteredImage" );
+        dofCompProg.uDownsampledLoc = gl.getUniformLocation( dofCompProg.ref(), "u_downsampled" );
+        dofCompProg.uSmallBlurLoc = gl.getUniformLocation( dofCompProg.ref(), "u_smallBlur" );
+
+    } );
+
+    CIS700WEBGLCORE.registerAsyncObj( gl, dofCompProg );
+
+     //-----------------------------------------------DOFCOMP PASS:
+
+    dofCalcCocProg = CIS700WEBGLCORE.createShaderProgram();
+    dofCalcCocProg.loadShader( gl,
+                               "/../shader/finalPass.vert",
+                               "/../shader/dofCalcCoc.frag");
+
+    dofCalcCocProg.addCallback( function(){
+
+        dofCalcCocProg.aVertexPosLoc = gl.getAttribLocation( dofCalcCocProg.ref(), "a_pos" );
+        dofCalcCocProg.aVertexTexcoordLoc = gl.getAttribLocation( dofCalcCocProg.ref(), "a_texcoord")
+        dofCalcCocProg.uDownsampledLoc = gl.getUniformLocation( dofCalcCocProg.ref(), "u_downsampled" ); 
+        dofCalcCocProg.uBlurredForegroundLoc = gl.getUniformLocation( dofCalcCocProg.ref(), "u_blurredForeground" );
+    });
+
+    CIS700WEBGLCORE.registerAsyncObj( gl, dofCalcCocProg );
 
 }
 
@@ -239,25 +286,63 @@ var drawModel = function(){
     } 
 };
 
-function initUiButtons() {
+function initBlurButtons() {
     
-    CIS700WEBGLCORE.ui = new UI("uiWrapper");
+    CIS700WEBGLCORE.ui = CIS700WEBGLCORE.ui || new UI("uiWrapper");
 
     var lilSigCallback = function(e) {
 
         var newSliderVal = e.target.value;
-        var sigmaSquared = newSliderVal * newSliderVal;
+        blurSigma = newSliderVal;
+        var sigmaSquared = blurSigma * blurSigma;
         gl.useProgram(blurProg.ref());
         gl.uniform1f(blurProg.uLilSigLoc, sigmaSquared);
 
-        return "Sigma: " + (newSliderVal * newSliderVal);
+        return "Sigma: " + blurSigma;
     };
 
-    CIS700WEBGLCORE.ui.addSlider("Sigma: " + SIGMA_START,
+    CIS700WEBGLCORE.ui.addSlider("Sigma: " + blurSigma,
                  lilSigCallback,
-                 SIGMA_START,
-                 0.1, 50.0,
+                 blurSigma * blurSigma,
+                 0.1, 40.0,
                  0.1);
+}
+
+function initDofButtons() {
+
+    CIS700WEBGLCORE.ui = CIS700WEBGLCORE.ui || new UI("uiWrapper");
+
+    var slopeCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        gl.useProgram(dofDownsampleProg.ref());
+        nearSlope = newSliderVal;
+        gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( nearSlope, nearIntercept ));
+
+        return nearSlope + " :Near slope";
+    };
+
+    CIS700WEBGLCORE.ui.addSlider(nearSlope + " :Near slope" ,
+                 slopeCallback,
+                 nearSlope,
+                 -10.0, -1.0,
+                 0.01);
+
+    var interceptCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        gl.useProgram(dofDownsampleProg.ref());
+        nearIntercept = newSliderVal;
+        gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( nearSlope, nearIntercept ));
+
+        return nearIntercept + " :Near intercept"
+    };
+
+    CIS700WEBGLCORE.ui.addSlider(nearIntercept + " :Near intercept",
+                 interceptCallback,
+                 nearIntercept,
+                 1.0, 3.0,
+                 0.01);
 }
 
 /*
@@ -280,10 +365,11 @@ var deferredRenderPass1 = function(){
 /* 
  * Does post-processing effect using the data obtained in part 1 
  */
-var deferredRenderPass2 = function() {
+var deferredRenderPass2 = function(framebuffer) {
 
-    workingFBO.bind(gl);
+    framebuffer.bind(gl);
 
+    gl.viewport(0, 0, framebuffer.getWidth(), framebuffer.getHeight() )
     gl.useProgram( renderQuadProg.ref() );
     gl.disable( gl.DEPTH_TEST );
 
@@ -312,24 +398,32 @@ var deferredRenderPass2 = function() {
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 
-    workingFBO.unbind(gl);
+    framebuffer.unbind(gl);
 };
 
 
 /*
  * Two passes, one to blur vertically and one to blur horizontally
  */
-var blurPasses = function(sourceTexture) {
+
+ var blurPasses = function(srcTex, framebuffer, sigma) {
     var vertical = 1;
     var horizontal = 0;
 
-    workingFBO.bind(gl);
-    gl.useProgram( blurProg.ref() );
-    gl.disable( gl.DEPTH_TEST );
+    framebuffer.bind(gl);
 
+    gl.viewport( 0, 0, framebuffer.getWidth(), framebuffer.getHeight());
+
+    gl.useProgram( blurProg.ref() );
+    gl.uniform1f( blurProg.uLilSigLoc, sigma * sigma);
+    
+    gl.uniform2fv(blurProg.uPixDimLoc, vec2.fromValues(1.0 / framebuffer.getWidth(), 1.0 / framebuffer.getHeight()));
+
+    gl.disable( gl.DEPTH_TEST );
+    
      // first, texToDisplay texture is source
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture( gl.TEXTURE_2D, sourceTexture );
+    gl.bindTexture( gl.TEXTURE_2D, srcTex );
     gl.uniform1i( blurProg.uSourceLoc, 0 );
     // workingFBO slot 0 will be written to with the vertical blur
     // making a vertical smear (1 = Vertical Pass)
@@ -342,26 +436,35 @@ var blurPasses = function(sourceTexture) {
     
     // then, vertically blured texture is source (old dest)
     
-    gl.bindTexture( gl.TEXTURE_2D, workingFBO.texture(0) );
+    framebuffer.swapBuffers(0, 1, gl);
+
+    framebuffer.bind(gl);
+
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, framebuffer.texture(1) );
     gl.uniform1i( blurProg.uSourceLoc, 0);
 
     gl.uniform1i( blurProg.uBlurDirectionLoc, horizontal );
 
     bindQuadBuffers(blurProg);
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
-
+    // framebuffer.swapBuffers(0, 1, gl);
+    
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
-    gl.bindBuffer( gl.ARRAY_BUFFER, null );
-    workingFBO.unbind(gl);
+    gl.bindBuffer( gl.ARRAY_BUFFER, null ); 
+    
+    framebuffer.unbind(gl);
    
 };
 
 var dofPass = function(){
-
+   
     gl.useProgram( dofDownsampleProg.ref() );
     lowResFBO.bind(gl);
-    gl.viewport( 0, 0, CIS700WEBGLCORE.canvas.width / 2.0, CIS700WEBGLCORE.canvas.height / 2.0 );
-
+    gl.viewport( 0, 0, lowResFBO.getWidth(), lowResFBO.getHeight() );
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.disable( gl.DEPTH_TEST );
+    
     gl.activeTexture( gl.TEXTURE0 );
     gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
     gl.uniform1i( dofDownsampleProg.uSourceLoc, 0);
@@ -370,15 +473,96 @@ var dofPass = function(){
     gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture() );
     gl.uniform1i( dofDownsampleProg.uDepthLoc, 1);
 
-    gl.disable( gl.DEPTH_TEST );
+    gl.uniform2fv( dofDownsampleProg.uPixDimLoc, vec2.fromValues(1.0 / CIS700WEBGLCORE.canvas.width, 1.0 / CIS700WEBGLCORE.canvas.height) );
+   
     bindQuadBuffers(dofDownsampleProg);
 
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.bindBuffer( gl.ARRAY_BUFFER, null );
+    // lowResFBO[0],[1]  both have downsampled color and coc
+
+    lowResFBO.swapBuffers(0, 2, gl );
+    lowResFBO.swapBuffers( 1, 3, gl );
+
+    blurPasses(lowResFBO.texture(3), lowResFBO, 6.0); 
+    lowResFBO.swapBuffers(0, 3, gl);
+    // lowResFBO[3] now has large blurred downsampled color and coc
+        
+    //----------------------------------- Calculate Final Coc: 
+
+
+    gl.useProgram( dofCalcCocProg.ref() );
+    lowResFBO.bind(gl);
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture(gl.TEXTURE_2D, lowResFBO.texture(3));
+    gl.uniform1i( dofCalcCocProg.uBlurredForegroundLoc, 0);
+
+    gl.activeTexture( gl.TEXTURE1 );
+    gl.bindTexture( gl.TEXTURE_2D, lowResFBO.texture(2));
+    gl.uniform1i( dofCalcCocProg.uDownsampledLoc, 1);
+
+    
+    gl.disable(gl.DEPTH_TEST);
+    gl.viewport(0, 0, lowResFBO.getWidth(), lowResFBO.getHeight());
+    bindQuadBuffers( dofCalcCocProg );
+
+    gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.bindBuffer( gl.ARRAY_BUFFER, null );
+    // lowResFBO[0] now has downsampled color and proper coc
+
+    //----------------------------------
+
+    // lowResFBO.swapBuffers(1, 3, gl);
+     lowResFBO.swapBuffers(0, 2, gl);
+    // lowResFBO[2] has proper coc
+    // lowResFBO[3] has blurred downsampled foreground
+
+     blurPasses(lowResFBO.texture(2), lowResFBO, 1.8);
+    // lowResFBO[0] has small blur on final near coc 
+
+    blurPasses(fbo.texture(texToDisplay), workingFBO, 1.4);
+    workingFBO.swapBuffers(0, 1, gl);
+    
+
+    //-------------------------- 
+
+    gl.useProgram( dofCompProg.ref() );
+
+    workingFBO.bind(gl);
+    gl.viewport( 0, 0, workingFBO.getWidth(), workingFBO.getHeight() );
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, lowResFBO.texture(3) );
+    gl.uniform1i( dofCompProg.uBlurredForegroundLoc, 0 );
+
+    gl.activeTexture( gl.TEXTURE1 );
+    gl.bindTexture( gl.TEXTURE_2D, lowResFBO.texture(0) );
+    gl.uniform1i( dofCompProg.uDownsampledLoc, 1 );
+
+    gl.activeTexture( gl.TEXTURE2 );
+    gl.bindTexture( gl.TEXTURE_2D, workingFBO.texture(1) );
+    gl.uniform1i( dofCompProg.uSmallBlurLoc, 2);
+
+    gl.activeTexture( gl.TEXTURE3 );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
+    gl.uniform1i( dofCompProg.uUnalteredImageLoc, 3 );
+
+    bindQuadBuffers( dofCompProg );
+    gl.disable(gl.DEPTH_TEST);
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
 
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null);
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
-    gl.viewport( 0, 0, CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height );
+    workingFBO.unbind(gl);
+    gl.disable(gl.BLEND);
 }
+
+
 
 var downsamplePass = function(hiResTex, writeSlot){
 
@@ -401,10 +585,13 @@ var downsamplePass = function(hiResTex, writeSlot){
 
 }
 
-var finalPass = function(texture){
+var finalPass = function(texture, framebuffer){
 
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null); 
     gl.useProgram(finalPassProg.ref());
-    gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+    
+    gl.viewport( 0, 0, CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height );
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -415,27 +602,28 @@ var finalPass = function(texture){
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 
+
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
+
 }
 
 var myRender = function() {
 
+    var canvasResolution = [CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height];
     deferredRenderPass1();
 
-    var finalImage;
-
     if (secondPass === renderQuadProg) {
-        deferredRenderPass2();
-        finalPass(workingFBO.texture(0));
+        deferredRenderPass2(workingFBO);
+        finalPass(workingFBO.texture(0), workingFBO);
     }
     else if (secondPass === blurProg) {
-        blurPasses(fbo.texture(texToDisplay));
-        finalPass(workingFBO.texture(0));
+        blurPasses(fbo.texture(texToDisplay),workingFBO, blurSigma);
+        finalPass(workingFBO.texture(0), workingFBO);
     }
     else if (secondPass === dofProg) {
         dofPass();
-        finalPass(lowResFBO.texture(1));
+        finalPass(workingFBO.texture(0), workingFBO);
     }
     
 }
@@ -503,8 +691,7 @@ var loadObjects = function() {
     objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza.obj', 
                                 '/../models/dabrovic-sponza/sponza.mtl');
     
-    //213412//What was this!?
-    
+       
     //Register a callback function that extracts vertex and normal 
     //and put it in our VBO
     objLoader.addCallback( function(){
@@ -609,6 +796,7 @@ var setupScene = function(canvasId, messageId ) {
         console.log( "display FBO initialization failed.");
         return;
     }
+
 
     workingFBO = CIS700WEBGLCORE.createFBO();
     if (! workingFBO.initialize( gl, canvas.width, canvas.height )) {

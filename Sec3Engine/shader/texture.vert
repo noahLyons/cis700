@@ -1,7 +1,7 @@
 precision highp float;
 
 //--------------------------------------------------------------VARIABLES:
-const int NUM_WEIGHTS = 10;
+const int NUM_WEIGHTS = 15;
 const float PI = 3.14159265358979;
 attribute vec3 a_pos;
 attribute vec2 a_texcoord;
