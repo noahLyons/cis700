@@ -26,7 +26,7 @@ vec2 getTexelUv( vec2 offset) {
 vec4 getPixelColor(vec2 direction) {
 	vec4 color = texture2D( u_source, v_texcoord ) * v_weight[0];
 
-	for( int i = 1; i < PIXELS_SAMPLED_PER_DIR; i++) {
+	for( int i = 1; i < int(PIXELS_PER_WEIGHT) * NUM_WEIGHTS; i++) {
 
 			// float bias = mod(float(i), PIXELS_PER_WEIGHT) / PIXELS_PER_WEIGHT; 
 			// float largeWeight = v_weight[1 + ( (i / int(PIXELS_PER_WEIGHT)))];
@@ -36,11 +36,11 @@ vec4 getPixelColor(vec2 direction) {
 			float weight = v_weight[i];
 			vec2 uv = getTexelUv(direction * float(i));
 			vec4 weightedColorAbove = texture2D( u_source, uv) * weight;
+			color += weightedColorAbove;
 
 			uv = getTexelUv(direction * float(-i));
 			vec4 weightedColorBelow = texture2D( u_source, uv) * weight;
 
-			color += weightedColorAbove;
 			color += weightedColorBelow;
 
 	}

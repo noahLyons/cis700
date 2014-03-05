@@ -32,17 +32,20 @@ var workingFBO;
 
 var zFar = 30;
 var zNear = 0.1;
-var texToDisplay = 1;
+var texToDisplay = 2;
 var secondPass;
 
 var nearSlope = -3.6;
-var nearIntercept = 1.0;
+var nearIntercept = 1.2;
+
+var farSlope = 0.8;
+var farIntercept = -0.3
 
 var blurSigma = 2.0;
 
-var SMALL_BLUR = 1.8;
-var MEDIUM_BLUR = 16.0;
-var LARGE_BLUR = 25.0;
+var SMALL_BLUR = 1.4;
+var MEDIUM_BLUR = 3.4;
+var LARGE_BLUR = 7.6;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -101,7 +104,7 @@ var createShaders = function() {
         gl.uniform1f( renderQuadProg.uZNearLoc, zNear );
         gl.uniform1f( renderQuadProg.uZFarLoc, zFar );
 
-        secondPass = renderQuadProg;
+        secondPass = dofProg;
     } );
     CIS700WEBGLCORE.registerAsyncObj( gl, renderQuadProg );
 
@@ -193,7 +196,7 @@ var createShaders = function() {
         gl.uniform2fv(dofDownsampleProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
         gl.uniform1f( dofDownsampleProg.uNearLoc, zNear );
         gl.uniform1f( dofDownsampleProg.uFarLoc, zFar );
-        gl.uniform2fv( dofDownsampleProg.uDofEqLoc, vec2.fromValues( -6.0, 1.8));
+        gl.uniform2fv( dofDownsampleProg.uDofEqLoc, vec2.fromValues(nearSlope, nearIntercept));
         initDofButtons();
     } );
 
@@ -214,6 +217,10 @@ var createShaders = function() {
         dofCompProg.uUnalteredImageLoc = gl.getUniformLocation( dofCompProg.ref(), "u_unalteredImage" );
         dofCompProg.uDownsampledLoc = gl.getUniformLocation( dofCompProg.ref(), "u_downsampled" );
         dofCompProg.uSmallBlurLoc = gl.getUniformLocation( dofCompProg.ref(), "u_smallBlur" );
+        dofCompProg.uDepthLoc = gl.getUniformLocation( dofCompProg.ref(), "u_depth" );
+        dofCompProg.uFarEqLoc = gl.getUniformLocation( dofCompProg.ref(), "u_farEq" );
+        dofCompProg.uZNearLoc = gl.getUniformLocation( dofCompProg.ref(), "u_near" );
+        dofCompProg.uZFarLoc = gl.getUniformLocation( dofCompProg.ref(), "u_far" );
 
     } );
 
@@ -335,7 +342,7 @@ function initDofButtons() {
         nearIntercept = newSliderVal;
         gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( nearSlope, nearIntercept ));
 
-        return nearIntercept + " :Near intercept"
+        return nearIntercept + " :Near intercept";
     };
 
     CIS700WEBGLCORE.ui.addSlider(nearIntercept + " :Near intercept",
@@ -343,6 +350,39 @@ function initDofButtons() {
                  nearIntercept,
                  1.0, 3.0,
                  0.01);
+
+    var largeBlurrCallback = function(e) {
+
+        LARGE_BLUR = e.target.value;
+        return LARGE_BLUR + " :Large blur";
+    }
+    CIS700WEBGLCORE.ui.addSlider(LARGE_BLUR + " :Large blur",
+                                 largeBlurrCallback,
+                                 LARGE_BLUR,
+                                 2.0, 16.0,
+                                 0.1);
+
+    var mediumBlurrCallback = function(e) {
+
+        MEDIUM_BLUR = e.target.value;
+        return MEDIUM_BLUR + " :Medium blur";
+    }
+    CIS700WEBGLCORE.ui.addSlider(MEDIUM_BLUR + " :Medium blur",
+                                 mediumBlurrCallback,
+                                 MEDIUM_BLUR,
+                                 1.0, 8.0,
+                                 0.1);
+
+    var smallBlurrCallback = function(e) {
+
+        SMALL_BLUR = e.target.value;
+        return SMALL_BLUR + " :Small blur";
+    }
+    CIS700WEBGLCORE.ui.addSlider(SMALL_BLUR + " :Small blur",
+                                 smallBlurrCallback,
+                                 SMALL_BLUR,
+                                 0.0, 3.0,
+                                 0.1);
 }
 
 /*
@@ -464,7 +504,7 @@ var dofPass = function(){
     gl.viewport( 0, 0, lowResFBO.getWidth(), lowResFBO.getHeight() );
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.disable( gl.DEPTH_TEST );
-    
+    gl.disable( gl.BLEND);
     gl.activeTexture( gl.TEXTURE0 );
     gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
     gl.uniform1i( dofDownsampleProg.uSourceLoc, 0);
@@ -485,7 +525,7 @@ var dofPass = function(){
     lowResFBO.swapBuffers(0, 2, gl );
     lowResFBO.swapBuffers( 1, 3, gl );
 
-    blurPasses(lowResFBO.texture(3), lowResFBO, 6.0); 
+    blurPasses(lowResFBO.texture(3), lowResFBO, LARGE_BLUR); 
     lowResFBO.swapBuffers(0, 3, gl);
     // lowResFBO[3] now has large blurred downsampled color and coc
         
@@ -519,10 +559,10 @@ var dofPass = function(){
     // lowResFBO[2] has proper coc
     // lowResFBO[3] has blurred downsampled foreground
 
-     blurPasses(lowResFBO.texture(2), lowResFBO, 1.8);
+     blurPasses(lowResFBO.texture(2), lowResFBO, MEDIUM_BLUR);
     // lowResFBO[0] has small blur on final near coc 
 
-    blurPasses(fbo.texture(texToDisplay), workingFBO, 1.4);
+    blurPasses(fbo.texture(texToDisplay), workingFBO, SMALL_BLUR);
     workingFBO.swapBuffers(0, 1, gl);
     
 
@@ -533,8 +573,8 @@ var dofPass = function(){
     workingFBO.bind(gl);
     gl.viewport( 0, 0, workingFBO.getWidth(), workingFBO.getHeight() );
 
-    gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.BLEND);
 
     gl.activeTexture( gl.TEXTURE0 );
     gl.bindTexture( gl.TEXTURE_2D, lowResFBO.texture(3) );
@@ -551,6 +591,14 @@ var dofPass = function(){
     gl.activeTexture( gl.TEXTURE3 );
     gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
     gl.uniform1i( dofCompProg.uUnalteredImageLoc, 3 );
+
+    gl.activeTexture( gl.TEXTURE4 );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture());
+    gl.uniform1i( dofCompProg.uDepthLoc, 4 );
+
+    gl.uniform2fv( dofCompProg.uFarEqLoc, vec2.fromValues(farSlope, farIntercept));
+    gl.uniform1f( dofCompProg.uZNearLoc, zNear);
+    gl.uniform1f( dofCompProg.uZFarLoc, zFar);
 
     bindQuadBuffers( dofCompProg );
     gl.disable(gl.DEPTH_TEST);
