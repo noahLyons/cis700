@@ -42,7 +42,7 @@
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, null);        	
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, null); 
         }
 
         //Create FBO
@@ -82,11 +82,11 @@
                 textures[b] = tempTex;
                 gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[a], gl.TEXTURE_2D, textures[a], 0 );
                 gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[b], gl.TEXTURE_2D, textures[b], 0 );
-                var FBOstatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-                if( FBOstatus !== gl.FRAMEBUFFER_COMPLETE ){
-                    console.log( "FBO incomplete! Initialization failed!" );
-                    return false;
-                }
+                // var FBOstatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+                // if( FBOstatus !== gl.FRAMEBUFFER_COMPLETE ){
+                //     console.log( "FBO incomplete! Initialization failed!" );
+                //     return false;
+                // }
                 gl.bindFramebuffer( gl.FRAMEBUFFER, null );
                 gl.bindTexture( gl.TEXTURE_2D, null );
             },

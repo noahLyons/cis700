@@ -35,17 +35,17 @@ var zNear = 0.1;
 var texToDisplay = 2;
 var secondPass;
 
-var nearSlope = -3.6;
-var nearIntercept = 1.2;
+var nearSlope = -6.6;
+var nearIntercept = 2.0;
 
-var farSlope = 0.8;
-var farIntercept = -0.3
+var farSlope = 0.6;
+var farIntercept = -0.2
 
 var blurSigma = 2.0;
 
 var SMALL_BLUR = 1.4;
-var MEDIUM_BLUR = 3.4;
-var LARGE_BLUR = 7.6;
+var MEDIUM_BLUR = 1.6;
+var LARGE_BLUR = 5.6;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -735,9 +735,8 @@ var loadObjects = function() {
     //Load a OBJ model from file
     var objLoader = CIS700WEBGLCORE.createOBJLoader();
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
-    // objLoader.loadFromFile( gl, 'models/buddha_new/buddha_scaled_.obj', 'models/buddha_new/buddha_new.mtl');
-    objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza.obj', 
-                                '/../models/dabrovic-sponza/sponza.mtl');
+    objLoader.loadFromFile( gl, '/../models/buddha_new/buddha_scaled_.obj', '/../models/buddha_new/buddha_scaled_.mtl');
+    objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza.obj', '/../models/dabrovic-sponza/sponza.mtl');
     
        
     //Register a callback function that extracts vertex and normal 
@@ -840,7 +839,7 @@ var setupScene = function(canvasId, messageId ) {
     }
 
     lowResFBO = CIS700WEBGLCORE.createFBO();
-    if (! lowResFBO.initialize( gl, canvas.width / 2.0, canvas.height / 2.0)) {
+    if (! lowResFBO.initialize( gl, 512.0, 512.0 )) {
         console.log( "display FBO initialization failed.");
         return;
     }

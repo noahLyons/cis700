@@ -29,7 +29,7 @@ void main() {
 	vec4 finalCoc = texture2D( u_downsampled, v_texcoord );
 	float farSceneDepth = linearizeDepth(texture2D( u_depth, v_texcoord ).r);
 	float farCoc = clamp( farSceneDepth * u_farEq.x + u_farEq.y, 0.0, 1.0);
-	float coc = max(finalCoc.a, farCoc * 1.0);
+	float coc = max(finalCoc.a, farCoc * 0.66);
 	vec3 colorTest = vec3(0.0);
 	// Calc texel colors to interpolate between
 

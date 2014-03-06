@@ -29,15 +29,23 @@ CIS700WEBGLCORE.createOBJLoader = function(){
         textures[index].image.src = url;
         textures[index].ready = false;
     }
+    var anisotropyExt = gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
+    if(! anisotropyExt ) {
+        alert("no Anisotropy support!");
+    }
 
     function loadTexture( gl, texture) {
         gl.bindTexture(gl.TEXTURE_2D, texture);
     
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.map.image);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        if( anisotropyExt ) {
+            gl.texParameterf(gl.TEXTURE_2D, anisotropyExt.TEXTURE_MAX_ANISOTROPY_EXT, 4);
+        }
+        gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindTexture(gl.TEXTURE_2D, null);
         texture.ready = true;
     }
