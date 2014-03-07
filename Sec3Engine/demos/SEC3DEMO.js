@@ -25,6 +25,7 @@ var renderQuadProg;     //shader program showing the FBO buffers
 var blurProg;
 var downsampleProg;
 var dofProg;
+var showShadowMap;
 
 var fbo;    //Framebuffer object storing data for postprocessing effects
 var lowResFBO; //Framebuffer object for storing unprocessed image
@@ -38,14 +39,16 @@ var secondPass;
 var nearSlope = -6.6;
 var nearIntercept = 2.0;
 
-var farSlope = 0.6;
-var farIntercept = -0.2
+var farSlope = 1.0;
+var farIntercept = -0.3
 
 var blurSigma = 2.0;
 
 var SMALL_BLUR = 1.4;
 var MEDIUM_BLUR = 1.6;
 var LARGE_BLUR = 5.6;
+
+var SHADOWMAP_SIZE = 4096;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -72,7 +75,10 @@ var createShaders = function() {
         passProg.uModelViewLoc = gl.getUniformLocation( passProg.ref(), "u_modelview" );
         passProg.uMVPLoc = gl.getUniformLocation( passProg.ref(), "u_mvp" );
         passProg.uNormalMatLoc = gl.getUniformLocation( passProg.ref(), "u_normalMat");
+        passProg.uShadowMapLoc = gl.getUniformLocation( passProg.ref(), "u_shadowMap");
         passProg.uSamplerLoc = gl.getUniformLocation( passProg.ref(), "u_sampler");
+        passProg.uMLPLoc = gl.getUniformLocation( passProg.ref(), "u_mlp");
+        passProg.uModelLightLoc = gl.getUniformLocation( passProg.ref(), "u_modelLight")
     } );
 
     //Register the asynchronously-requested resources with the engine core
@@ -243,22 +249,84 @@ var createShaders = function() {
 
     CIS700WEBGLCORE.registerAsyncObj( gl, dofCalcCocProg );
 
-}
+    //-----------------------------------------------SHADOWMAP BUILD
 
-var drawModel = function(){
+    buildShadowMapProg = CIS700WEBGLCORE.createShaderProgram();
+    buildShadowMapProg.loadShader( gl,
+                                   "/../shader/buildShadowMap.vert",
+                                   "/../shader/buildShadowMap.frag" );
+
+    buildShadowMapProg.addCallback( function(){
+
+        buildShadowMapProg.aVertexPosLoc = gl.getAttribLocation( buildShadowMapProg.ref(), "a_pos");
+        buildShadowMapProg.aVertexNormalLoc = gl.getAttribLocation( buildShadowMapProg.ref(), "a_normal");
+        buildShadowMapProg.aVertexTexcoordLoc = gl.getAttribLocation( buildShadowMapProg.ref(), "a_texcoord");
+        buildShadowMapProg.uMLPLoc = gl.getUniformLocation( buildShadowMapProg.ref(), "u_mlp");
+
+    });
+
+    CIS700WEBGLCORE.registerAsyncObj( gl, buildShadowMapProg );
+
+};
+var drawShadowMap = function(){
+
+    gl.bindTexture( gl.TEXTURE_2D, null );
+    shadowFBO.bind(gl);
+    gl.viewport(0, 0, SHADOWMAP_SIZE, SHADOWMAP_SIZE );
+    gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT );
+    // gl.colorMask(false,false,false,false);
+    gl.enable( gl.DEPTH_TEST );
+
+    gl.useProgram(buildShadowMapProg.ref());
+    var mlpMat = mat4.create();
+    mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
+    gl.uniformMatrix4fv( buildShadowMapProg.uMLPLoc, false, mlpMat );
+
+    //----------------DRAW MODEL:
+
+    for ( var i = 0; i < model_vertexVBOs.length; ++i ){
+        //Bind vertex pos buffer
+        gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[i] );
+        gl.vertexAttribPointer( buildShadowMapProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( buildShadowMapProg.aVertexPosLoc );
+
+        gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, model_indexVBOs[i] );
+        gl.drawElements( gl.TRIANGLES, model_indexVBOs[i].numIndex, gl.UNSIGNED_SHORT, 0 );
+
+        gl.bindBuffer( gl.ARRAY_BUFFER, null );
+        gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
+    }
+
+    // gl.colorMask(true,true,true,true);
+
+    shadowFBO.unbind(gl);
+};
+
+    var drawModel = function(){
     
     //update the model-view matrix
     var mvpMat = mat4.create();
     mat4.multiply( mvpMat, persp, camera.getViewTransform() );
+
+    var mlpMat = mat4.create();
+    mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
 
     //update the normal matrix
     var nmlMat = mat4.create();
     mat4.invert( nmlMat, camera.getViewTransform() );
     mat4.transpose( nmlMat, nmlMat);
 
-    gl.uniformMatrix4fv( passProg.uModelViewLoc, false, camera.getViewTransform());        
+    gl.uniformMatrix4fv( passProg.uPerspLoc, false, lightPersp);
+
+    gl.uniformMatrix4fv( passProg.uModelViewLoc, false, camera.getViewTransform());  
+    gl.uniformMatrix4fv( passProg.uModelLightLoc, false, light.getViewTransform());      
     gl.uniformMatrix4fv( passProg.uMVPLoc, false, mvpMat );        
-    gl.uniformMatrix4fv( passProg.uNormalMatLoc, false, nmlMat );       
+    gl.uniformMatrix4fv( passProg.uNormalMatLoc, false, nmlMat ); 
+    gl.uniformMatrix4fv( passProg.uMLPLoc, false, mlpMat);
+
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, shadowFBO.depthTexture());
+    gl.uniform1i( passProg.uShadowMapLoc, 0);
 
     //------------------DRAW MODEL:
     
@@ -280,9 +348,9 @@ var drawModel = function(){
         
         if ( model_texcoordVBOs[i].texture ) {
             //Bind texture    
-            gl.activeTexture( gl.TEXTURE0 );
+            gl.activeTexture( gl.TEXTURE1 );
             gl.bindTexture( gl.TEXTURE_2D, model_texcoordVBOs[i].texture );
-            gl.uniform1i( passProg.uSamplerLoc, 0 );
+            gl.uniform1i( passProg.uSamplerLoc, 1 );
         }
 
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, model_indexVBOs[i] );
@@ -313,7 +381,7 @@ function initBlurButtons() {
                  blurSigma * blurSigma,
                  0.1, 40.0,
                  0.1);
-}
+};
 
 function initDofButtons() {
 
@@ -383,23 +451,31 @@ function initDofButtons() {
                                  SMALL_BLUR,
                                  0.0, 3.0,
                                  0.1);
-}
+};
+
 
 /*
  * Renders the geometry and output color, normal, depth information
  */
 var deferredRenderPass1 = function(){
 
+    //Render the scene into the shadowMap from the light view
+    drawShadowMap();
+    // blurPasses(shadowFBO.texture(0), shadowFBO);
+    //Now render from the camera
+
+
     gl.bindTexture( gl.TEXTURE_2D, null );
     fbo.bind(gl);
+    gl.viewport(0, 0, CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height );
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
     gl.enable( gl.DEPTH_TEST );
 
     gl.useProgram( passProg.ref() );
 
     drawModel();
-
     fbo.unbind(gl);
+
 }; 
 
 /* 
@@ -446,7 +522,7 @@ var deferredRenderPass2 = function(framebuffer) {
  * Two passes, one to blur vertically and one to blur horizontally
  */
 
- var blurPasses = function(srcTex, framebuffer, sigma) {
+var blurPasses = function(srcTex, framebuffer, sigma) {
     var vertical = 1;
     var horizontal = 0;
 
@@ -608,7 +684,7 @@ var dofPass = function(){
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
     workingFBO.unbind(gl);
     gl.disable(gl.BLEND);
-}
+};
 
 
 
@@ -631,14 +707,20 @@ var downsamplePass = function(hiResTex, writeSlot){
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 
-}
+};
 
 var finalPass = function(texture, framebuffer){
+
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); 
     gl.useProgram(finalPassProg.ref());
     
-    gl.viewport( 0, 0, CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height );
+    if(framebuffer) {
+        gl.viewport( 0, 0, framebuffer.getWidth(), framebuffer.getHeight());
+    }
+    else {
+        gl.viewport( 0, 0, CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height );
+    }
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.activeTexture(gl.TEXTURE0);
@@ -654,27 +736,32 @@ var finalPass = function(texture, framebuffer){
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 
-}
+};
 
 var myRender = function() {
 
     var canvasResolution = [CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height];
+
     deferredRenderPass1();
 
     if (secondPass === renderQuadProg) {
         deferredRenderPass2(workingFBO);
-        finalPass(workingFBO.texture(0), workingFBO);
+        finalPass(workingFBO.texture(0));
     }
     else if (secondPass === blurProg) {
         blurPasses(fbo.texture(texToDisplay),workingFBO, blurSigma);
-        finalPass(workingFBO.texture(0), workingFBO);
+        finalPass(workingFBO.texture(0));
     }
     else if (secondPass === dofProg) {
         dofPass();
-        finalPass(workingFBO.texture(0), workingFBO);
+        finalPass(workingFBO.texture(0));
+    }
+    else if (secondPass === buildShadowMapProg) {
+        drawShadowMap();
+        finalPass(shadowFBO.texture(0), shadowFBO);
     }
     
-}
+};
 
 // Customized looping function
 var myRenderLoop = function() {
@@ -790,6 +877,7 @@ var setKeyInputs = function() {
           case 53: secondPass = blurProg; break;
           case 54: secondPass = renderQuadProg; break;
           case 55: secondPass = dofProg; break;
+          case 56: secondPass = buildShadowMapProg; break;
         }
     }; 
 }
@@ -814,6 +902,7 @@ var setupScene = function(canvasId, messageId ) {
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.clearColor( 0.3, 0.3, 0.3, 1.0 );
 
+
     gl.enable( gl.DEPTH_TEST);
     gl.depthFunc(gl.LESS);
     //gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
@@ -822,14 +911,23 @@ var setupScene = function(canvasId, messageId ) {
     mat4.identity( view );
 
     persp = mat4.create();
+    lightPersp = mat4.create();
 
     //mat4.perspective use radiance
     mat4.perspective( persp, 60 * 3.1415926 / 180, 
                       canvas.width / canvas.height, zNear, zFar );
+    mat4.perspective( lightPersp, 60 * 3.1415926 / 180,
+                        1.0, zNear, zFar);
     //Create a camera, and attach it to the interactor
+    light = CIS700WEBGLCORE.createCamera(CAMERA_TRACKING_TYPE);
+    light.goHome ( [10, 14, 0] ); 
+    light.setAzimuth( 90.0);
+    light.setElevation( -50.0 );
     camera = CIS700WEBGLCORE.createCamera(CAMERA_TRACKING_TYPE);
     camera.goHome( [-1, 4,0] ); //initial camera posiiton
     interactor = CIS700WEBGLCORE.CameraInteractor( camera, canvas );
+
+
 
     //Create a FBO
     fbo = CIS700WEBGLCORE.createFBO();
@@ -848,6 +946,12 @@ var setupScene = function(canvasId, messageId ) {
     workingFBO = CIS700WEBGLCORE.createFBO();
     if (! workingFBO.initialize( gl, canvas.width, canvas.height )) {
         console.log( "workingFBO initialization failed.");
+        return;
+    }
+
+    shadowFBO = CIS700WEBGLCORE.createFBO();
+    if (! shadowFBO.initialize( gl, SHADOWMAP_SIZE, SHADOWMAP_SIZE )) {
+        console.log( "shadowFBO initialization failed.");
         return;
     }
 };

@@ -12,7 +12,9 @@
     var resolution = [];
     var drawbuffers = [];
 
-    function init( gl, width, height ){
+    function init( gl, width, height, numAttatchments ){
+        numAttatchments = numAttatchments || 4;
+
     	gl.getExtension( "OES_texture_float" );
     	gl.getExtension( "OES_texture_float_linear" );
     	var extDrawBuffers = gl.getExtension( "WEBGL_draw_buffers");
@@ -35,7 +37,7 @@
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, width, height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
 
         //Create textures for FBO attachment
-        for( var i = 0; i < 4; ++i ){
+        for( var i = 0; i < numAttatchments; ++i ){
         	textures[i] = gl.createTexture()
         	gl.bindTexture( gl.TEXTURE_2D,  textures[i] );
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); // TODO nearest?
@@ -59,11 +61,9 @@
 
         //Attach textures to FBO
         gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0 );
-        gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[0], gl.TEXTURE_2D, textures[0], 0 );
-        gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[1], gl.TEXTURE_2D, textures[1], 0 );
-        gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[2], gl.TEXTURE_2D, textures[2], 0 );
-        gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[3], gl.TEXTURE_2D, textures[3], 0 );
-
+        for( var i = 0; i < numAttatchments; ++i ) {
+            gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[i], gl.TEXTURE_2D, textures[i], 0 );
+        }
         var FBOstatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
         if( FBOstatus !== gl.FRAMEBUFFER_COMPLETE ){
             console.log( "FBO incomplete! Initialization failed!" );
@@ -99,8 +99,8 @@
             ref: function(){
             	return fbo;    
             },
-            initialize: function( gl, width, height ){
-                return init( gl, width, height );
+            initialize: function( gl, width, height, numAttatchments ){
+                return init( gl, width, height, numAttatchments );
             },
             bind: function(gl){
                 gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );
