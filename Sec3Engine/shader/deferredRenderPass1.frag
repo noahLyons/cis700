@@ -2,9 +2,9 @@
 
 precision highp float;
 
-const float LIGHT_INTENSITY = 5.0;
-const float SHADOW_FACTOR = 0.2;
-const float BIAS = -0.001;
+const float LIGHT_INTENSITY = 25.0;
+const float SHADOW_FACTOR = 0.03;
+const float BIAS = -0.004;
 //--------------------------------------------------------------VARIABLES:
 
 uniform sampler2D u_sampler;
@@ -27,15 +27,19 @@ bool isValid( vec3 uv ) {
 	bool result = false;
 	if(uv.x <= 1.0 && uv.x >= 0.0 && uv.y <= 1.0 && uv.y >= 0.0 && uv.z <= 1.0 && uv.z >= 0.0){
 		result = true;
+		uv = (uv - 0.5);
+		float radius = dot(uv, uv);
+		if( (radius) >= 0.5) result = false;
 	}
 	return result;
 }
 
-//------------------54-------------------------------------------------MAIN:
+//-------------------------------------------------------------------MAIN:
 
 void main(void) {
     vec4 color = texture2D( u_sampler, v_texcoord );
-    vec4 BiasedLightSpacePos= v_lightSpacePos;
+    color = color * color;
+    vec4 BiasedLightSpacePos = v_lightSpacePos;
     BiasedLightSpacePos  = v_lightSpacePos / v_lightSpacePos.w;
     // BiasedLightSpacePos = u_projection * vec4(v_lightSpacePos.rgb, 1.0);
     // BiasedLightSpacePos /= BiasedLightSpacePos.w;
@@ -48,7 +52,8 @@ void main(void) {
 			 	color.rgb *= SHADOW_FACTOR;
 		}
 		else {
-			color.rgb *= LIGHT_INTENSITY / (fragmentDepth * v_lightSpacePos.w);
+			color.rgb *= max(SHADOW_FACTOR, LIGHT_INTENSITY / pow((fragmentDepth * v_lightSpacePos.w), 2.0));
+
 		}
 	}
 	else {

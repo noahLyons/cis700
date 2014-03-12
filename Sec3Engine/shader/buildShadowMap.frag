@@ -11,8 +11,8 @@ float linearizeDepth( float exp_depth) {
 
 void main(void) {
 	
-	float depth = (gl_FragCoord.z);
-
+	float depth = (v_depth);
+	depth = linearizeDepth(depth);
 	gl_FragData[0] = vec4(depth, depth, depth, 1.0);
 
 }

@@ -48,7 +48,7 @@ var SMALL_BLUR = 1.4;
 var MEDIUM_BLUR = 1.6;
 var LARGE_BLUR = 5.6;
 
-var SHADOWMAP_SIZE = 4096;
+var SHADOWMAP_SIZE = 2048;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -272,6 +272,7 @@ var drawShadowMap = function(){
 
     gl.bindTexture( gl.TEXTURE_2D, null );
     shadowFBO.bind(gl);
+   
     gl.viewport(0, 0, SHADOWMAP_SIZE, SHADOWMAP_SIZE );
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT );
     // gl.colorMask(false,false,false,false);
@@ -302,7 +303,7 @@ var drawShadowMap = function(){
     shadowFBO.unbind(gl);
 };
 
-    var drawModel = function(){
+var drawModel = function(){
     
     //update the model-view matrix
     var mvpMat = mat4.create();
@@ -461,7 +462,7 @@ var deferredRenderPass1 = function(){
 
     //Render the scene into the shadowMap from the light view
     drawShadowMap();
-    // blurPasses(shadowFBO.texture(0), shadowFBO);
+    // blurPasses(shadowFBO.texture(0), shadowFBO, blurSigma);
     //Now render from the camera
 
 
@@ -739,7 +740,17 @@ var finalPass = function(texture, framebuffer){
 };
 
 var myRender = function() {
-
+    // lightAngle += 1.0;
+    elCounter++;
+    if(elCounter % 400 < 200) {
+        light.moveLeft();
+        light.changeElevation(0.5);
+    }
+    else {
+        light.moveRight();
+        light.changeElevation(-0.5);
+    }
+    light.update();
     var canvasResolution = [CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height];
 
     deferredRenderPass1();
@@ -758,7 +769,8 @@ var myRender = function() {
     }
     else if (secondPass === buildShadowMapProg) {
         drawShadowMap();
-        finalPass(shadowFBO.texture(0), shadowFBO);
+        blurPasses(shadowFBO.texture(0),workingFBO, 1.0);
+         finalPass(workingFBO.texture(0));
     }
     
 };
@@ -909,7 +921,7 @@ var setupScene = function(canvasId, messageId ) {
     //Setup camera
     view = mat4.create();
     mat4.identity( view );
-
+    lightAngle = 0.0;
     persp = mat4.create();
     lightPersp = mat4.create();
 
@@ -919,14 +931,23 @@ var setupScene = function(canvasId, messageId ) {
     mat4.perspective( lightPersp, 60 * 3.1415926 / 180,
                         1.0, zNear, zFar);
     //Create a camera, and attach it to the interactor
-    light = CIS700WEBGLCORE.createCamera(CAMERA_TRACKING_TYPE);
-    light.goHome ( [10, 14, 0] ); 
-    light.setAzimuth( 90.0);
-    light.setElevation( -50.0 );
-    camera = CIS700WEBGLCORE.createCamera(CAMERA_TRACKING_TYPE);
-    camera.goHome( [-1, 4,0] ); //initial camera posiiton
-    interactor = CIS700WEBGLCORE.CameraInteractor( camera, canvas );
+    // lightInteractor = CIS700WEBGLCORE.CameraInteractor( light, canvas);
 
+    
+    // lightInteractor = CIS700WEBGLCORE.CameraInteractor( light, canvas );
+
+    light = CIS700WEBGLCORE.createLight(CAMERA_TRACKING_TYPE);
+    light.goHome ( [0, 16, 0] ); 
+    light.setAzimuth( 0.0 );
+    light.setElevation( -90.0 );
+   
+    elCounter = 100;
+
+    camera = CIS700WEBGLCORE.createCamera(CAMERA_TRACKING_TYPE);
+    camera.goHome( [-1, 4, 0] ); //initial camera posiiton
+    camera.setAzimuth( -90.0 );
+    interactor = CIS700WEBGLCORE.CameraInteractor( camera, canvas );
+    
 
 
     //Create a FBO
@@ -950,7 +971,7 @@ var setupScene = function(canvasId, messageId ) {
     }
 
     shadowFBO = CIS700WEBGLCORE.createFBO();
-    if (! shadowFBO.initialize( gl, SHADOWMAP_SIZE, SHADOWMAP_SIZE )) {
+    if (! shadowFBO.initialize( gl, SHADOWMAP_SIZE, SHADOWMAP_SIZE, 2 )) {
         console.log( "shadowFBO initialization failed.");
         return;
     }
