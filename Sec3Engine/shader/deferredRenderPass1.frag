@@ -1,7 +1,7 @@
 #extension GL_EXT_draw_buffers: require
 
 precision highp float;
-const float AMBIENT_INTENSITY = 0.2;
+const float AMBIENT_INTENSITY = 0.1;
 const float LIGHT_INTENSITY = 25.0;
 const float SHADOW_FACTOR = 0.006;
 const float BIAS = -0.004;
@@ -41,7 +41,7 @@ bool isValid( vec3 uv ) {
 void main(void) {
 	float illuminence = 0.0;
     vec4 color = texture2D( u_sampler, v_texcoord );
-    // color.rgb = sqrt(color.rgb); // gamma correct texture 
+    color.rgb = (color.rgb * color.rgb); // gamma correct texture 
     vec4 biasedLightSpacePos = v_lightSpacePos;
     biasedLightSpacePos  = v_lightSpacePos / v_lightSpacePos.w;
 	biasedLightSpacePos.xyz = (0.5 * biasedLightSpacePos.xyz) + vec3(0.5);
@@ -56,7 +56,7 @@ void main(void) {
 	}
 	
 
-	color *= ((illuminence) + AMBIENT_INTENSITY);
+	color.rgb *= ((illuminence) + AMBIENT_INTENSITY);
 	// gl_FragColor = color;
 	gl_FragData[0] = vec4( vec3((v_lightSpacePos / v_lightSpacePos.w).rgb), 1.0);
 	gl_FragData[1] = vec4( normalize(v_normal), 1.0 );
