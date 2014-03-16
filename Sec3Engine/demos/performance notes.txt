@@ -1,0 +1,4 @@
+1k or lower shadow map with no dof - 60 fps
+1k shadow map with dof - 30 fps
+2k shadow map with no dof - 30 fps
+2k map with dof - 30fps

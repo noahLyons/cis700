@@ -48,7 +48,7 @@ var SMALL_BLUR = 1.4;
 var MEDIUM_BLUR = 1.6;
 var LARGE_BLUR = 5.6;
 
-var SHADOWMAP_SIZE = 2048;
+var SHADOWMAP_SIZE = 256;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -936,10 +936,12 @@ var setupScene = function(canvasId, messageId ) {
     
     // lightInteractor = CIS700WEBGLCORE.CameraInteractor( light, canvas );
 
-    light = CIS700WEBGLCORE.createLight(CAMERA_TRACKING_TYPE);
+    light = new SEC3.Light();
     light.goHome ( [0, 16, 0] ); 
     light.setAzimuth( 0.0 );    
     light.setElevation( -90.0 );
+
+
    
     elCounter = 100;
 

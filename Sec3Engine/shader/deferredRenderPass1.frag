@@ -1,9 +1,9 @@
 #extension GL_EXT_draw_buffers: require
 
 precision highp float;
-
+const float AMBIENT_INTENSITY = 0.2;
 const float LIGHT_INTENSITY = 25.0;
-const float SHADOW_FACTOR = 0.03;
+const float SHADOW_FACTOR = 0.006;
 const float BIAS = -0.004;
 //--------------------------------------------------------------VARIABLES:
 
@@ -27,6 +27,8 @@ bool isValid( vec3 uv ) {
 	bool result = false;
 	if(uv.x <= 1.0 && uv.x >= 0.0 && uv.y <= 1.0 && uv.y >= 0.0 && uv.z <= 1.0 && uv.z >= 0.0){
 		result = true;
+
+		//check if uv coord is inside spotlight cone
 		uv = (uv - 0.5);
 		float radius = dot(uv, uv);
 		if( (radius) >= 0.5) result = false;
@@ -37,29 +39,24 @@ bool isValid( vec3 uv ) {
 //-------------------------------------------------------------------MAIN:
 
 void main(void) {
+	float illuminence = 0.0;
     vec4 color = texture2D( u_sampler, v_texcoord );
-    color = color * color;
-    vec4 BiasedLightSpacePos = v_lightSpacePos;
-    BiasedLightSpacePos  = v_lightSpacePos / v_lightSpacePos.w;
-    // BiasedLightSpacePos = u_projection * vec4(v_lightSpacePos.rgb, 1.0);
-    // BiasedLightSpacePos /= BiasedLightSpacePos.w;
-	BiasedLightSpacePos.xyz = (0.5 * BiasedLightSpacePos.xyz) + vec3(0.5);
-	if( isValid(BiasedLightSpacePos.xyz) ){
+    // color.rgb = sqrt(color.rgb); // gamma correct texture 
+    vec4 biasedLightSpacePos = v_lightSpacePos;
+    biasedLightSpacePos  = v_lightSpacePos / v_lightSpacePos.w;
+	biasedLightSpacePos.xyz = (0.5 * biasedLightSpacePos.xyz) + vec3(0.5);
+	if( isValid(biasedLightSpacePos.xyz) ){
 
-		float shadowMapDepth = linearizeDepth(texture2D( u_shadowMap, BiasedLightSpacePos.xy ).r);
-		float fragmentDepth = linearizeDepth(BiasedLightSpacePos.z);
-		if ( shadowMapDepth < fragmentDepth + BIAS  ) {
-			 	color.rgb *= SHADOW_FACTOR;
+		float shadowMapDepth = linearizeDepth(texture2D( u_shadowMap, biasedLightSpacePos.xy ).r);
+		float fragmentDepth = linearizeDepth(biasedLightSpacePos.z);
+		if ( shadowMapDepth > fragmentDepth + BIAS  ) {
+    			illuminence = LIGHT_INTENSITY / pow( v_lightSpacePos.z, 2.0 );
 		}
-		else {
-			color.rgb *= max(SHADOW_FACTOR, LIGHT_INTENSITY / pow((fragmentDepth * v_lightSpacePos.w), 2.0));
+		
+	}
+	
 
-		}
-	}
-	else {
-		color.rgb *= SHADOW_FACTOR;
-		BiasedLightSpacePos.rgb = vec3(0.2);
-	}
+	color *= ((illuminence) + AMBIENT_INTENSITY);
 	// gl_FragColor = color;
 	gl_FragData[0] = vec4( vec3((v_lightSpacePos / v_lightSpacePos.w).rgb), 1.0);
 	gl_FragData[1] = vec4( normalize(v_normal), 1.0 );
