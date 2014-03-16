@@ -938,7 +938,7 @@ var setupScene = function(canvasId, messageId ) {
 
     light = CIS700WEBGLCORE.createLight(CAMERA_TRACKING_TYPE);
     light.goHome ( [0, 16, 0] ); 
-    light.setAzimuth( 0.0 );
+    light.setAzimuth( 0.0 );    
     light.setElevation( -90.0 );
    
     elCounter = 100;
