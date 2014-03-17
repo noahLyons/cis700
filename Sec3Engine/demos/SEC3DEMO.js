@@ -4,7 +4,6 @@
 //Global variables
 //Bad practice, but let's just leave them here
 var gl;    //GL context object
-var persp; //perspective matrix
 var view;  //viewing matrix
 var norml; //normal matrix
 
@@ -49,6 +48,9 @@ var MEDIUM_BLUR = 1.6;
 var LARGE_BLUR = 5.6;
 
 var SHADOWMAP_SIZE = 1024.0;
+var FAR_CASCADE_SIZE = 128;
+var NEAR_CASCADE_SIZE = 2048;
+var numCascades = 2;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -268,19 +270,23 @@ var createShaders = function() {
     CIS700WEBGLCORE.registerAsyncObj( gl, buildShadowMapProg );
 
 };
-var drawShadowMap = function(){
+
+var drawCascades = function(){
+
+}
+var drawShadowMap = function(light){
 
     gl.bindTexture( gl.TEXTURE_2D, null );
     shadowFBO.bind(gl);
    
     gl.viewport(0, 0, SHADOWMAP_SIZE, SHADOWMAP_SIZE );
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT );
-    // gl.colorMask(false,false,false,false);
+    gl.colorMask(false,false,false,false);
     gl.enable( gl.DEPTH_TEST );
-
+    gl.cullFace(gl.FRONT);
     gl.useProgram(buildShadowMapProg.ref());
     var mlpMat = mat4.create();
-    mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
+    mat4.multiply( mlpMat, light.getPerspective(), light.getViewTransform() );
     gl.uniformMatrix4fv( buildShadowMapProg.uMLPLoc, false, mlpMat );
 
     //----------------DRAW MODEL:
@@ -298,26 +304,27 @@ var drawShadowMap = function(){
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
     }
 
-    // gl.colorMask(true,true,true,true);
+    gl.colorMask(true,true,true,true);
 
     shadowFBO.unbind(gl);
+    gl.cullFace(gl.BACK);
 };
 
-var drawModel = function(){
+var drawModel = function(light){
     
     //update the model-view matrix
     var mvpMat = mat4.create();
-    mat4.multiply( mvpMat, persp, camera.getViewTransform() );
+    mat4.multiply( mvpMat, camera.getPerspective(), camera.getViewTransform() );
 
     var mlpMat = mat4.create();
-    mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
+    mat4.multiply( mlpMat, light.getPerspective(), light.getViewTransform() );
 
     //update the normal matrix
     var nmlMat = mat4.create();
     mat4.invert( nmlMat, camera.getViewTransform() );
     mat4.transpose( nmlMat, nmlMat);
 
-    gl.uniformMatrix4fv( passProg.uPerspLoc, false, lightPersp);
+    gl.uniformMatrix4fv( passProg.uPerspLoc, false, light.getPerspective());
 
     gl.uniformMatrix4fv( passProg.uModelViewLoc, false, camera.getViewTransform());  
     gl.uniformMatrix4fv( passProg.uModelLightLoc, false, light.getViewTransform());      
@@ -458,10 +465,10 @@ function initDofButtons() {
 /*
  * Renders the geometry and output color, normal, depth information
  */
-var deferredRenderPass1 = function(){
+var deferredRenderPass1 = function(light){
 
     //Render the scene into the shadowMap from the light view
-    drawShadowMap();
+    drawShadowMap(light);
     // blurPasses(shadowFBO.texture(0), shadowFBO, blurSigma);
     //Now render from the camera
 
@@ -474,7 +481,7 @@ var deferredRenderPass1 = function(){
 
     gl.useProgram( passProg.ref() );
 
-    drawModel();
+    drawModel(light);
     fbo.unbind(gl);
 
 }; 
@@ -738,25 +745,27 @@ var finalPass = function(texture, framebuffer){
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 
 };
-var moveLight = function() {
+var moveLight = function(light) {
     elCounter++;
-    light.changeAzimuth(0.1);
     if(elCounter % 400 < 200) {
-        // light.moveLeft();
+        light.changeAzimuth(0.1);
+        light.moveLeft();
         // light.changeElevation(0.05);
     }
     else {
-        // light.moveRight();
+        light.changeAzimuth(-0.1);
+        light.moveRight();
         // light.changeElevation(-0.05);
     }
     light.update();
-}
+};
 var myRender = function() {
-    
-    moveLight();
+    var light = scene.getLight(0);
+
+    moveLight(light);
     var canvasResolution = [CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height];
 
-    deferredRenderPass1();
+    deferredRenderPass1(light);
 
     if (secondPass === renderQuadProg) {
         deferredRenderPass2(workingFBO);
@@ -903,7 +912,7 @@ var setKeyInputs = function() {
 var setupScene = function(canvasId, messageId ) {
     var canvas;
     var msg;
-    //----SETUP SCENE
+    //----SETUP scene
     //get WebGL context
     canvas = document.getElementById( canvasId );
     CIS700WEBGLCORE.canvas = canvas;
@@ -924,36 +933,40 @@ var setupScene = function(canvasId, messageId ) {
     //Setup camera
     view = mat4.create();
     mat4.identity( view );
-    lightAngle = 0.0;
-    persp = mat4.create();
-    lightPersp = mat4.create();
-
+    
     //mat4.perspective use radiance
-    mat4.perspective( persp, 60 * 3.1415926 / 180, 
-                      canvas.width / canvas.height, zNear, zFar );
-    mat4.perspective( lightPersp, 60 * 3.1415926 / 180,
-                        1.0, zNear, zFar);
     //Create a camera, and attach it to the interactor
     // lightInteractor = CIS700WEBGLCORE.CameraInteractor( light, canvas);
 
+    scene = new SEC3.Scene();
     
     // lightInteractor = CIS700WEBGLCORE.CameraInteractor( light, canvas );
 
-    light = new SEC3.Light();
-    light.goHome ( [0, 6, 0] ); 
-    light.setAzimuth( 0.0 );    
-    light.setElevation( -20.0 );
-
+    var light = new SEC3.Light();
+    light.goHome ( [0, 8, 0] ); 
+    light.setAzimuth( 90.0 );    
+    light.setElevation( -45.0 );
+    lightAngle = 0.0;
+    var lightPersp = mat4.create();
+    mat4.perspective( lightPersp, 60 * 3.1415926 / 180,
+                        1.0, zNear, zFar);
+    light.setPerspective(lightPersp);
 
    
     elCounter = 100;
 
-    camera = CIS700WEBGLCORE.createCamera(CAMERA_TRACKING_TYPE);
+    camera = new SEC3.Camera();
     camera.goHome( [0, 4, 0] ); //initial camera posiiton
     camera.setAzimuth( -90.0 );
     interactor = CIS700WEBGLCORE.CameraInteractor( camera, canvas );
     
+    var persp = mat4.create();
+    mat4.perspective( persp, 60 * 3.1415926 / 180, 
+                      canvas.width / canvas.height, zNear, zFar );
+    camera.setPerspective(persp);
 
+    scene.addLight(light);
+    scene.setCamera(camera);
 
     //Create a FBO
     fbo = CIS700WEBGLCORE.createFBO();
