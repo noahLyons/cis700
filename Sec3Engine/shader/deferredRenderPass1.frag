@@ -1,10 +1,12 @@
 #extension GL_EXT_draw_buffers: require
 
 precision highp float;
-const float AMBIENT_INTENSITY = 0.1;
-const float LIGHT_INTENSITY = 25.0;
+const float AMBIENT_INTENSITY = 0.05;
+const float LIGHT_INTENSITY = 10.0;
 const float SHADOW_FACTOR = 0.006;
-const float BIAS = -0.004;
+const float BIAS = -0.008;
+const float offset = 1.5 / 1024.0;
+const float increment = 1.0 / 1024.0;
 //--------------------------------------------------------------VARIABLES:
 
 uniform sampler2D u_sampler;
@@ -36,9 +38,55 @@ bool isValid( vec3 uv ) {
 	return result;
 }
 
+/*
+ * Returns 1.0 if fragment is occluded, 0.0 if not
+ */
+float isOccluded(float fragDepth, vec2 uv){
+	
+	float shadowMapDepth = linearizeDepth(texture2D( u_shadowMap, uv).r);
+	return float(shadowMapDepth < fragDepth + BIAS);
+}
+
+float getPercentageCloser(float fragDepth, vec2 uv, float offset) {
+
+	float totalOcclusion = 0.0;
+
+	totalOcclusion += isOccluded(fragDepth, uv + vec2(-offset, offset));
+	totalOcclusion += isOccluded(fragDepth, uv + vec2(offset, -offset));
+	totalOcclusion += isOccluded(fragDepth, uv + vec2(offset));
+	totalOcclusion += isOccluded(fragDepth, uv - vec2(offset));
+
+	return totalOcclusion / 4.0;
+
+} 
+
+float averagePercentageClosers(float fragDepth, vec2 uv) {
+	float offset = 1.5 / 1024.0;
+	float totalOcclusion = 0.0;
+
+	totalOcclusion += getPercentageCloser(fragDepth, uv + vec2(-offset, offset), offset/2.0);
+	totalOcclusion += getPercentageCloser(fragDepth, uv + vec2(offset, -offset), offset/2.0);
+	totalOcclusion += getPercentageCloser(fragDepth, uv + vec2(offset), offset/2.0);
+	totalOcclusion += getPercentageCloser(fragDepth, uv - vec2(offset), offset/2.0);
+
+	return totalOcclusion / 4.0;
+}
+
+float averageLookups(float fragDepth, vec2 uv) {
+	
+	
+	float sum = 0.0;
+	for( float y = -offset; y <= offset; y += increment){
+		for( float x = -offset; x <= offset; x += increment){
+			sum += isOccluded(fragDepth, uv + vec2(x,y));
+		}
+	}
+	return sum / 16.0;
+}
 //-------------------------------------------------------------------MAIN:
 
 void main(void) {
+
 	float illuminence = 0.0;
     vec4 color = texture2D( u_sampler, v_texcoord );
     color.rgb = (color.rgb * color.rgb); // gamma correct texture 
@@ -46,13 +94,12 @@ void main(void) {
     biasedLightSpacePos  = v_lightSpacePos / v_lightSpacePos.w;
 	biasedLightSpacePos.xyz = (0.5 * biasedLightSpacePos.xyz) + vec3(0.5);
 	if( isValid(biasedLightSpacePos.xyz) ){
-
-		float shadowMapDepth = linearizeDepth(texture2D( u_shadowMap, biasedLightSpacePos.xy ).r);
-		float fragmentDepth = linearizeDepth(biasedLightSpacePos.z);
-		if ( shadowMapDepth > fragmentDepth + BIAS  ) {
-    			illuminence = LIGHT_INTENSITY / pow( v_lightSpacePos.z, 2.0 );
-		}
 		
+
+		float fragmentDepth = linearizeDepth(biasedLightSpacePos.z);
+		float occlusion = 1.0 - averageLookups(fragmentDepth, biasedLightSpacePos.xy);
+		illuminence = occlusion * LIGHT_INTENSITY / pow( v_lightSpacePos.z, 2.0 );
+
 	}
 	
 

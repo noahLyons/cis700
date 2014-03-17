@@ -48,7 +48,7 @@ var SMALL_BLUR = 1.4;
 var MEDIUM_BLUR = 1.6;
 var LARGE_BLUR = 5.6;
 
-var SHADOWMAP_SIZE = 256;
+var SHADOWMAP_SIZE = 1024.0;
 
 //--------------------------------------------------------------------------METHODS:
 
@@ -738,19 +738,22 @@ var finalPass = function(texture, framebuffer){
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 
 };
-
-var myRender = function() {
-    // lightAngle += 1.0;
+var moveLight = function() {
     elCounter++;
+    light.changeAzimuth(0.1);
     if(elCounter % 400 < 200) {
-        light.moveLeft();
-        light.changeElevation(0.5);
+        // light.moveLeft();
+        // light.changeElevation(0.05);
     }
     else {
-        light.moveRight();
-        light.changeElevation(-0.5);
+        // light.moveRight();
+        // light.changeElevation(-0.05);
     }
     light.update();
+}
+var myRender = function() {
+    
+    moveLight();
     var canvasResolution = [CIS700WEBGLCORE.canvas.width, CIS700WEBGLCORE.canvas.height];
 
     deferredRenderPass1();
@@ -937,16 +940,16 @@ var setupScene = function(canvasId, messageId ) {
     // lightInteractor = CIS700WEBGLCORE.CameraInteractor( light, canvas );
 
     light = new SEC3.Light();
-    light.goHome ( [0, 16, 0] ); 
+    light.goHome ( [0, 6, 0] ); 
     light.setAzimuth( 0.0 );    
-    light.setElevation( -90.0 );
+    light.setElevation( -20.0 );
 
 
    
     elCounter = 100;
 
     camera = CIS700WEBGLCORE.createCamera(CAMERA_TRACKING_TYPE);
-    camera.goHome( [-1, 4, 0] ); //initial camera posiiton
+    camera.goHome( [0, 4, 0] ); //initial camera posiiton
     camera.setAzimuth( -90.0 );
     interactor = CIS700WEBGLCORE.CameraInteractor( camera, canvas );
     

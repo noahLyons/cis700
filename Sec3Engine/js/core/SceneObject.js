@@ -117,13 +117,13 @@ SEC3.SceneObject.prototype = {
 
     moveLeft: function(){
         
-        vec3.scaleAndAdd( this.position, this.position, this.right, -0.1 );
+        vec3.scaleAndAdd( this.position, this.position, this.right, -0.05 );
         this.update();
     },
 
     moveRight: function(){
         
-        vec3.scaleAndAdd( this.position, this.position, this.right, 0.1 );
+        vec3.scaleAndAdd( this.position, this.position, this.right, 0.05 );
         this.update();
     },
 
