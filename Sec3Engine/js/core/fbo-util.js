@@ -1,9 +1,9 @@
     //A wrapper for creating framebuffer objects
 
-    //CIS700WEBGLCORE is a core function interface
-    var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
+    //SEC3 is a core function interface
+    var SEC3 = SEC3 || {};
 
-    CIS700WEBGLCORE.createFBO = function() {
+    SEC3.createFBO = function() {
     "use strict"
 
     var textures = [];

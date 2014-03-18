@@ -271,22 +271,39 @@ var createShaders = function() {
 
 };
 
-var drawCascades = function(){
-
+var drawCascades = function(light){
+    for( var ii = 0; ii < light.numCascades; ii++ ) {
+        drawShadowMap(light, ii);
+    }
 }
-var drawShadowMap = function(light){
+var drawShadowMap = function(light, index){
+
+    var fbo;
+    var lightPersp;
+    var resolution;
+    if(index === undefined ){
+        fbo = shadowFBO;
+        lightPersp = light.getPerspective();
+        resolution = SHADOWMAP_SIZE;
+    }
+
+    else {
+        fbo = light.cascadeFramebuffers[index];
+        lightPersp = light.cascadePerspectives[index];
+        resolution = fbo.resolution[0];
+    }
 
     gl.bindTexture( gl.TEXTURE_2D, null );
-    shadowFBO.bind(gl);
+    fbo.bind(gl);
    
-    gl.viewport(0, 0, SHADOWMAP_SIZE, SHADOWMAP_SIZE );
+    gl.viewport(0, 0, resolution, resolution );
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT );
-    gl.colorMask(false,false,false,false);
+    // gl.colorMask(false,false,false,false);
     gl.enable( gl.DEPTH_TEST );
     gl.cullFace(gl.FRONT);
     gl.useProgram(buildShadowMapProg.ref());
     var mlpMat = mat4.create();
-    mat4.multiply( mlpMat, light.getPerspective(), light.getViewTransform() );
+    mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
     gl.uniformMatrix4fv( buildShadowMapProg.uMLPLoc, false, mlpMat );
 
     //----------------DRAW MODEL:
@@ -304,9 +321,9 @@ var drawShadowMap = function(light){
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
     }
 
-    gl.colorMask(true,true,true,true);
+    // gl.colorMask(true,true,true,true);
 
-    shadowFBO.unbind(gl);
+    fbo.unbind(gl);
     gl.cullFace(gl.BACK);
 };
 
@@ -780,7 +797,7 @@ var myRender = function() {
         finalPass(workingFBO.texture(0));
     }
     else if (secondPass === buildShadowMapProg) {
-        drawShadowMap();
+        drawShadowMap(light);
         blurPasses(shadowFBO.texture(0),workingFBO, 1.0);
          finalPass(workingFBO.texture(0));
     }
@@ -946,49 +963,47 @@ var setupScene = function(canvasId, messageId ) {
     light.goHome ( [0, 8, 0] ); 
     light.setAzimuth( 90.0 );    
     light.setElevation( -45.0 );
-    lightAngle = 0.0;
-    var lightPersp = mat4.create();
-    mat4.perspective( lightPersp, 60 * 3.1415926 / 180,
-                        1.0, zNear, zFar);
-    light.setPerspective(lightPersp);
+    light.setPerspective(60, 1.0, zNear, zFar);
+    light.addCascade(NEAR_CASCADE_SIZE, zNear, 15.0);
+    light.addCascade(FAR_CASCADE_SIZE, 15.0, zFar);
 
+    cascadeDisplay = 0.0;
+
+
+    lightAngle = 0.0;
    
     elCounter = 100;
 
     camera = new SEC3.Camera();
     camera.goHome( [0, 4, 0] ); //initial camera posiiton
-    camera.setAzimuth( -90.0 );
+    camera.setAzimuth( 90.0 );
     interactor = CIS700WEBGLCORE.CameraInteractor( camera, canvas );
-    
-    var persp = mat4.create();
-    mat4.perspective( persp, 60 * 3.1415926 / 180, 
-                      canvas.width / canvas.height, zNear, zFar );
-    camera.setPerspective(persp);
+    camera.setPerspective(60, canvas.width / canvas.height, zNear, zFar);
 
     scene.addLight(light);
     scene.setCamera(camera);
 
     //Create a FBO
-    fbo = CIS700WEBGLCORE.createFBO();
+    fbo = SEC3.createFBO();
     if (! fbo.initialize( gl, canvas.width, canvas.height )) {
         console.log( "FBO initialization failed.");
         return;
     }
 
-    lowResFBO = CIS700WEBGLCORE.createFBO();
+    lowResFBO = SEC3.createFBO();
     if (! lowResFBO.initialize( gl, 512.0, 512.0 )) {
         console.log( "display FBO initialization failed.");
         return;
     }
 
 
-    workingFBO = CIS700WEBGLCORE.createFBO();
+    workingFBO = SEC3.createFBO();
     if (! workingFBO.initialize( gl, canvas.width, canvas.height )) {
         console.log( "workingFBO initialization failed.");
         return;
     }
 
-    shadowFBO = CIS700WEBGLCORE.createFBO();
+    shadowFBO = SEC3.createFBO();
     if (! shadowFBO.initialize( gl, SHADOWMAP_SIZE, SHADOWMAP_SIZE, 2 )) {
         console.log( "shadowFBO initialization failed.");
         return;

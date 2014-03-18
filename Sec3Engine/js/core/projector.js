@@ -19,8 +19,12 @@ SEC3.Projector = function() {
     this.azimuth     = 0.0;
     this.elevation   = 0.0;
     this.steps       = 0;
-    this.perspective = mat4.create();
 
+    this.perspective = mat4.create();
+    this.fov = 0.0;
+    this.aspect = 1.0;
+    this.zNear = 0.0;
+    this.zFar = 1.0;
 };
 
 SEC3.Projector.prototype = {
@@ -28,11 +32,10 @@ SEC3.Projector.prototype = {
     constructor: SEC3.Projector,
 
     update: function () {
-         mat4.identity(this.matrix);
+        mat4.identity(this.matrix);
         mat4.translate( this.matrix, this.matrix, this.position );
         mat4.rotateY( this.matrix, this.matrix, this.azimuth * Math.PI/180 );
         mat4.rotateX( this.matrix, this.matrix, this.elevation * Math.PI/180 );
-
 
         var m = this.matrix;
         
@@ -45,14 +48,46 @@ SEC3.Projector.prototype = {
         vec4.transformMat4( this.position, [0,0,0,1], m );
     },
 
-    setPerspective: function (newPerspective) {
-        this.perspective = newPerspective;
+    updatePerspective: function () {
+        var persp = mat4.create();
+        mat4.perspective( persp, this.fov, 
+                      this.aspect, this.zNear, this.zFar );
+        this.perspective = persp;
+    },
+
+    setFarClip: function (farPlane) {
+        this.zFar = farPlane;
+        this.updatePerspective();
+    },
+
+    setNearClip: function (nearPlane) {
+        this.zNear = nearPlane;
+        this.updatePerspective();
+    },
+
+    setFov: function (newFov) {
+        this.fov = newFov * Math.PI / 180;
+        this.updatePerspective();
+    },
+
+    setAspect: function (newAspect) {
+        this.aspect = newAspect;
+        this.updatePerspective();
+    },
+
+    setPerspective: function (newFov, newAspect, newNear, newFar) {
+        this.fov = newFov * Math.PI / 180;
+        this.aspect = newAspect;
+        this.zNear = newNear;
+        this.zFar = newFar;
+        this.updatePerspective();
     },
 
     getPerspective: function () {
         var m = this.perspective;
         return m;
     },
+
     setPosition: function (p){
         vec3.set( this.position, p[0], p[1], p[2] );
         this.update();
