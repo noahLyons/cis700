@@ -1,10 +1,10 @@
-SEC3ENGINE = SEC3ENGINE || {};
-SEC3ENGINE.math = SEC3ENGINE.math || {};
+SEC3 = SEC3 || {};
+SEC3.math = SEC3.math || {};
 
 /*
  * Rounds num up to the nearest power of 2
  */
-SEC3ENGINE.math.roundUpToPower = function(num, power) {
+SEC3.math.roundUpToPower = function(num, power) {
 
 	var x = 1;
 

@@ -6,10 +6,10 @@
 *
 * Based on the code sample from WebGL Beginner's Guide.
 */
-var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
+var SEC3 = SEC3 || {};
 
 
-CIS700WEBGLCORE.CameraInteractor = function(camera,canvas){
+SEC3.CameraInteractor = function(camera,canvas){
     
     var camera = camera;
     var canvas = canvas;

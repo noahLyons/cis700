@@ -1,10 +1,10 @@
 //A loader for loading OBJ models
 // Use the loaders in Three.js: http://threejs.org/
 
-//CIS700WEBGLCORE is a core function interface
-var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
+//SEC3 is a core function interface
+var SEC3 = SEC3 || {};
 
-CIS700WEBGLCORE.createOBJLoader = function(){
+SEC3.createOBJLoader = function(){
     "use strict"
 
     var ready = false;
@@ -57,8 +57,8 @@ CIS700WEBGLCORE.createOBJLoader = function(){
         var eventlistener = function(object){
             
     		content = object;
-    		console.log(filename);
-            console.log("children count: " + object.children.length );
+    		// console.log(filename);
+            // console.log("children count: " + object.children.length );
     		//Start parse vertices, normals, indices, and texcoords
     		content.traverse( function(child){
     			if( child instanceof THREE.Mesh ){
@@ -72,7 +72,7 @@ CIS700WEBGLCORE.createOBJLoader = function(){
                     var meshTexcoordArray = [];
                     var point = 0;
 
-                    console.log("start traverse OBJ");
+                    // console.log("start traverse OBJ");
     				if( numFaces != 0 ){
                         var texCount = textures.length;
     					if( child.material.map !== null ){
@@ -147,7 +147,7 @@ CIS700WEBGLCORE.createOBJLoader = function(){
                             meshTexcoordArray[ offset+1 ] = 1.0 - uv[2].y;
 
     					}
-                        console.log( 'num of faces '+numFaces);
+                        // console.log( 'num of faces '+numFaces);
 
                         vertexGroup.push( meshVertexArray );
                         normalGroup.push( meshNormalArray );
@@ -207,7 +207,7 @@ CIS700WEBGLCORE.createOBJLoader = function(){
                 if( textures[i] !== null && !textures[i].ready ){
 
                     if( textures[i].map.image.src.length > 0){
-                        console.log( textures[i].map.image.src );
+                        // console.log( textures[i].map.image.src );
                         loadTexture( gl, textures[i] );
                         isReady &= textures[i].ready;
                     }
@@ -216,7 +216,7 @@ CIS700WEBGLCORE.createOBJLoader = function(){
                 //console.log( textures[i].map.image.src );
             }
 
-            console.log( isReady );
+            // console.log( isReady );
             return isReady;
         },
         addCallback: function( functor ){

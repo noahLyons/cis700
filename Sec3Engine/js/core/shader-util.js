@@ -2,13 +2,13 @@
  * By Cheng-Tso Lin
  */
 
-//CIS700WEBGLCORE is a core function interface
-var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
+//SEC3 is a core function interface
+var SEC3 = SEC3 || {};
 
 //createShaderProgram returns an object representing a shader program
 //The shader sources are asynchronouosly retrieved
 //from the server when loadShader is called
-CIS700WEBGLCORE.createShaderProgram = function(){
+SEC3.createShaderProgram = function(){
     "use strict"
 
     var VERTEX_SHADER_SRC = null;    //string content of vertex shader
@@ -16,7 +16,9 @@ CIS700WEBGLCORE.createShaderProgram = function(){
     var program = null;              //shader program
     var callbackFunArray = [];
 
-	function loadShaderFile( gl, fileName, shader ){
+	function loadShaderFile( gl, fileName, shader, prefix ){
+        prefix = prefix || "";
+        prefix = "precision highp float; \n" + prefix;
 		var request = new XMLHttpRequest();
 
 	    //Register a callback function 
@@ -24,7 +26,7 @@ CIS700WEBGLCORE.createShaderProgram = function(){
 		request.onreadystatechange = function(){
             
 			if( request.readyState === 4 && request.status !== 404 ){
-				onLoadShader( gl, request.responseText, shader );
+				onLoadShader( gl, prefix + request.responseText, shader );
 			}
 		}
 	    request.open( 'GET', fileName, true );
@@ -125,9 +127,10 @@ CIS700WEBGLCORE.createShaderProgram = function(){
         ref: function(){  //expose shader program object for use
             return program;
         },
-    	loadShader: function( gl, vsFileName, fsFileName ){
-    	    loadShaderFile( gl, vsFileName, gl.VERTEX_SHADER );
-    	    loadShaderFile( gl, fsFileName, gl.FRAGMENT_SHADER );
+    	loadShader: function( gl, vsFileName, fsFileName, prefixes ){
+            prefixes = prefixes || ["",""];
+    	    loadShaderFile( gl, vsFileName, gl.VERTEX_SHADER, prefixes[0] );
+    	    loadShaderFile( gl, fsFileName, gl.FRAGMENT_SHADER, prefixes[1] );
         },
 
         ///// The following 3 functions should be implemented for all objects

@@ -1,8 +1,8 @@
 
-//CIS700WEBGLCORE is a core function interface
-var CIS700WEBGLCORE = CIS700WEBGLCORE || {};
+//SEC3 is a core function interface
+var SEC3 = SEC3 || {};
 
-CIS700WEBGLCORE.getWebGLContext = function( canvas, message ){
+SEC3.getWebGLContext = function( canvas, message ){
 
     var ctx = null;
     var names = [ "webgl", "experimental-webgl", "webkit-3d" ];
@@ -27,7 +27,7 @@ CIS700WEBGLCORE.getWebGLContext = function( canvas, message ){
 };
 
 //
-CIS700WEBGLCORE.registerAsyncObj = function( gl, asyncObj ){
+SEC3.registerAsyncObj = function( gl, asyncObj ){
     if( !gl.asyncObjArray ){
         gl.asyncObjArray = [];
     }
@@ -35,7 +35,7 @@ CIS700WEBGLCORE.registerAsyncObj = function( gl, asyncObj ){
 };
 
 //Make sure all objects with asynchronously-requested resources are ready before starting the rendering loop
-CIS700WEBGLCORE.run = function(gl){
+SEC3.run = function(gl){
     var i;
     var n;
 
@@ -52,9 +52,9 @@ CIS700WEBGLCORE.run = function(gl){
 
 
     if( n === 0 ){
-       CIS700WEBGLCORE.renderLoop(); 
+       SEC3.renderLoop(); 
     }
     else{
-        window.setTimeout( CIS700WEBGLCORE.run, 500, gl );
+        window.setTimeout( SEC3.run, 500, gl );
     }
 };
