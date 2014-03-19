@@ -133,6 +133,9 @@ SEC3.createShaderProgram = function(){
     	    loadShaderFile( gl, fsFileName, gl.FRAGMENT_SHADER, prefixes[1] );
         },
 
+        loadShaderFromStrings: function( gl, vsString, fsString ) {
+            initShaderProgram(gl, vsString, fsString );
+        },
         ///// The following 3 functions should be implemented for all objects
         ///// whose resources are retrieved asynchronously
         isReady: function(){

@@ -36,20 +36,20 @@ var texToDisplay = 2;
 var secondPass;
 
 var nearSlope = -6.6;
-var nearIntercept = 2.0;
+var nearIntercept = 1.39;
 
-var farSlope = 1.0;
-var farIntercept = -0.3
+var farSlope = 0.8;
+var farIntercept = -0.25
 
 var blurSigma = 2.0;
 
-var SMALL_BLUR = 1.4;
-var MEDIUM_BLUR = 1.6;
-var LARGE_BLUR = 5.6;
+var SMALL_BLUR = 1.8;
+var MEDIUM_BLUR = 3.4;
+var LARGE_BLUR = 11.6;
 
 var SHADOWMAP_SIZE = 1024.0;
-var FAR_CASCADE_SIZE = 128;
-var NEAR_CASCADE_SIZE = 2048;
+var FAR_CASCADE_SIZE = 256;
+var NEAR_CASCADE_SIZE = 1024;
 
 
 //--------------------------------------------------------------------------METHODS:
@@ -80,7 +80,7 @@ var createShaders = function() {
         passProg.uShadowMapLoc = gl.getUniformLocation( passProg.ref(), "u_shadowMap");
         passProg.uSamplerLoc = gl.getUniformLocation( passProg.ref(), "u_sampler");
         passProg.uMLPLoc = gl.getUniformLocation( passProg.ref(), "u_mlp");
-        passProg.uModelLightLoc = gl.getUniformLocation( passProg.ref(), "u_modelLight")
+        passProg.uModelLightLoc = gl.getUniformLocation( passProg.ref(), "u_modelLight");
     } );
 
     //Register the asynchronously-requested resources with the engine core
@@ -259,6 +259,10 @@ var createShaders = function() {
                     "const float NEAR = " + thisLight.cascadeClips[i][0] + "; \n" +
                     " const float FAR = " + thisLight.cascadeClips[i][1] + "; \n"
                     ];
+        // var prefixes = ["", 
+        //             "const float NEAR = " + zNear + "; \n" +
+        //             " const float FAR = " + zFar + "; \n"
+        //             ];
         buildShadowMapProg = SEC3.createShaderProgram();
         buildShadowMapProg.loadShader( gl,
                                        "/../shader/buildShadowMap.vert",
@@ -277,13 +281,22 @@ var createShaders = function() {
         SEC3.registerAsyncObj( gl, buildShadowMapProg );
     }
 
+    //-----------------------------------------------CASCADE RENDER
+   
+    renderWithCascadesProg = SEC3.Chunker.renderWithCascadedShadowMaps(gl, thisLight);
+    
 };
 
 var drawCascades = function(light){
     for( var ii = 0; ii < light.numCascades; ii++ ) {
         drawShadowMap(light, ii);
     }
-}
+};
+
+/*
+ *  light to render from wich, cascade index
+ */
+
 var drawShadowMap = function(light, index){
 
     if(index === undefined ){
@@ -301,7 +314,7 @@ var drawShadowMap = function(light, index){
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT );
     // gl.colorMask(false,false,false,false);
     gl.enable( gl.DEPTH_TEST );
-    gl.cullFace(gl.FRONT);
+    gl.cullFace(gl.BACK);
     gl.useProgram(shaderProg.ref());
     var mlpMat = mat4.create();
     mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
@@ -335,7 +348,7 @@ var drawModel = function(light, index){
     }
 
     var shadowFbo = light.cascadeFramebuffers[index];
-    var lightPersp = light.cascadePerspectives[index];
+    var lightPersp = light.getPerspective();
     var resolution = shadowFbo.getWidth();
 
     //update the model-view matrix
@@ -350,41 +363,44 @@ var drawModel = function(light, index){
     mat4.invert( nmlMat, camera.getViewTransform() );
     mat4.transpose( nmlMat, nmlMat);
 
-    gl.uniformMatrix4fv( passProg.uPerspLoc, false, lightPersp);
+    gl.uniform3fv( renderWithCascadesProg.uLPosLoc, light.getPosition());
 
-    gl.uniformMatrix4fv( passProg.uModelViewLoc, false, camera.getViewTransform());  
-    gl.uniformMatrix4fv( passProg.uModelLightLoc, false, light.getViewTransform());      
-    gl.uniformMatrix4fv( passProg.uMVPLoc, false, mvpMat );        
-    gl.uniformMatrix4fv( passProg.uNormalMatLoc, false, nmlMat ); 
-    gl.uniformMatrix4fv( passProg.uMLPLoc, false, mlpMat);
+    gl.uniformMatrix4fv( renderWithCascadesProg.uPerspLoc, false, lightPersp);
+    gl.uniformMatrix4fv( renderWithCascadesProg.uModelViewLoc, false, camera.getViewTransform());  
+    gl.uniformMatrix4fv( renderWithCascadesProg.uModelLightLoc, false, light.getViewTransform());      
+    gl.uniformMatrix4fv( renderWithCascadesProg.uMVPLoc, false, mvpMat );        
+    gl.uniformMatrix4fv( renderWithCascadesProg.uNormalMatLoc, false, nmlMat ); 
+    gl.uniformMatrix4fv( renderWithCascadesProg.uMLPLoc, false, mlpMat);
 
-    gl.activeTexture( gl.TEXTURE0 );
-    gl.bindTexture( gl.TEXTURE_2D, shadowFbo.depthTexture());
-    gl.uniform1i( passProg.uShadowMapLoc, 0);
+    for(var i = 0; i < light.numCascades; i++ ){
+        gl.activeTexture( gl.TEXTURE0 + i);
+        gl.bindTexture( gl.TEXTURE_2D, light.cascadeFramebuffers[i].depthTexture());
+        gl.uniform1i( renderWithCascadesProg.uCascadeLocs[i], i);
+    }
 
     //------------------DRAW MODEL:
     
     for ( var i = 0; i < model_vertexVBOs.length; ++i ){
         //Bind vertex pos buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[i] );
-        gl.vertexAttribPointer( passProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( passProg.aVertexPosLoc );
+        gl.vertexAttribPointer( renderWithCascadesProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( renderWithCascadesProg.aVertexPosLoc );
 
         //Bind vertex normal buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_normalVBOs[i] );
-        gl.vertexAttribPointer( passProg.aVertexNormalLoc, 3, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( passProg.aVertexNormalLoc );
+        gl.vertexAttribPointer( renderWithCascadesProg.aVertexNormalLoc, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( renderWithCascadesProg.aVertexNormalLoc );
 
         //Bind vertex texcoord buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_texcoordVBOs[i] );
-        gl.vertexAttribPointer( passProg.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( passProg.aVertexTexcoordLoc );
+        gl.vertexAttribPointer( renderWithCascadesProg.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( renderWithCascadesProg.aVertexTexcoordLoc );
         
         if ( model_texcoordVBOs[i].texture ) {
             //Bind texture    
-            gl.activeTexture( gl.TEXTURE1 );
+            gl.activeTexture( gl.TEXTURE0 + light.numCascades );
             gl.bindTexture( gl.TEXTURE_2D, model_texcoordVBOs[i].texture );
-            gl.uniform1i( passProg.uSamplerLoc, 1 );
+            gl.uniform1i( renderWithCascadesProg.uSamplerLoc, light.numCascades );
         }
 
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, model_indexVBOs[i] );
@@ -494,7 +510,8 @@ function initDofButtons() {
 var deferredRenderPass1 = function(light, index){
     index = index || 0;
     //Render the scene into the shadowMap from the light view
-    drawShadowMap(light, index);
+    // drawShadowMap(light, index);
+    drawCascades(light);
     // blurPasses(shadowFBO.texture(0), shadowFBO, blurSigma);
     //Now render from the camera
 
@@ -505,7 +522,7 @@ var deferredRenderPass1 = function(light, index){
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
     gl.enable( gl.DEPTH_TEST );
 
-    gl.useProgram( passProg.ref() );
+    gl.useProgram( renderWithCascadesProg.ref() );
 
     drawModel(light, index);
     fbo.unbind(gl);
@@ -773,14 +790,12 @@ var finalPass = function(texture, framebuffer){
 };
 var moveLight = function(light) {
     elCounter++;
-    if(elCounter % 400 < 200) {
-        light.changeAzimuth(0.1);
-        light.moveLeft();
+    if(elCounter % 500 < 250) {
+        light.changeAzimuth(0.14);
         // light.changeElevation(0.05);
     }
     else {
-        light.changeAzimuth(-0.1);
-        light.moveRight();
+        light.changeAzimuth(-0.14);
         // light.changeElevation(-0.05);
     }
     light.update();
@@ -806,9 +821,7 @@ var myRender = function() {
         finalPass(workingFBO.texture(0));
     }
     else if (secondPass === buildShadowMapProg) {
-        drawShadowMap(light, cascadeToDisplay );
         finalPass(light.cascadeFramebuffers[cascadeToDisplay].texture(0));
-
     }
 
     
@@ -874,7 +887,7 @@ var loadObjects = function() {
     var objLoader = SEC3.createOBJLoader();
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
     // objLoader.loadFromFile( gl, '/../models/buddha_new/buddha_scaled_.obj', '/../models/buddha_new/buddha_scaled_.mtl');
-    objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza.obj', '/../models/dabrovic-sponza/sponza.mtl');
+    objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza3.obj', '/../models/dabrovic-sponza/sponza.mtl');
     
        
     //Register a callback function that extracts vertex and normal 
@@ -974,23 +987,28 @@ var setupScene = function(canvasId, messageId ) {
     // lightInteractor = SEC3.CameraInteractor( light, canvas );
 
     var light = new SEC3.Light();
-    light.goHome ( [0, 8, 0] ); 
+    light.goHome ( [10, 6, 0] ); 
     light.setAzimuth( 90.0 );    
-    light.setElevation( -45.0 );
-    light.setPerspective(60, 1.0, zNear, zFar);
-    light.addCascade(NEAR_CASCADE_SIZE, 1.1, 7.1);
-    light.addCascade(FAR_CASCADE_SIZE, 7.1, zFar);
+    light.setElevation( -15.0 );
+    light.setPerspective(25, 1.0, zNear, zFar);
+
+    // light.addCascade(2048, zNear, 12.1);
+    // light.addCascade(2048, zNear, 16.1);    
+    // light.addCascade(1024, zNear, 18.1);
+    light.addCascade(1024, zNear, zFar);
+    light.addCascade(32, zNear, zFar);
+   
 
     cascadeToDisplay = 0.0;
 
 
     lightAngle = 0.0;
    
-    elCounter = 100;
+    elCounter = 125;
 
     camera = new SEC3.Camera();
-    camera.goHome( [0, 4, 0] ); //initial camera posiiton
-    camera.setAzimuth( 90.0 );
+    camera.goHome( [-3, 2, -6.5] ); //initial camera posiiton
+    camera.setAzimuth( -180.0 );
     interactor = SEC3.CameraInteractor( camera, canvas );
     camera.setPerspective(60, canvas.width / canvas.height, zNear, zFar);
 

@@ -92,6 +92,10 @@ SEC3.Projector.prototype = {
         vec3.set( this.position, p[0], p[1], p[2] );
         this.update();
     },
+    
+    getPosition: function (){
+        return this.position;
+    },
 
     dolly: function(s){
         
@@ -179,17 +183,17 @@ SEC3.Projector.prototype = {
 
     moveLeft: function(){
         
-        vec3.scaleAndAdd( this.position, this.position, this.right, -0.01 );
+        vec3.scaleAndAdd( this.position, this.position, this.right, -0.1 );
         this.update();
     },
 
     moveRight: function(){
         
-        vec3.scaleAndAdd( this.position, this.position, this.right, 0.01 );
+        vec3.scaleAndAdd( this.position, this.position, this.right, 0.1 );
         this.update();
     },
 
-    moveU: function(){
+    moveUp: function(){
         
         vec3.scaleAndAdd( this.position, this.position, this.up, 0.1 );
         this.update();

@@ -1,6 +1,9 @@
 //SEC3 is a core function interface
 var SEC3 = SEC3 || {};
 
+var NEAR_PLANE = 0;
+var FAR_PLANE = 1;
+
 SEC3.Light = function(){
 
     SEC3.Projector.call( this );
