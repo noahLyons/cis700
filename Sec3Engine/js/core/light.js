@@ -25,7 +25,7 @@ SEC3.Light.prototype.addCascade = function(resolution, near, far) {
         else {
             this.numCascades = this.cascadeFramebuffers.push(fbo);
             var persp = mat4.create();
-            mat4.perspective( persp, this.fov, this.aspect, near, far );
+            mat4.perspective( persp, this.fov, this.aspect, this.zNear, this.zFar );
             this.cascadePerspectives.push(persp);
             this.cascadeClips.push([near, far]);
         }

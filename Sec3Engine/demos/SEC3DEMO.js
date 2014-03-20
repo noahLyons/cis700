@@ -112,7 +112,7 @@ var createShaders = function() {
         gl.uniform1f( renderQuadProg.uZNearLoc, zNear );
         gl.uniform1f( renderQuadProg.uZFarLoc, zFar );
 
-        secondPass = dofProg;
+        secondPass = renderQuadProg;
     } );
     SEC3.registerAsyncObj( gl, renderQuadProg );
 
@@ -256,8 +256,8 @@ var createShaders = function() {
     var thisLight = scene.getLight(0);
     for (var i = 0; i < thisLight.numCascades; i++ ) {
        var prefixes = ["", 
-                    "const float NEAR = " + thisLight.cascadeClips[i][0] + "; \n" +
-                    " const float FAR = " + thisLight.cascadeClips[i][1] + "; \n"
+                    "const float NEAR = " + zNear + "; \n" +
+                    " const float FAR = " + zFar + "; \n"
                     ];
         // var prefixes = ["", 
         //             "const float NEAR = " + zNear + "; \n" +
@@ -283,7 +283,7 @@ var createShaders = function() {
 
     //-----------------------------------------------CASCADE RENDER
    
-    renderWithCascadesProg = SEC3.Chunker.renderWithCascadedShadowMaps(gl, thisLight);
+    renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, thisLight);
     
 };
 
@@ -364,12 +364,11 @@ var drawModel = function(light, index){
     mat4.transpose( nmlMat, nmlMat);
 
     gl.uniform3fv( renderWithCascadesProg.uLPosLoc, light.getPosition());
+    gl.uniform3fv( renderWithCascadesProg.uCPosLoc, camera.getPosition());
 
     gl.uniformMatrix4fv( renderWithCascadesProg.uPerspLoc, false, lightPersp);
-    gl.uniformMatrix4fv( renderWithCascadesProg.uModelViewLoc, false, camera.getViewTransform());  
     gl.uniformMatrix4fv( renderWithCascadesProg.uModelLightLoc, false, light.getViewTransform());      
     gl.uniformMatrix4fv( renderWithCascadesProg.uMVPLoc, false, mvpMat );        
-    gl.uniformMatrix4fv( renderWithCascadesProg.uNormalMatLoc, false, nmlMat ); 
     gl.uniformMatrix4fv( renderWithCascadesProg.uMLPLoc, false, mlpMat);
 
     for(var i = 0; i < light.numCascades; i++ ){
@@ -995,8 +994,10 @@ var setupScene = function(canvasId, messageId ) {
     // light.addCascade(2048, zNear, 12.1);
     // light.addCascade(2048, zNear, 16.1);    
     // light.addCascade(1024, zNear, 18.1);
-    light.addCascade(1024, zNear, zFar);
-    light.addCascade(32, zNear, zFar);
+    light.addCascade(1024, 0.0, 0.3);
+    light.addCascade(128, 0.3, 0.6);
+    light.addCascade(64, 0.6, 1.0);
+
    
 
     cascadeToDisplay = 0.0;
