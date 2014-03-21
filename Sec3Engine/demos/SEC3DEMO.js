@@ -994,8 +994,8 @@ var setupScene = function(canvasId, messageId ) {
     // light.addCascade(2048, zNear, 12.1);
     // light.addCascade(2048, zNear, 16.1);    
     // light.addCascade(1024, zNear, 18.1);
-    light.addCascade(1024, 0.0, 0.3);
-    light.addCascade(128, 0.3, 0.6);
+    light.addCascade(1024, 0.0, 0.4);
+    light.addCascade(256, 0.3, 0.7);
     light.addCascade(64, 0.6, 1.0);
 
    

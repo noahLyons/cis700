@@ -1,14 +1,31 @@
 var SEC3 = SEC3 || {};
 
 SEC3.Chunker = {};
+SEC3.Chunker.methods = {};
+/*
+ * Returns a method to convert log space between near and far values to linear between 0.0 and 1.0 
+ */
+ SEC3.Chunker.methods.linearize = function () {
+
+	return "" +
+
+	"float linearize( float exp_depth, float near, float far) { \n" +
+		"return ( 2.0 * near ) / ( far + near - exp_depth * ( far - near ) ); \n" +
+	"} \n";
+ };
+
+
 
 /*
  * Returns a vertex shader program to render with cascaded shadow maps as a String
  */ 
-SEC3.Chunker.renderCascadedShadowMapsVS = function () {
+SEC3.Chunker.renderCascadedShadowMapsVS = function (light) {
 
-	return "" +
+		
 		"precision highp float; \n " +
+
+		"const float zNear = " + light.zNear + "; \n" + 
+		"const float zFar = " + light.zFar + "; \n" +
 
 		"attribute vec3 a_pos; \n " +
 		"attribute vec3 a_normal; \n " +
@@ -35,8 +52,9 @@ SEC3.Chunker.renderCascadedShadowMapsVS = function () {
 			"v_worldToLight = normalize(u_lPos - a_pos); \n " +
 			"v_tSpaceNormal = normalize(a_normal); \n " +
 			"v_texcoord = a_texcoord; \n " +
-			"v_depth = ( gl_Position.z / gl_Position.w + 1.0 ) / 2.0; \n " +
+			"v_depth = linearize(( gl_Position.z / gl_Position.w + 1.0 ) / 2.0); \n " +
 		"}";
+
 }
 
 /*
@@ -73,7 +91,7 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (gl, light) {
 
 	for(var i = 0; i < light.numCascades; i++ ) {
 		declarations += "uniform sampler2D u_shadowMap" + i + "; \n" +
-						"const float offset" + i + " = 1.5 / float(" + light.cascadeFramebuffers[i].getWidth() + "); \n" +
+						"const float offset" + i + " = 2.5 / float(" + light.cascadeFramebuffers[i].getWidth() + "); \n" +
 						"const float increment" + i + " = 1.0 / float(" + light.cascadeFramebuffers[i].getWidth() + "); \n" +								
 						"uniform vec2 u_clipPlane" + i + "; \n" +
 						"uniform mat4 u_cascadePersp" + i + "; \n";
@@ -83,9 +101,7 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (gl, light) {
 
 	var methods = "" +
 
-		"float linearizeDepth( float exp_depth, float near, float far) { \n" +
-			"return ( 2.0 * near ) / ( far + near - exp_depth * ( far - near ) ); \n" +
-		"} \n" +
+		SEC3.Chunker.methods.linearize() +
 
 		"bool isValid( vec3 uv ) { \n" +
 			"return (uv.x <= 1.0 && uv.x >= 0.0 && uv.y <= 1.0 && uv.y >= 0.0 && uv.z <= 1.0 && uv.z >= 0.0);\n" +
@@ -98,7 +114,7 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (gl, light) {
 			"vec2 spotUv = (uv - 0.5); \n" +
 			"float radius = sqrt(dot(spotUv, spotUv)); \n" +
 			"if( (radius) < 0.49){ \n" +
-				"float shadowMapDepth = linearizeDepth(texture2D( shadowMap, uv).r, zNear, zFar); \n" +
+				"float shadowMapDepth = linearize(texture2D( shadowMap, uv).r, zNear, zFar); \n" +
 				"return float(shadowMapDepth < fragDepth + BIAS); \n" +
 			"} \n" +
 			"return 1.0; \n" +
@@ -118,14 +134,14 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (gl, light) {
 					"vec4 cascadePos = u_cascadePersp" + i + " * v_modelLightPos; \n" +
 					"cascadePos.xyz /= cascadePos.w; \n" +
 					"cascadePos.xyz = (0.5 * cascadePos.xyz) + vec3(0.5); \n" +
-					"float cascadeDepth = linearizeDepth(cascadePos.z, zNear, zFar); \n" +		
+					"float cascadeDepth = linearize(cascadePos.z, zNear, zFar); \n" +		
 					"for( float y = -offset" + i +"; y <= offset" + i + "; y += increment" + i + "){ \n" +
 						"for( float x = -offset" + i + "; x <= offset" + i + "; x += increment" + i + "){ \n" +
 
 							"sum += isOccluded( u_shadowMap" + i + ", cascadeDepth, uv + vec2(x,y) ); \n" +
 						"} \n" +
 					"} \n" +
-					"return sum / 16.0; \n" +
+					"return sum / 36.0; \n" +
 				"} \n";
 			}
 		methods += "} \n";
@@ -134,7 +150,7 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (gl, light) {
 
 		var main = "" + 
 			"void main(void) { \n" +
-				"float linearDepth = linearizeDepth(v_depth, zNear, zFar); \n" +
+				"float linearDepth = v_depth); \n" + // linearize(v_depth, zNear, zFar); \n" +
 				"vec4 color = texture2D( u_sampler, v_texcoord ); \n" +
 				"color.rgb = (color.rgb * color.rgb); // gamma correct texture  \n" +
 
