@@ -8,8 +8,8 @@ var SEC3 = SEC3 || {};
 
 SEC3.Camera = function(){
    
-   SEC3.Projector.call( this );
+   SEC3.PerspProjector.call( this );
 
 };
     
-SEC3.Camera.prototype = Object.create( SEC3.Projector.prototype );
+SEC3.Camera.prototype = Object.create( SEC3.PerspProjector.prototype );

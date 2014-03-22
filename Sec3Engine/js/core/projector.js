@@ -1,5 +1,5 @@
 /**
-*   Camera object
+*   projector object
 *   Based on the code sample from WebGL Beginner's Guide.
 */
 
@@ -20,10 +20,8 @@ SEC3.Projector = function() {
     this.elevation   = 0.0;
     this.steps       = 0;
 
-    this.perspective = mat4.create();
-    this.fov = 0.0;
-    this.aspect = 1.0;
-    this.zNear = 0.0;
+    this.projectionMat = mat4.create();
+    this.zNear = 0.1;
     this.zFar = 1.0;
 };
 
@@ -48,13 +46,6 @@ SEC3.Projector.prototype = {
         vec4.transformMat4( this.position, [0,0,0,1], m );
     },
 
-    updatePerspective: function () {
-        var persp = mat4.create();
-        mat4.perspective( persp, this.fov, 
-                      this.aspect, this.zNear, this.zFar );
-        this.perspective = persp;
-    },
-
     setFarClip: function (farPlane) {
         this.zFar = farPlane;
         this.updatePerspective();
@@ -65,26 +56,8 @@ SEC3.Projector.prototype = {
         this.updatePerspective();
     },
 
-    setFov: function (newFov) {
-        this.fov = newFov * Math.PI / 180;
-        this.updatePerspective();
-    },
-
-    setAspect: function (newAspect) {
-        this.aspect = newAspect;
-        this.updatePerspective();
-    },
-
-    setPerspective: function (newFov, newAspect, newNear, newFar) {
-        this.fov = newFov * Math.PI / 180;
-        this.aspect = newAspect;
-        this.zNear = newNear;
-        this.zFar = newFar;
-        this.updatePerspective();
-    },
-
-    getPerspective: function () {
-        var m = this.perspective;
+    getProjectionMat: function () {
+        var m = this.projectionMat;
         return m;
     },
 

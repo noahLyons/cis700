@@ -4,18 +4,18 @@ var SEC3 = SEC3 || {};
 var NEAR_PLANE = 0;
 var FAR_PLANE = 1;
 
-SEC3.Light = function(){
+SEC3.SpotLight = function(){
 
-    SEC3.Projector.call( this );
+    SEC3.PerspProjector.call( this );
     this.cascadeFramebuffers = [];
-    this.cascadePerspectives = [];
+    this.cascadeMatrices = [];
     this.cascadeClips = [];
     this.numCascades = 0.0;
 };
 
-SEC3.Light.prototype = Object.create( SEC3.Projector.prototype );
+SEC3.SpotLight.prototype = Object.create( SEC3.PerspProjector.prototype );
 
-SEC3.Light.prototype.addCascade = function(resolution, near, far) {
+SEC3.SpotLight.prototype.addCascade = function(resolution, near, far) {
 
         var fbo = SEC3.createFBO();
         if (! fbo.initialize( gl, resolution, resolution, 1 )) {
@@ -26,7 +26,7 @@ SEC3.Light.prototype.addCascade = function(resolution, near, far) {
             this.numCascades = this.cascadeFramebuffers.push(fbo);
             var persp = mat4.create();
             mat4.perspective( persp, this.fov, this.aspect, this.zNear, this.zFar );
-            this.cascadePerspectives.push(persp);
+            this.cascadeMatrices.push(persp);
             this.cascadeClips.push([near, far]);
         }
 

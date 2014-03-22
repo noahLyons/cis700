@@ -31,15 +31,15 @@ SEC3.ShaderCreator.renderCascShadowProg = function (gl, light) {
 
     shader.uCascadeLocs = [];
     shader.uClipPlaneLocs = [];
-    shader.uCascadePerspLocs = [];
+    shader.uCascadeMatLocs = [];
     for(var i = 0; i < light.numCascades; i++ ){
         shader.uCascadeLocs[i] = gl.getUniformLocation( shader.ref(), "u_shadowMap" + i);
         shader.uClipPlaneLocs[i] = gl.getUniformLocation( shader.ref(), "u_clipPlane" + i);
-        shader.uCascadePerspLocs[i] = gl.getUniformLocation( shader.ref(), "u_cascadePersp" + i);
+        shader.uCascadeMatLocs[i] = gl.getUniformLocation( shader.ref(), "u_cascadeMat" + i);
         gl.uniform2f(shader.uClipPlaneLocs[i], 
         			 light.cascadeClips[i][NEAR_PLANE], 
         			 light.cascadeClips[i][FAR_PLANE] );
-        gl.uniformMatrix4fv(shader.uCascadePerspLocs[i], false, light.cascadePerspectives[i] );
+        gl.uniformMatrix4fv(shader.uCascadeMatLocs[i], false, light.cascadeMatrices[i] );
     }	
 
     return shader;

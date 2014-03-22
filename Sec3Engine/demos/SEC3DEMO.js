@@ -304,7 +304,7 @@ var drawShadowMap = function(light, index){
     }
     var shaderProg = shadowPrograms[index];
     var shadowFbo = light.cascadeFramebuffers[index];
-    var lightPersp = light.cascadePerspectives[index];
+    var lightMat = light.cascadeMatrices[index];
     var resolution = shadowFbo.getWidth();
 
     gl.bindTexture( gl.TEXTURE_2D, null );
@@ -317,7 +317,7 @@ var drawShadowMap = function(light, index){
     gl.cullFace(gl.BACK);
     gl.useProgram(shaderProg.ref());
     var mlpMat = mat4.create();
-    mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
+    mat4.multiply( mlpMat, lightMat, light.getViewTransform() );
     gl.uniformMatrix4fv( shaderProg.uMLPLoc, false, mlpMat );
 
     //----------------DRAW MODEL:
@@ -348,12 +348,12 @@ var drawModel = function(light, index){
     }
 
     var shadowFbo = light.cascadeFramebuffers[index];
-    var lightPersp = light.getPerspective();
+    var lightPersp = light.getProjectionMat();
     var resolution = shadowFbo.getWidth();
 
     //update the model-view matrix
     var mvpMat = mat4.create();
-    mat4.multiply( mvpMat, camera.getPerspective(), camera.getViewTransform() );
+    mat4.multiply( mvpMat, camera.getProjectionMat(), camera.getViewTransform() );
 
     var mlpMat = mat4.create();
     mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
@@ -790,12 +790,12 @@ var finalPass = function(texture, framebuffer){
 var moveLight = function(light) {
     elCounter++;
     if(elCounter % 500 < 250) {
-        light.changeAzimuth(0.14);
-        // light.changeElevation(0.05);
+        // light.changeAzimuth(0.14);
+        light.changeElevation(0.05);
     }
     else {
-        light.changeAzimuth(-0.14);
-        // light.changeElevation(-0.05);
+        // light.changeAzimuth(-0.14);
+        light.changeElevation(-0.05);
     }
     light.update();
 };
@@ -985,18 +985,25 @@ var setupScene = function(canvasId, messageId ) {
     
     // lightInteractor = SEC3.CameraInteractor( light, canvas );
 
-    var light = new SEC3.Light();
-    light.goHome ( [10, 6, 0] ); 
-    light.setAzimuth( 90.0 );    
-    light.setElevation( -15.0 );
-    light.setPerspective(25, 1.0, zNear, zFar);
+    // var light = new SEC3.SpotLight();
+    // light.goHome ( [0, 24, 2] ); 
+    // light.setAzimuth( 0.0 );    
+    // light.setElevation( -85.0 );
+    // light.setPerspective(25, 1.0, zNear, zFar);
 
-    // light.addCascade(2048, zNear, 12.1);
-    // light.addCascade(2048, zNear, 16.1);    
-    // light.addCascade(1024, zNear, 18.1);
+    // light.addCascade(1024, 0.0, 0.4);
+    // light.addCascade(256, 0.4, 0.7);
+    // light.addCascade(64, 0.7, 1.0);
+
+    var light = new SEC3.DirectionalLight();
+    light.goHome ( [0, 24, 2] ); 
+    light.setAzimuth( 0.0 );    
+    light.setElevation( -85.0 );
+    light.setOrtho(15.0, 15.0, zNear, zFar);
+
     light.addCascade(1024, 0.0, 0.4);
-    light.addCascade(256, 0.3, 0.7);
-    light.addCascade(64, 0.6, 1.0);
+    light.addCascade(256, 0.4, 0.7);
+    light.addCascade(64, 0.7, 1.0);
 
    
 
