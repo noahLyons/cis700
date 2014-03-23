@@ -142,39 +142,39 @@ SEC3.Projector.prototype = {
         return m;
     },
 
-    moveForward: function(){
-       
-        vec3.scaleAndAdd( this.position, this.position, this.normal, -0.1 );
+    moveForward: function(direction){
+       direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.normal, -direction );
         this.update();
     },
 
-    moveBackward: function(){
-       
-        vec3.scaleAndAdd( this.position, this.position, this.normal, 0.1 );
+    moveBackward: function(direction){
+       direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.normal, direction );
         this.update();
     },
 
-    moveLeft: function(){
-        
-        vec3.scaleAndAdd( this.position, this.position, this.right, -0.1 );
+    moveLeft: function(direction){
+        direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.right, -direction );
         this.update();
     },
 
-    moveRight: function(){
-        
-        vec3.scaleAndAdd( this.position, this.position, this.right, 0.1 );
+    moveRight: function(direction){
+        direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.right, direction );
         this.update();
     },
 
-    moveUp: function(){
-        
-        vec3.scaleAndAdd( this.position, this.position, this.up, 0.1 );
+    moveUp: function(direction){
+        direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.up, direction );
         this.update();
     },
 
-    moveDown: function(){
-        
-        vec3.scaleAndAdd( this.position, this.position, this.up, -0.1 );
+    moveDown: function(direction){
+        direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.up, -direction );
         this.update();
     }
 

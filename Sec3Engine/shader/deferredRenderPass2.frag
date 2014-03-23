@@ -32,12 +32,10 @@ void main() {
 	vec3 normal = texture2D( u_normalTex, v_texcoord ).xyz;
 	vec3 position = texture2D( u_positionTex, v_texcoord ).xyz;
 	vec4 color = texture2D( u_colorTex, v_texcoord );
-	float depth = texture2D( u_depthTex, v_texcoord ).x;
-
-	depth = linearizeDepth( depth, u_zNear, u_zFar );
+	vec3 cascadeCols = texture2D( u_depthTex, v_texcoord ).rgb;
 
     if( u_displayType == DISPLAY_DEPTH )
-	    gl_FragData[0] = vec4( depth, depth, depth, 1 );
+	    gl_FragData[0] = vec4( cascadeCols, 1 );
 	else if( u_displayType == DISPLAY_COLOR )
 	    gl_FragData[0] = color;
 	else if( u_displayType == DISPLAY_NORMAL )

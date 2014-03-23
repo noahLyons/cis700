@@ -22,6 +22,14 @@ SEC3.Scene.prototype = {
 		return this.lights;
 	},
 
+	clearLights: function () {
+		this.lights = [];
+	},
+	
+	getNumLights: function () {
+		return this.lights.length;
+	},
+
 	setCamera: function (newCamera) {
 		this.camera = newCamera;
 	},

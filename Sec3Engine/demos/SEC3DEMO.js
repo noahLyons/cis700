@@ -30,26 +30,38 @@ var fbo;    //Framebuffer object storing data for postprocessing effects
 var lowResFBO; //Framebuffer object for storing unprocessed image
 var workingFBO;
 
-var zFar = 30.1;
-var zNear = 0.1;
-var texToDisplay = 2;
-var secondPass;
+var demo = (function () {
 
-var nearSlope = -6.6;
-var nearIntercept = 1.39;
+    var demo = [];
+    demo.zFar = 30.1;
+    demo.zNear = 0.4;
+    demo.numLights = 1;
+    demo.selectedLight = 0;
+    demo.MAX_LIGHTS = 8;
+    demo.MAX_CASCADES = 6;
 
-var farSlope = 0.8;
-var farIntercept = -0.25
+    demo.texToDisplay = 2;
+    demo.secondPass;
 
-var blurSigma = 2.0;
+    demo.nearSlope = -6.6;
+    demo.nearIntercept = 1.39;
 
-var SMALL_BLUR = 1.8;
-var MEDIUM_BLUR = 3.4;
-var LARGE_BLUR = 11.6;
+    demo.farSlope = 0.8;
+    demo.farIntercept = -0.25
 
-var SHADOWMAP_SIZE = 1024.0;
-var FAR_CASCADE_SIZE = 256;
-var NEAR_CASCADE_SIZE = 1024;
+    demo.blurSigma = 2.0;
+
+    demo.SMALL_BLUR = 1.8;
+    demo.MEDIUM_BLUR = 3.4;
+    demo.LARGE_BLUR = 11.6;
+
+    demo.SHADOWMAP_SIZE = 1024.0;
+    demo.FAR_CASCADE_SIZE = 256;
+    demo.NEAR_CASCADE_SIZE = 1024;
+    return demo;
+
+})();
+
 
 
 //--------------------------------------------------------------------------METHODS:
@@ -109,10 +121,10 @@ var createShaders = function() {
         renderQuadProg.uDisplayTypeLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_displayType" );
 
         gl.useProgram( renderQuadProg.ref() );
-        gl.uniform1f( renderQuadProg.uZNearLoc, zNear );
-        gl.uniform1f( renderQuadProg.uZFarLoc, zFar );
+        gl.uniform1f( renderQuadProg.uZNearLoc, demo.zNear );
+        gl.uniform1f( renderQuadProg.uZFarLoc, demo.zFar );
 
-        secondPass = renderQuadProg;
+        demo.secondPass = renderQuadProg;
     } );
     SEC3.registerAsyncObj( gl, renderQuadProg );
 
@@ -202,9 +214,9 @@ var createShaders = function() {
         var width = SEC3.canvas.width;
         var height = SEC3.canvas.height;
         gl.uniform2fv(dofDownsampleProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
-        gl.uniform1f( dofDownsampleProg.uNearLoc, zNear );
-        gl.uniform1f( dofDownsampleProg.uFarLoc, zFar );
-        gl.uniform2fv( dofDownsampleProg.uDofEqLoc, vec2.fromValues(nearSlope, nearIntercept));
+        gl.uniform1f( dofDownsampleProg.uNearLoc, demo.zNear );
+        gl.uniform1f( dofDownsampleProg.uFarLoc, demo.zFar );
+        gl.uniform2fv( dofDownsampleProg.uDofEqLoc, vec2.fromValues(demo.nearSlope, demo.nearIntercept));
         initDofButtons();
     } );
 
@@ -244,7 +256,7 @@ var createShaders = function() {
     dofCalcCocProg.addCallback( function(){
 
         dofCalcCocProg.aVertexPosLoc = gl.getAttribLocation( dofCalcCocProg.ref(), "a_pos" );
-        dofCalcCocProg.aVertexTexcoordLoc = gl.getAttribLocation( dofCalcCocProg.ref(), "a_texcoord")
+        dofCalcCocProg.aVertexTexcoordLoc = gl.getAttribLocation( dofCalcCocProg.ref(), "a_texcoord");
         dofCalcCocProg.uDownsampledLoc = gl.getUniformLocation( dofCalcCocProg.ref(), "u_downsampled" ); 
         dofCalcCocProg.uBlurredForegroundLoc = gl.getUniformLocation( dofCalcCocProg.ref(), "u_blurredForeground" );
     });
@@ -252,42 +264,17 @@ var createShaders = function() {
     SEC3.registerAsyncObj( gl, dofCalcCocProg );
 
     //-----------------------------------------------SHADOWMAP BUILD
-    shadowPrograms = [];
-    var thisLight = scene.getLight(0);
-    for (var i = 0; i < thisLight.numCascades; i++ ) {
-       var prefixes = ["", 
-                    "const float NEAR = " + zNear + "; \n" +
-                    " const float FAR = " + zFar + "; \n"
-                    ];
-        // var prefixes = ["", 
-        //             "const float NEAR = " + zNear + "; \n" +
-        //             " const float FAR = " + zFar + "; \n"
-        //             ];
-        buildShadowMapProg = SEC3.createShaderProgram();
-        buildShadowMapProg.loadShader( gl,
-                                       "/../shader/buildShadowMap.vert",
-                                      "/../shader/buildShadowMap.frag",
-                                      prefixes );
 
-        buildShadowMapProg.addCallback( function(){
-
-            buildShadowMapProg.aVertexPosLoc = gl.getAttribLocation( buildShadowMapProg.ref(), "a_pos");
-            buildShadowMapProg.aVertexNormalLoc = gl.getAttribLocation( buildShadowMapProg.ref(), "a_normal");
-            buildShadowMapProg.aVertexTexcoordLoc = gl.getAttribLocation( buildShadowMapProg.ref(), "a_texcoord");
-            buildShadowMapProg.uMLPLoc = gl.getUniformLocation( buildShadowMapProg.ref(), "u_mlp");
-            shadowPrograms.push( buildShadowMapProg) ;
-        });
-
-        SEC3.registerAsyncObj( gl, buildShadowMapProg );
-    }
+    buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
 
     //-----------------------------------------------CASCADE RENDER
    
-    renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, thisLight);
+    renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
     
 };
 
-var drawCascades = function(light){
+var updateShadowMaps = function(light){
+
     for( var ii = 0; ii < light.numCascades; ii++ ) {
         drawShadowMap(light, ii);
     }
@@ -302,7 +289,7 @@ var drawShadowMap = function(light, index){
     if(index === undefined ){
         index = 0;
     }
-    var shaderProg = shadowPrograms[index];
+
     var shadowFbo = light.cascadeFramebuffers[index];
     var lightMat = light.cascadeMatrices[index];
     var resolution = shadowFbo.getWidth();
@@ -315,18 +302,18 @@ var drawShadowMap = function(light, index){
     // gl.colorMask(false,false,false,false);
     gl.enable( gl.DEPTH_TEST );
     gl.cullFace(gl.BACK);
-    gl.useProgram(shaderProg.ref());
+    gl.useProgram(buildShadowMapProg.ref());
     var mlpMat = mat4.create();
     mat4.multiply( mlpMat, lightMat, light.getViewTransform() );
-    gl.uniformMatrix4fv( shaderProg.uMLPLoc, false, mlpMat );
+    gl.uniformMatrix4fv( buildShadowMapProg.uMLPLoc, false, mlpMat );
 
     //----------------DRAW MODEL:
 
     for ( var i = 0; i < model_vertexVBOs.length; ++i ){
         //Bind vertex pos buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[i] );
-        gl.vertexAttribPointer( shaderProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( shaderProg.aVertexPosLoc );
+        gl.vertexAttribPointer( buildShadowMapProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( buildShadowMapProg.aVertexPosLoc );
 
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, model_indexVBOs[i] );
         gl.drawElements( gl.TRIANGLES, model_indexVBOs[i].numIndex, gl.UNSIGNED_SHORT, 0 );
@@ -337,44 +324,53 @@ var drawShadowMap = function(light, index){
 
     // gl.colorMask(true,true,true,true);
 
-    fbo.unbind(gl);
+    shadowFbo.unbind(gl);
     gl.cullFace(gl.BACK);
 };
 
-var drawModel = function(light, index){
+var drawModel = function(scene, index){
     
+
     if(index === undefined ){
         index = 0;
     }
 
-    var shadowFbo = light.cascadeFramebuffers[index];
-    var lightPersp = light.getProjectionMat();
-    var resolution = shadowFbo.getWidth();
-
     //update the model-view matrix
     var mvpMat = mat4.create();
     mat4.multiply( mvpMat, camera.getProjectionMat(), camera.getViewTransform() );
+    gl.uniform3fv( renderWithCascadesProg.uCPosLoc, camera.getPosition());
+    gl.uniformMatrix4fv( renderWithCascadesProg.uMVPLoc, false, mvpMat ); 
 
-    var mlpMat = mat4.create();
-    mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
 
     //update the normal matrix
     var nmlMat = mat4.create();
     mat4.invert( nmlMat, camera.getViewTransform() );
     mat4.transpose( nmlMat, nmlMat);
 
-    gl.uniform3fv( renderWithCascadesProg.uLPosLoc, light.getPosition());
-    gl.uniform3fv( renderWithCascadesProg.uCPosLoc, camera.getPosition());
 
-    gl.uniformMatrix4fv( renderWithCascadesProg.uPerspLoc, false, lightPersp);
-    gl.uniformMatrix4fv( renderWithCascadesProg.uModelLightLoc, false, light.getViewTransform());      
-    gl.uniformMatrix4fv( renderWithCascadesProg.uMVPLoc, false, mvpMat );        
-    gl.uniformMatrix4fv( renderWithCascadesProg.uMLPLoc, false, mlpMat);
+    var textureUnit = 0;
+    //--------------------UPDATE LIGHT UNIFORMS:
 
-    for(var i = 0; i < light.numCascades; i++ ){
-        gl.activeTexture( gl.TEXTURE0 + i);
-        gl.bindTexture( gl.TEXTURE_2D, light.cascadeFramebuffers[i].depthTexture());
-        gl.uniform1i( renderWithCascadesProg.uCascadeLocs[i], i);
+    //for selected light
+    var thisLight = scene.getLight(demo.selectedLight);
+    gl.uniform1i( renderWithCascadesProg.uNumCascades, thisLight.numCascades);
+
+    for( var i = 0; i < scene.getNumLights(); i++ ) { // for each light
+        var light = scene.getLight(i);
+        var lightLoc = renderWithCascadesProg.lights[i];
+        var lightPersp = light.getProjectionMat();
+        var mlpMat = mat4.create();
+        mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
+        gl.uniform3fv( lightLoc.uLPosLoc, light.getPosition());
+        gl.uniformMatrix4fv( lightLoc.uModelLightLoc, false, light.getViewTransform());      
+        gl.uniformMatrix4fv( lightLoc.uMLPLoc, false, mlpMat);
+
+        for(var j = 0; j < light.numCascades; j++ ){ // for each cascade
+            gl.activeTexture( gl.TEXTURE0 + textureUnit);
+            gl.bindTexture( gl.TEXTURE_2D, light.cascadeFramebuffers[j].depthTexture());
+            gl.uniform1i( lightLoc.uCascadeLocs[j], textureUnit);
+            textureUnit++;
+        }
     }
 
     //------------------DRAW MODEL:
@@ -397,17 +393,17 @@ var drawModel = function(light, index){
         
         if ( model_texcoordVBOs[i].texture ) {
             //Bind texture    
-            gl.activeTexture( gl.TEXTURE0 + light.numCascades );
+            gl.activeTexture( gl.TEXTURE0 + textureUnit );
             gl.bindTexture( gl.TEXTURE_2D, model_texcoordVBOs[i].texture );
-            gl.uniform1i( renderWithCascadesProg.uSamplerLoc, light.numCascades );
+            gl.uniform1i( renderWithCascadesProg.uSamplerLoc, textureUnit );
         }
-
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, model_indexVBOs[i] );
         gl.drawElements( gl.TRIANGLES, model_indexVBOs[i].numIndex, gl.UNSIGNED_SHORT, 0 );
+    }
 
-        gl.bindBuffer( gl.ARRAY_BUFFER, null );
-        gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
-    } 
+
+    gl.bindBuffer( gl.ARRAY_BUFFER, null );
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
 };
 
 function initBlurButtons() {
@@ -417,17 +413,17 @@ function initBlurButtons() {
     var lilSigCallback = function(e) {
 
         var newSliderVal = e.target.value;
-        blurSigma = newSliderVal;
-        var sigmaSquared = blurSigma * blurSigma;
+        demo.blurSigma = newSliderVal;
+        var sigmaSquared = demo.blurSigma * demo.blurSigma;
         gl.useProgram(blurProg.ref());
         gl.uniform1f(blurProg.uLilSigLoc, sigmaSquared);
 
-        return "Sigma: " + blurSigma;
+        return "Sigma: " + demo.blurSigma;
     };
 
-    SEC3.ui.addSlider("Sigma: " + blurSigma,
+    SEC3.ui.addSlider("Sigma: " + demo.blurSigma,
                  lilSigCallback,
-                 blurSigma * blurSigma,
+                 demo.blurSigma * demo.blurSigma,
                  0.1, 40.0,
                  0.1);
 };
@@ -440,15 +436,15 @@ function initDofButtons() {
 
         var newSliderVal = e.target.value;
         gl.useProgram(dofDownsampleProg.ref());
-        nearSlope = newSliderVal;
-        gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( nearSlope, nearIntercept ));
+        demo.nearSlope = newSliderVal;
+        gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( demo.nearSlope, demo.nearIntercept ));
 
-        return nearSlope + " :Near slope";
+        return demo.nearSlope + " :Near slope";
     };
 
-    SEC3.ui.addSlider(nearSlope + " :Near slope" ,
+    SEC3.ui.addSlider( demo.nearSlope + " :Near slope" ,
                  slopeCallback,
-                 nearSlope,
+                 demo.nearSlope,
                  -10.0, -1.0,
                  0.01);
 
@@ -456,62 +452,129 @@ function initDofButtons() {
 
         var newSliderVal = e.target.value;
         gl.useProgram(dofDownsampleProg.ref());
-        nearIntercept = newSliderVal;
-        gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( nearSlope, nearIntercept ));
+        demo.nearIntercept = newSliderVal;
+        gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( demo.nearSlope, demo.nearIntercept ));
 
-        return nearIntercept + " :Near intercept";
+        return demo.nearIntercept + " :Near intercept";
     };
 
-    SEC3.ui.addSlider(nearIntercept + " :Near intercept",
+    SEC3.ui.addSlider( demo.nearIntercept + " :Near intercept",
                  interceptCallback,
-                 nearIntercept,
+                 demo.nearIntercept,
                  1.0, 3.0,
                  0.01);
 
     var largeBlurrCallback = function(e) {
 
-        LARGE_BLUR = e.target.value;
-        return LARGE_BLUR + " :Large blur";
+        demo.LARGE_BLUR = e.target.value;
+        return demo.LARGE_BLUR + " :Large blur";
     }
-    SEC3.ui.addSlider(LARGE_BLUR + " :Large blur",
+    SEC3.ui.addSlider( demo.LARGE_BLUR + " :Large blur",
                                  largeBlurrCallback,
-                                 LARGE_BLUR,
+                                 demo.LARGE_BLUR,
                                  2.0, 16.0,
                                  0.1);
 
     var mediumBlurrCallback = function(e) {
 
-        MEDIUM_BLUR = e.target.value;
-        return MEDIUM_BLUR + " :Medium blur";
+        demo.MEDIUM_BLUR = e.target.value;
+        return demo.MEDIUM_BLUR + " :Medium blur";
     }
-    SEC3.ui.addSlider(MEDIUM_BLUR + " :Medium blur",
+    SEC3.ui.addSlider( demo.MEDIUM_BLUR + " :Medium blur",
                                  mediumBlurrCallback,
-                                 MEDIUM_BLUR,
+                                 demo.MEDIUM_BLUR,
                                  1.0, 8.0,
                                  0.1);
 
     var smallBlurrCallback = function(e) {
 
-        SMALL_BLUR = e.target.value;
-        return SMALL_BLUR + " :Small blur";
+        demo.SMALL_BLUR = e.target.value;
+        return demo.SMALL_BLUR + " :Small blur";
     }
-    SEC3.ui.addSlider(SMALL_BLUR + " :Small blur",
+    SEC3.ui.addSlider( demo.SMALL_BLUR + " :Small blur",
                                  smallBlurrCallback,
-                                 SMALL_BLUR,
+                                 demo.SMALL_BLUR,
                                  0.0, 3.0,
                                  0.1);
 };
 
+function initLightUi() {
+
+    SEC3.ui = SEC3.ui || new UI("uiWrapper");
+
+
+    var numCascadesCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+
+        var light = scene.getLight(demo.selectedLight);
+        light.setupCascades(newSliderVal, light.nearResolution);
+
+        buildShadowMapProg.dispose();
+        buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+        renderWithCascadesProg.dispose();
+        renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+        SEC3.run(gl);
+        return newSliderVal + " :Cascades";
+    };
+
+    SEC3.ui.addSlider( scene.getLight(demo.selectedLight).numCascades + " :Cascades" ,
+                 numCascadesCallback,
+                 scene.getLight(demo.selectedLight).numCascades,
+                 1, demo.MAX_CASCADES,
+                 1);
+
+    var numLightsCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+
+        demo.numLights = newSliderVal;
+        setupLights();
+
+        buildShadowMapProg.dispose();
+        buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+        renderWithCascadesProg.dispose();
+        renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+        SEC3.run(gl);
+        return newSliderVal + " :Lights";
+    };
+
+    SEC3.ui.addSlider( demo.numLights + " :Lights" ,
+                 numLightsCallback,
+                 demo.numLights,
+                 1, demo.MAX_LIGHTS,
+                 1);
+
+    var selectedLightCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+
+        demo.selectedLight = Math.min( newSliderVal, demo.numLights - 1 );
+        
+        return ( demo.selectedLight + 1 ) + " :Selected light";
+    };
+
+    SEC3.ui.addSlider( (demo.selectedLight + 1) + " :Selected light" ,
+                 selectedLightCallback,
+                 demo.selectedLight,
+                 0, demo.MAX_LIGHTS - 1,
+                 1);
+};
 
 /*
  * Renders the geometry and output color, normal, depth information
  */
-var deferredRenderPass1 = function(light, index){
+var deferredRenderPass1 = function(scene, index){
+
     index = index || 0;
     //Render the scene into the shadowMap from the light view
     // drawShadowMap(light, index);
-    drawCascades(light);
-    // blurPasses(shadowFBO.texture(0), shadowFBO, blurSigma);
+    for(var i = 0; i < scene.getNumLights(); i++ ) {
+        
+        updateShadowMaps(scene.getLight(i));
+        
+    }
+    // blurPasses(shadowFBO.texture(0), shadowFBO, demo.blurSigma);
     //Now render from the camera
 
 
@@ -523,7 +586,7 @@ var deferredRenderPass1 = function(light, index){
 
     gl.useProgram( renderWithCascadesProg.ref() );
 
-    drawModel(light, index);
+    drawModel(scene, index);
     fbo.unbind(gl);
 
 }; 
@@ -539,7 +602,7 @@ var deferredRenderPass2 = function(framebuffer) {
     gl.useProgram( renderQuadProg.ref() );
     gl.disable( gl.DEPTH_TEST );
 
-    gl.uniform1i( renderQuadProg.uDisplayTypeLoc, texToDisplay );
+    gl.uniform1i( renderQuadProg.uDisplayTypeLoc, demo.texToDisplay );
 
     gl.activeTexture( gl.TEXTURE0 );  //position
     gl.bindTexture( gl.TEXTURE_2D, fbo.texture(0) );
@@ -554,7 +617,7 @@ var deferredRenderPass2 = function(framebuffer) {
     gl.uniform1i( renderQuadProg.uColorSamplerLoc, 2 );
 
     gl.activeTexture( gl.TEXTURE3 );  //depth
-    gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture() );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(3) );
     gl.uniform1i( renderQuadProg.uDepthSamplerLoc, 3 );
 
     bindQuadBuffers(renderQuadProg);
@@ -632,7 +695,7 @@ var dofPass = function(){
     gl.disable( gl.DEPTH_TEST );
     gl.disable( gl.BLEND);
     gl.activeTexture( gl.TEXTURE0 );
-    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture( demo.texToDisplay) );
     gl.uniform1i( dofDownsampleProg.uSourceLoc, 0);
 
     gl.activeTexture( gl.TEXTURE1 );
@@ -651,7 +714,7 @@ var dofPass = function(){
     lowResFBO.swapBuffers(0, 2, gl );
     lowResFBO.swapBuffers( 1, 3, gl );
 
-    blurPasses(lowResFBO.texture(3), lowResFBO, LARGE_BLUR); 
+    blurPasses(lowResFBO.texture(3), lowResFBO, demo.LARGE_BLUR); 
     lowResFBO.swapBuffers(0, 3, gl);
     // lowResFBO[3] now has large blurred downsampled color and coc
         
@@ -685,10 +748,10 @@ var dofPass = function(){
     // lowResFBO[2] has proper coc
     // lowResFBO[3] has blurred downsampled foreground
 
-     blurPasses(lowResFBO.texture(2), lowResFBO, MEDIUM_BLUR);
+     blurPasses(lowResFBO.texture(2), lowResFBO, demo.MEDIUM_BLUR);
     // lowResFBO[0] has small blur on final near coc 
 
-    blurPasses(fbo.texture(texToDisplay), workingFBO, SMALL_BLUR);
+    blurPasses(fbo.texture( demo.texToDisplay), workingFBO, demo.SMALL_BLUR);
     workingFBO.swapBuffers(0, 1, gl);
     
 
@@ -715,16 +778,16 @@ var dofPass = function(){
     gl.uniform1i( dofCompProg.uSmallBlurLoc, 2);
 
     gl.activeTexture( gl.TEXTURE3 );
-    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(texToDisplay) );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture( demo.texToDisplay) );
     gl.uniform1i( dofCompProg.uUnalteredImageLoc, 3 );
 
     gl.activeTexture( gl.TEXTURE4 );
     gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture());
     gl.uniform1i( dofCompProg.uDepthLoc, 4 );
 
-    gl.uniform2fv( dofCompProg.uFarEqLoc, vec2.fromValues(farSlope, farIntercept));
-    gl.uniform1f( dofCompProg.uZNearLoc, zNear);
-    gl.uniform1f( dofCompProg.uZFarLoc, zFar);
+    gl.uniform2fv( dofCompProg.uFarEqLoc, vec2.fromValues( demo.farSlope, demo.farIntercept));
+    gl.uniform1f( dofCompProg.uZNearLoc, demo.zNear);
+    gl.uniform1f( dofCompProg.uZFarLoc, demo.zFar);
 
     bindQuadBuffers( dofCompProg );
     gl.disable(gl.DEPTH_TEST);
@@ -791,36 +854,41 @@ var moveLight = function(light) {
     elCounter++;
     if(elCounter % 500 < 250) {
         // light.changeAzimuth(0.14);
-        light.changeElevation(0.05);
+        light.changeElevation(0.025);
+        light.moveUp(0.02);
     }
     else {
         // light.changeAzimuth(-0.14);
-        light.changeElevation(-0.05);
+        light.changeElevation(-0.025);
+        light.moveDown(0.02);
     }
     light.update();
 };
 var myRender = function() {
-    var light = scene.getLight(0);
+    if(SEC3.isWaiting) {
+        return;
+    }
+    var light = scene.getLight( demo.selectedLight );
 
-    moveLight(light);
+    // moveLight(light);
     var canvasResolution = [SEC3.canvas.width, SEC3.canvas.height];
 
-    deferredRenderPass1(light, 0);
+    deferredRenderPass1(scene, demo.selectedLight );
 
-    if (secondPass === renderQuadProg) {
+    if ( demo.secondPass === renderQuadProg) {
         deferredRenderPass2(workingFBO);
         finalPass(workingFBO.texture(0));
     }
-    else if (secondPass === blurProg) {
-        blurPasses(fbo.texture(texToDisplay),workingFBO, blurSigma);
+    else if ( demo.secondPass === blurProg) {
+        blurPasses(fbo.texture( demo.texToDisplay),workingFBO, demo.blurSigma);
         finalPass(workingFBO.texture(0));
     }
-    else if (secondPass === dofProg) {
+    else if ( demo.secondPass === dofProg) {
         dofPass();
         finalPass(workingFBO.texture(0));
     }
-    else if (secondPass === buildShadowMapProg) {
-        finalPass(light.cascadeFramebuffers[cascadeToDisplay].texture(0));
+    else if ( demo.secondPass === buildShadowMapProg) {
+        finalPass(light.cascadeFramebuffers[demo.cascadeToDisplay].texture(0));
     }
 
     
@@ -932,22 +1000,51 @@ var setKeyInputs = function() {
 
         interactor.onKeyDown(ev);
         switch( ev.keyCode ){
-          case 49: texToDisplay = 0; break;     //show position texture
-          case 50: texToDisplay = 1; break;     //show normal texture
-          case 51: texToDisplay = 2; break;     //show texture texture
-          case 52: texToDisplay = 3; break;     //show depth texture
+          case 49: demo.texToDisplay = 0; break;     //show position texture
+          case 50: demo.texToDisplay = 1; break;     //show normal texture
+          case 51: demo.texToDisplay = 2; break;     //show texture texture
+          case 52: demo.texToDisplay = 3; break;     //show depth texture
 
-          case 53: secondPass = blurProg; break;
-          case 54: secondPass = renderQuadProg; break;
-          case 55: secondPass = dofProg; break;
+          case 53: demo.secondPass = blurProg; break;
+          case 54: demo.secondPass = renderQuadProg; break;
+          case 55: demo.secondPass = dofProg; break;
           case 56: 
-            secondPass = buildShadowMapProg; 
-            cascadeToDisplay = Math.floor((cascadeToDisplay + 1) % (scene.getLight(0).numCascades));
+            demo.secondPass = buildShadowMapProg; 
+            demo.cascadeToDisplay = Math.floor(( demo.cascadeToDisplay + 1 ) % (scene.getLight(demo.selectedLight).numCascades));
             break;
 
         }
-    }; 
+    };
 }
+
+var setupLights = function() {
+
+    scene.clearLights();
+
+    // var light = new SEC3.SpotLight();
+    // light.goHome ( [0, 28, 0] ); 
+    // light.setAzimuth(30.0 );    
+    // light.setElevation( -90.0 );
+    // light.setPerspective(25, 1.0, demo.zNear, demo.zFar);
+    // light.setupCascades( 1, 512 );
+    // scene.addLight(light);
+   
+    for(var i = 0; i < demo.numLights; i++ ) {
+        var xPos = ((Math.random() - 0.5 ) * 2.0) * 8;
+
+        var nextLight = new SEC3.SpotLight();
+        nextLight.goHome ( [xPos, 28, 0] ); 
+        nextLight.setAzimuth(30.0 );    
+        nextLight.setElevation( -80.0 );
+        nextLight.setPerspective(25, 1.0, demo.zNear, demo.zFar);
+        nextLight.setupCascades( 1, 512 );
+        scene.addLight(nextLight);
+    }
+  
+    demo.cascadeToDisplay = 0.0;
+    lightAngle = 0.0;
+    elCounter = 125;
+};
 
 /*
  * Sets up basics of scene; camera, viewport, projection matrix, fbo
@@ -972,55 +1069,20 @@ var setupScene = function(canvasId, messageId ) {
 
     gl.enable( gl.DEPTH_TEST);
     gl.depthFunc(gl.LESS);
-    //gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
-    //Setup camera
-    view = mat4.create();
-    mat4.identity( view );
-    
-    //mat4.perspective use radiance
-    //Create a camera, and attach it to the interactor
-    // lightInteractor = SEC3.CameraInteractor( light, canvas);
 
     scene = new SEC3.Scene();
     
-    // lightInteractor = SEC3.CameraInteractor( light, canvas );
+    setupLights();
+    initLightUi();
 
-    // var light = new SEC3.SpotLight();
-    // light.goHome ( [0, 24, 2] ); 
-    // light.setAzimuth( 0.0 );    
-    // light.setElevation( -85.0 );
-    // light.setPerspective(25, 1.0, zNear, zFar);
-
-    // light.addCascade(1024, 0.0, 0.4);
-    // light.addCascade(256, 0.4, 0.7);
-    // light.addCascade(64, 0.7, 1.0);
-
-    var light = new SEC3.DirectionalLight();
-    light.goHome ( [0, 24, 2] ); 
-    light.setAzimuth( 0.0 );    
-    light.setElevation( -85.0 );
-    light.setOrtho(15.0, 15.0, zNear, zFar);
-
-    light.addCascade(1024, 0.0, 0.4);
-    light.addCascade(256, 0.4, 0.7);
-    light.addCascade(64, 0.7, 1.0);
-
-   
-
-    cascadeToDisplay = 0.0;
-
-
-    lightAngle = 0.0;
-   
-    elCounter = 125;
-
+    //Setup camera
+    view = mat4.create();
     camera = new SEC3.Camera();
-    camera.goHome( [-3, 2, -6.5] ); //initial camera posiiton
-    camera.setAzimuth( -180.0 );
+    camera.goHome( [12, 8, 0.6] ); //initial camera posiiton
+    camera.setAzimuth( 90.0 );
     interactor = SEC3.CameraInteractor( camera, canvas );
-    camera.setPerspective(60, canvas.width / canvas.height, zNear, zFar);
+    camera.setPerspective(60, canvas.width / canvas.height, demo.zNear, demo.zFar);
 
-    scene.addLight(light);
     scene.setCamera(camera);
 
     //Create a FBO
@@ -1044,7 +1106,7 @@ var setupScene = function(canvasId, messageId ) {
     }
 
     shadowFBO = SEC3.createFBO();
-    if (! shadowFBO.initialize( gl, SHADOWMAP_SIZE, SHADOWMAP_SIZE, 2 )) {
+    if (! shadowFBO.initialize( gl, demo.SHADOWMAP_SIZE, demo.SHADOWMAP_SIZE, 2 )) {
         console.log( "shadowFBO initialization failed.");
         return;
     }

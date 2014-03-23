@@ -31,7 +31,9 @@ SEC3.registerAsyncObj = function( gl, asyncObj ){
     if( !gl.asyncObjArray ){
         gl.asyncObjArray = [];
     }
+    SEC3.isWaiting = true;
     gl.asyncObjArray[gl.asyncObjArray.length] = asyncObj;
+
 };
 
 //Make sure all objects with asynchronously-requested resources are ready before starting the rendering loop
@@ -52,7 +54,9 @@ SEC3.run = function(gl){
 
 
     if( n === 0 ){
-       SEC3.renderLoop(); 
+        SEC3.isWaiting = false;
+        SEC3.renderLoop(); 
+        gl.asyncObjArray = [];
     }
     else{
         window.setTimeout( SEC3.run, 500, gl );

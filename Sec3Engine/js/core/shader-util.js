@@ -127,6 +127,7 @@ SEC3.createShaderProgram = function(){
         ref: function(){  //expose shader program object for use
             return program;
         },
+
     	loadShader: function( gl, vsFileName, fsFileName, prefixes ){
             prefixes = prefixes || ["",""];
     	    loadShaderFile( gl, vsFileName, gl.VERTEX_SHADER, prefixes[0] );
@@ -149,6 +150,11 @@ SEC3.createShaderProgram = function(){
             for( i = 0; i < callbackFunArray.length; ++i ){
                 callbackFunArray[i]();
             }
+        },
+
+        dispose: function(){
+            gl.deleteProgram(program);
+            callbackFunArray = [];
         }
     };
 };
