@@ -1,5 +1,5 @@
     //A wrapper for creating framebuffer objects
-
+    //TODO: delete texture attatchments
     //SEC3 is a core function interface
     var SEC3 = SEC3 || {};
 
@@ -101,6 +101,14 @@
             },
             initialize: function( gl, width, height, numAttatchments ){
                 return init( gl, width, height, numAttatchments );
+            },
+            dispose: function(gl) {
+                var i;
+                for(i = 0; i < textures.length; i++) {
+                    gl.deleteTexture(textures[i]);
+                }
+                gl.deleteTexture(depthTex);
+                gl.deleteFramebuffer(fbo);
             },
             bind: function(gl){
                 gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );

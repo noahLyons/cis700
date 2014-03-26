@@ -35,7 +35,6 @@ var demo = (function () {
     var demo = [];
     demo.zFar = 30.1;
     demo.zNear = 0.4;
-    demo.numLights = 1;
     demo.selectedLight = 0;
     demo.MAX_LIGHTS = 8;
     demo.MAX_CASCADES = 6;
@@ -124,7 +123,6 @@ var createShaders = function() {
         gl.uniform1f( renderQuadProg.uZNearLoc, demo.zNear );
         gl.uniform1f( renderQuadProg.uZFarLoc, demo.zFar );
 
-        demo.secondPass = renderQuadProg;
     } );
     SEC3.registerAsyncObj( gl, renderQuadProg );
 
@@ -165,7 +163,6 @@ var createShaders = function() {
         var height = SEC3.canvas.height;
         gl.uniform2fv(blurProg.uPixDimLoc, vec2.fromValues(1.0 / width, 1.0 / height));
         gl.uniform1f(blurProg.uLilSigLoc, 4.0);
-        initBlurButtons(); //TODO: awful : (
     } );
 
     SEC3.registerAsyncObj( gl, blurProg );
@@ -217,7 +214,6 @@ var createShaders = function() {
         gl.uniform1f( dofDownsampleProg.uNearLoc, demo.zNear );
         gl.uniform1f( dofDownsampleProg.uFarLoc, demo.zFar );
         gl.uniform2fv( dofDownsampleProg.uDofEqLoc, vec2.fromValues(demo.nearSlope, demo.nearIntercept));
-        initDofButtons();
     } );
 
     SEC3.registerAsyncObj( gl, dofDownsampleProg );
@@ -263,12 +259,7 @@ var createShaders = function() {
 
     SEC3.registerAsyncObj( gl, dofCalcCocProg );
 
-    //-----------------------------------------------SHADOWMAP BUILD
-
     buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
-
-    //-----------------------------------------------CASCADE RENDER
-   
     renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
     
 };
@@ -291,7 +282,8 @@ var drawShadowMap = function(light, index){
     }
 
     var shadowFbo = light.cascadeFramebuffers[index];
-    var lightMat = light.cascadeMatrices[index];
+    var lMat = light.getViewTransform();
+    var pMat = light.cascadeMatrices[index];
     var resolution = shadowFbo.getWidth();
 
     gl.bindTexture( gl.TEXTURE_2D, null );
@@ -301,10 +293,10 @@ var drawShadowMap = function(light, index){
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT );
     // gl.colorMask(false,false,false,false);
     gl.enable( gl.DEPTH_TEST );
-    gl.cullFace(gl.BACK);
+    // gl.cullFace(gl.BACK);
     gl.useProgram(buildShadowMapProg.ref());
     var mlpMat = mat4.create();
-    mat4.multiply( mlpMat, lightMat, light.getViewTransform() );
+    mat4.multiply( mlpMat, pMat, lMat );
     gl.uniformMatrix4fv( buildShadowMapProg.uMLPLoc, false, mlpMat );
 
     //----------------DRAW MODEL:
@@ -325,7 +317,7 @@ var drawShadowMap = function(light, index){
     // gl.colorMask(true,true,true,true);
 
     shadowFbo.unbind(gl);
-    gl.cullFace(gl.BACK);
+    // gl.cullFace(gl.BACK);
 };
 
 var drawModel = function(scene, index){
@@ -406,28 +398,6 @@ var drawModel = function(scene, index){
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
 };
 
-function initBlurButtons() {
-    
-    SEC3.ui = SEC3.ui || new UI("uiWrapper");
-
-    var lilSigCallback = function(e) {
-
-        var newSliderVal = e.target.value;
-        demo.blurSigma = newSliderVal;
-        var sigmaSquared = demo.blurSigma * demo.blurSigma;
-        gl.useProgram(blurProg.ref());
-        gl.uniform1f(blurProg.uLilSigLoc, sigmaSquared);
-
-        return "Sigma: " + demo.blurSigma;
-    };
-
-    SEC3.ui.addSlider("Sigma: " + demo.blurSigma,
-                 lilSigCallback,
-                 demo.blurSigma * demo.blurSigma,
-                 0.1, 40.0,
-                 0.1);
-};
-
 function initDofButtons() {
 
     SEC3.ui = SEC3.ui || new UI("uiWrapper");
@@ -498,68 +468,6 @@ function initDofButtons() {
                                  0.1);
 };
 
-function initLightUi() {
-
-    SEC3.ui = SEC3.ui || new UI("uiWrapper");
-
-
-    var numCascadesCallback = function(e) {
-
-        var newSliderVal = e.target.value;
-
-        var light = scene.getLight(demo.selectedLight);
-        light.setupCascades(newSliderVal, light.nearResolution);
-
-        buildShadowMapProg.dispose();
-        buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
-        renderWithCascadesProg.dispose();
-        renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
-        SEC3.run(gl);
-        return newSliderVal + " :Cascades";
-    };
-
-    SEC3.ui.addSlider( scene.getLight(demo.selectedLight).numCascades + " :Cascades" ,
-                 numCascadesCallback,
-                 scene.getLight(demo.selectedLight).numCascades,
-                 1, demo.MAX_CASCADES,
-                 1);
-
-    var numLightsCallback = function(e) {
-
-        var newSliderVal = e.target.value;
-
-        demo.numLights = newSliderVal;
-        setupLights();
-
-        buildShadowMapProg.dispose();
-        buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
-        renderWithCascadesProg.dispose();
-        renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
-        SEC3.run(gl);
-        return newSliderVal + " :Lights";
-    };
-
-    SEC3.ui.addSlider( demo.numLights + " :Lights" ,
-                 numLightsCallback,
-                 demo.numLights,
-                 1, demo.MAX_LIGHTS,
-                 1);
-
-    var selectedLightCallback = function(e) {
-
-        var newSliderVal = e.target.value;
-
-        demo.selectedLight = Math.min( newSliderVal, demo.numLights - 1 );
-        
-        return ( demo.selectedLight + 1 ) + " :Selected light";
-    };
-
-    SEC3.ui.addSlider( (demo.selectedLight + 1) + " :Selected light" ,
-                 selectedLightCallback,
-                 demo.selectedLight,
-                 0, demo.MAX_LIGHTS - 1,
-                 1);
-};
 
 /*
  * Renders the geometry and output color, normal, depth information
@@ -848,29 +756,32 @@ var finalPass = function(texture, framebuffer){
 
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
-
 };
+
 var moveLight = function(light) {
     elCounter++;
     if(elCounter % 500 < 250) {
         // light.changeAzimuth(0.14);
-        light.changeElevation(0.025);
-        light.moveUp(0.02);
+        light.changeElevation(0.125);
+        // light.changeElevation(1.5);        
+        // light.moveUp(0.02);
     }
     else {
         // light.changeAzimuth(-0.14);
-        light.changeElevation(-0.025);
-        light.moveDown(0.02);
+        light.changeElevation(-0.125);
+        // light.changeElevation(1.5);                
+        // light.moveDown(0.02);
     }
     light.update();
 };
+
 var myRender = function() {
     if(SEC3.isWaiting) {
         return;
     }
     var light = scene.getLight( demo.selectedLight );
 
-    // moveLight(light);
+    moveLight(light);
     var canvasResolution = [SEC3.canvas.width, SEC3.canvas.height];
 
     deferredRenderPass1(scene, demo.selectedLight );
@@ -890,12 +801,20 @@ var myRender = function() {
     else if ( demo.secondPass === buildShadowMapProg) {
         finalPass(light.cascadeFramebuffers[demo.cascadeToDisplay].texture(0));
     }
-
-    
 };
 
 // Customized looping function
 var myRenderLoop = function() {
+
+    if(!SEC3.setup) {
+        
+        initLightUi();
+        initBlurButtons();
+        initDofButtons();
+        demo.secondPass = renderQuadProg;
+        
+        SEC3.setup = true;
+    }
 
     window.requestAnimationFrame( myRenderLoop );
     myRender();
@@ -905,8 +824,6 @@ var main = function( canvasId, messageId ){
     "use strict"
 
     setupScene(canvasId, messageId);
-
-    loadObjects();
 
     setKeyInputs();
         //'1' = Attachment 1: vertex position
@@ -951,10 +868,11 @@ var createScreenSizedQuad = function() {
  */
 var loadObjects = function() {
     //Load a OBJ model from file
-    var objLoader = SEC3.createOBJLoader();
+    var objLoader = SEC3.createOBJLoader(scene);
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
     // objLoader.loadFromFile( gl, '/../models/buddha_new/buddha_scaled_.obj', '/../models/buddha_new/buddha_scaled_.mtl');
-    objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza3.obj', '/../models/dabrovic-sponza/sponza.mtl');
+    // objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza3.obj', '/../models/dabrovic-sponza/sponza.mtl');
+    objLoader.loadFromFile( gl, '/../models/cubeworld/cubeworld.obj', '/../models/cubeworld/cubeworld.mtl');
     
        
     //Register a callback function that extracts vertex and normal 
@@ -990,9 +908,10 @@ var loadObjects = function() {
 
             gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
         }
+        
     });
     SEC3.registerAsyncObj( gl, objLoader );    
-}
+};
 
 var setKeyInputs = function() {
     
@@ -1015,35 +934,168 @@ var setKeyInputs = function() {
 
         }
     };
+};
+
+var initLightUi = function() {
+
+    SEC3.ui = SEC3.ui || new UI("uiWrapper");
+
+
+    var numCascadesCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+
+        var light = scene.getLight(demo.selectedLight);
+        light.setupCascades(newSliderVal, light.nearResolution, gl, scene);
+
+        buildShadowMapProg.dispose(gl);
+        buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+        renderWithCascadesProg.dispose(gl);
+        renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+        SEC3.run(gl);
+        return newSliderVal + " :Cascades";
+    };
+
+    SEC3.ui.addSlider( scene.getLight(demo.selectedLight).numCascades + " :Cascades" ,
+                 numCascadesCallback,
+                 scene.getLight(demo.selectedLight).numCascades,
+                 1, demo.MAX_CASCADES,
+                 1);
+
+    var numLightsCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+
+        updateLightCount(newSliderVal);
+       
+
+        return newSliderVal + " :Lights";
+    };
+
+    SEC3.ui.addSlider( scene.getNumLights() + " :Lights" ,
+                 numLightsCallback,
+                 scene.getNumLights(),
+                 1, demo.MAX_LIGHTS,
+                 1);
+
+    var selectedLightCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+
+        demo.selectedLight = Math.min( newSliderVal, scene.getNumLights() - 1 );
+        
+        return ( demo.selectedLight + 1 ) + " :Selected light";
+    };
+
+    SEC3.ui.addSlider( (demo.selectedLight + 1) + " :Selected light" ,
+                 selectedLightCallback,
+                 demo.selectedLight,
+                 0, demo.MAX_LIGHTS - 1,
+                 1);
+};
+
+
+function initBlurButtons() {
+    
+    SEC3.ui = SEC3.ui || new UI("uiWrapper");
+
+    var lilSigCallback = function(e) {
+
+        var newSliderVal = e.target.value;
+        demo.blurSigma = newSliderVal;
+        var sigmaSquared = demo.blurSigma * demo.blurSigma;
+        gl.useProgram(blurProg.ref());
+        gl.uniform1f(blurProg.uLilSigLoc, sigmaSquared);
+
+        return "Sigma: " + demo.blurSigma;
+    };
+
+    SEC3.ui.addSlider("Sigma: " + demo.blurSigma,
+                 lilSigCallback,
+                 demo.blurSigma * demo.blurSigma,
+                 0.1, 40.0,
+                 0.1);
+};
+
+
+
+var updateLightCount = function( newCount ) {
+
+    var difference = newCount - scene.getNumLights();
+    if( difference < 0 ) {
+        while (difference < 0) {
+            scene.popLight(gl);
+            difference++;
+        }
+    }
+    else if( difference > 0 ) {
+        while ( difference > 0 ) {
+            addLight();
+            difference--;
+        }
+    }
+    demo.selectedLight =  newCount - 1;
+    buildShadowMapProg.dispose(gl);
+    buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+    renderWithCascadesProg.dispose(gl);
+    renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+    SEC3.run(gl);
+}
+
+/*
+ * Creates a light at a random position within camera's view frustum
+ */
+var addLight = function() {
+
+    var viewBounds = scene.getCamera().getFrustumBounds();
+    var xPos = SEC3.math.randomRange(-15, 15);
+    var yPos = SEC3.math.randomRange(0, 15);
+    var zPos = SEC3.math.randomRange(-15, 15);
+    // var xPos = SEC3.math.randomRange(viewBounds[0], viewBounds[3]);
+    // var yPos = SEC3.math.randomRange(0, viewBounds[4]);
+    // var zPos = SEC3.math.randomRange(viewBounds[2], viewBounds[5]);
+    var azimuth = Math.random() * 360;
+    var elevation = Math.random() * -180;
+
+    var nextLight = new SEC3.SpotLight();
+    nextLight.goHome ( [xPos, yPos, zPos] ); 
+    nextLight.setAzimuth(azimuth );    
+    nextLight.setElevation( elevation );
+    nextLight.setPerspective(25, 1.0, demo.zNear, demo.zFar);
+    nextLight.setupCascades( 1, 512, gl, scene );
+    scene.addLight(nextLight);
+
+
 }
 
 var setupLights = function() {
 
     scene.clearLights();
+    var radius = 0.5 * scene.getBoundingRadius();
+    radius = radius || 20.0;
 
-    // var light = new SEC3.SpotLight();
-    // light.goHome ( [0, 28, 0] ); 
-    // light.setAzimuth(30.0 );    
-    // light.setElevation( -90.0 );
-    // light.setPerspective(25, 1.0, demo.zNear, demo.zFar);
-    // light.setupCascades( 1, 512 );
-    // scene.addLight(light);
-   
-    for(var i = 0; i < demo.numLights; i++ ) {
-        var xPos = ((Math.random() - 0.5 ) * 2.0) * 8;
+    for(var i = 1; i < scene.getNumLights(); i++ ) {
+        var xPos = ((Math.random() - 0.5 ) * 2.0) * 8.0;
+        var yPos = Math.random() * 10.0 + 8;
+        var zPos = ((Math.random() - 0.5 ) * 2.0) * 2.0;
+        var azimuth = Math.random() * 360;
 
         var nextLight = new SEC3.SpotLight();
-        nextLight.goHome ( [xPos, 28, 0] ); 
-        nextLight.setAzimuth(30.0 );    
-        nextLight.setElevation( -80.0 );
+        nextLight.goHome ( [xPos, yPos, zPos] ); 
+        nextLight.setAzimuth(azimuth );    
+        nextLight.setElevation( -70.0 );
         nextLight.setPerspective(25, 1.0, demo.zNear, demo.zFar);
-        nextLight.setupCascades( 1, 512 );
+        nextLight.setupCascades( 1, 512, gl );
         scene.addLight(nextLight);
+
     }
   
     demo.cascadeToDisplay = 0.0;
     lightAngle = 0.0;
     elCounter = 125;
+
+    buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+    renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
 };
 
 /*
@@ -1071,19 +1123,30 @@ var setupScene = function(canvasId, messageId ) {
     gl.depthFunc(gl.LESS);
 
     scene = new SEC3.Scene();
-    
-    setupLights();
-    initLightUi();
 
     //Setup camera
     view = mat4.create();
     camera = new SEC3.Camera();
-    camera.goHome( [12, 8, 0.6] ); //initial camera posiiton
-    camera.setAzimuth( 90.0 );
+    camera.goHome( [0.0, 2.0, 0.0] ); //initial camera posiiton
+    camera.setAzimuth( 0.0 );
     interactor = SEC3.CameraInteractor( camera, canvas );
-    camera.setPerspective(60, canvas.width / canvas.height, demo.zNear, demo.zFar);
+    camera.setPerspective( 60, canvas.width / canvas.height, demo.zNear, demo.zFar );
 
     scene.setCamera(camera);
+
+    var nextLight = new SEC3.DiLight();
+    nextLight.goHome ( [ 0, 20, 0] ); 
+    nextLight.setAzimuth( 45 );    
+    nextLight.setElevation( -90.0 );
+    nextLight.setOrtho( 20, 20, demo.zNear, demo.zFar );
+    nextLight.setupCascades( 1, 1024, gl, scene );
+    scene.addLight(nextLight);
+    demo.cascadeToDisplay = 0.0;
+    lightAngle = 0.0;
+    elCounter = 125;
+
+    // setupLights();
+    loadObjects();
 
     //Create a FBO
     fbo = SEC3.createFBO();
@@ -1110,6 +1173,8 @@ var setupScene = function(canvasId, messageId ) {
         console.log( "shadowFBO initialization failed.");
         return;
     }
+
+
 };
 
 //--------------------------------------------------------------------------HELPERS:

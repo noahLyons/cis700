@@ -3,8 +3,8 @@
 
 //SEC3 is a core function interface
 var SEC3 = SEC3 || {};
-
-SEC3.createOBJLoader = function(){
+                            // Scene
+SEC3.createOBJLoader = function( s ){
     "use strict"
 
     var ready = false;
@@ -15,7 +15,9 @@ SEC3.createOBJLoader = function(){
     var normalGroup = [];
     var texcoordGroup = [];
     var indexGroup = [];
-    
+
+    var scene = s;
+
     var textures = [];
 
     function initTexture( gl, url, index ){
@@ -29,10 +31,10 @@ SEC3.createOBJLoader = function(){
         textures[index].image.src = url;
         textures[index].ready = false;
     }
-    var anisotropyExt = gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
-    if(! anisotropyExt ) {
-        alert("no Anisotropy support!");
-    }
+    // var anisotropyExt = gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
+    // if(! anisotropyExt ) {
+    //     alert("no Anisotropy support!");
+    // }
 
     function loadTexture( gl, texture) {
         gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -42,9 +44,9 @@ SEC3.createOBJLoader = function(){
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        if( anisotropyExt ) {
-            gl.texParameterf(gl.TEXTURE_2D, anisotropyExt.TEXTURE_MAX_ANISOTROPY_EXT, 4);
-        }
+        // if( anisotropyExt ) {
+        //     gl.texParameterf(gl.TEXTURE_2D, anisotropyExt.TEXTURE_MAX_ANISOTROPY_EXT, 4);
+        // }
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindTexture(gl.TEXTURE_2D, null);
         texture.ready = true;
@@ -91,6 +93,9 @@ SEC3.createOBJLoader = function(){
     						meshVertexArray.push( child.geometry.vertices[i].x );
     						meshVertexArray.push( child.geometry.vertices[i].y );
     						meshVertexArray.push( child.geometry.vertices[i].z );
+
+                            scene.updateBounds( child.geometry.vertices[i] );
+                            
     					}
                         
                         //Array of texture coordinates of 1st layer texture 
@@ -100,21 +105,9 @@ SEC3.createOBJLoader = function(){
     					for( var i = 0; i < numFaces;i++ ){
 
     						//Extract vertices info per face
-                            // var offset = child.geometry.faces[i].a;
-                            // meshVertexArray.push( child.geometry.vertices[offset].x);
-                            // meshVertexArray.push( child.geometry.vertices[offset].y);
-                            // meshVertexArray.push( child.geometry.vertices[offset].z);
-                            // offset = child.geometry.faces[i].b;
-                            // meshVertexArray.push( child.geometry.vertices[offset].x);
-                            // meshVertexArray.push( child.geometry.vertices[offset].y);
-                            // meshVertexArray.push( child.geometry.vertices[offset].z);
-                            // offset = child.geometry.faces[i].c;
-                            // meshVertexArray.push( child.geometry.vertices[offset].x);
-                            // meshVertexArray.push( child.geometry.vertices[offset].y);
-                            // meshVertexArray.push( child.geometry.vertices[offset].z);
 
     						meshIndexArray.push( child.geometry.faces[i].a );
-    						meshIndexArray.push( child.geometry.faces[i].b);
+    						meshIndexArray.push( child.geometry.faces[i].b );
     						meshIndexArray.push( child.geometry.faces[i].c ); 
                      
                             var offset = 3*child.geometry.faces[i].a;

@@ -125,7 +125,7 @@ SEC3.Chunker.renderCascadedShadowMapsVS = function (scene) {
 
 			"gl_Position = u_mvp * vec4( a_pos, 1.0 ); \n " +
 			
-			"v_tSpaceNormal = normalize(a_normal); \n " +
+			"v_tSpaceNormal = (a_normal); \n " +
 			"v_texcoord = a_texcoord; \n ";
 
 			for( var i = 0; i < scene.getNumLights(); i++ ) {
@@ -147,7 +147,7 @@ SEC3.Chunker.renderCascadedShadowMapsVS = function (scene) {
  */ 
 SEC3.Chunker.renderCascadedShadowMapsFS = function (scene) {
 
-	var light = scene.getLight(0);
+	var light = scene.getLight(0); //TODO : Remove
 	// size of box filter
 	var kernSize = 1.5;
 	// number of samples
@@ -163,8 +163,8 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (scene) {
 		"const float SHADOW_FACTOR = 0.001; \n" +
 		"const float BIAS = -0.0025; \n" +
 	
-		"const float zNear = " + light.zNear + "; \n" + 
-		"const float zFar = " + light.zFar + "; \n" +
+		"const float zNear = float(" + scene.getCamera().zNear + "); \n" + 
+		"const float zFar = float(" + scene.getCamera().zFar + "); \n" +
 	
 		"varying vec2 v_texcoord; \n" +
 		"varying vec3 v_tSpaceNormal; \n" +
@@ -213,13 +213,23 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (scene) {
 		/* 
 		 * Returns 1.0 if fragment is occluded, 0.0 if not 
 		 */
-		"float isOccluded(sampler2D shadowMap, float fragDepth, vec2 uv){ \n" +
+		"float isOccludedSpot(sampler2D shadowMap, float fragDepth, vec2 uv){ \n" +
 			"vec2 spotUv = (uv - 0.5); \n" +
 			"float radius = sqrt(dot(spotUv, spotUv)); \n" +
 			"if( (radius) < 0.49){ \n" +
 				"float shadowMapDepth = linearize(texture2D( shadowMap, uv).r, zNear, zFar); \n" +
 				"return float(shadowMapDepth < fragDepth + BIAS); \n" +
 			"} \n" +
+			"return 1.0; \n" +
+		"}\n" +
+		/* 
+		 * Returns 1.0 if fragment is occluded, 0.0 if not 
+		 */
+		"float isOccluded(sampler2D shadowMap, float fragDepth, vec2 uv){ \n" +
+			"vec2 spotUv = (uv - 0.5); \n" +
+			"float shadowMapDepth = texture2D( shadowMap, uv).r; \n" +
+			"return float(shadowMapDepth < fragDepth + BIAS); \n" +
+
 			"return 1.0; \n" +
 		"}\n" +
 
@@ -238,11 +248,12 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (scene) {
 
 	var main = "" + 
 		"void main(void) { \n" +
-
+			"vec3 _tSpaceNormal = normalize(v_tSpaceNormal);\n" +
 			"float linearDepth = linearize(gl_FragCoord.z, zNear, zFar); \n" +
 			"vec4 color = texture2D( u_sampler, v_texcoord ); \n" +
 			"color.rgb = (color.rgb * color.rgb); // gamma correct texture  \n" +
-			"float illuminence = 0.0; \n" +
+			"vec3 illuminence = vec3(0.0); \n" +
+			"vec3 lColor;\n" +
 
 			"float shadowing = 0.0;\n" +			
 			"float lambertTerm = 0.0;\n" +	
@@ -251,6 +262,7 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (scene) {
 	for( var i = 0; i < scene.getNumLights(); i++ ) {
 		var light = scene.getLight(i);
 		main += "" +
+			"lColor = getCascadeColor(float(" + (i) + "));\n" + // get random color
 			"shadowing = 0.0;\n" +			
 			"lambertTerm = 0.0;\n" +	
 			"biasedLightSpacePos = v_fragLSpace" + i + " / v_fragLSpace" + i + ".w; \n" + //TODO move to vert?
@@ -268,38 +280,73 @@ SEC3.Chunker.renderCascadedShadowMapsFS = function (scene) {
 			if(j > 0) {
 				main += "else ";
 			}
-		main += "if(linearDepth < u_clipPlane" + i + "_" + j + ".y) { \n" + // branch on cascade
+		
+				main += "if(linearDepth < u_clipPlane" + i + "_" + j + ".y) { \n" + // branch on cascade
 					"float sum = 0.0; \n" +
-					"vec4 cascadePos = u_cascadeMat" + i + "_" + j + " * v_modelLightPos" + i +"; \n" +
-					"cascadePos.xyz /= cascadePos.w; \n" +
-					"cascadePos.xyz = (0.5 * cascadePos.xyz) + vec3(0.5); \n" + 
-					"float cascadeDepth = linearize(cascadePos.z, zNear, zFar); \n" +	// find depth in light space	
-					"for( float y = -offset" + i + "_" + j + "; y <= offset" + i + "_" + j + "; y += increment" + i + "_" + j + "){ \n" +
-						"for( float x = -offset" + i + "_" + j + "; x <= offset" + i + "_" + j + "; x += increment" + i + "_" + j + "){ \n" +
+					"vec4 cascadePos = u_cascadeMat" + i + "_" + j + " * v_modelLightPos" + i +"; \n";
 
-							"sum += isOccluded( u_shadowMap" + i + "_" + j + ", cascadeDepth, biasedLightSpacePos.xy + vec2(x,y) ); \n" +
-						"} \n" +
+					if (light instanceof SEC3.SpotLight) {// find depth in light space	
+						
+						main += "cascadePos.xyz /= cascadePos.w; \n" +
+						"cascadePos.xyz = (0.5 * cascadePos.xyz) + vec3(0.5); \n" +
+						"float cascadeDepth = linearize(cascadePos.z, zNear, zFar); \n";
+					}
+					else if (light instanceof SEC3.DiLight) {
+
+						main += "cascadePos.xyz /= cascadePos.w; \n" +
+						"cascadePos.xyz = (0.5 * cascadePos.xyz) + vec3(0.5); \n" +
+						"float cascadeDepth = cascadePos.z;\n";
+					}
+					main += "" +
+					"for( float y = -offset" + i + "_" + j + "; y <= offset" + i + "_" + j + "; y += increment" + i + "_" + j + "){ \n" +
+						"for( float x = -offset" + i + "_" + j + "; x <= offset" + i + "_" + j + "; x += increment" + i + "_" + j + "){ \n";
+							if ( light instanceof SEC3.SpotLight) {
+								main += "sum += isOccludedSpot( u_shadowMap" + i + "_" + j + ", cascadeDepth, biasedLightSpacePos.xy + vec2(x,y) ); \n";
+							}
+							else if ( light instanceof SEC3.DiLight ) {
+								main += "sum += isOccluded( u_shadowMap" + i + "_" + j + ", cascadeDepth, biasedLightSpacePos.xy + vec2(x,y) ); \n";
+							}
+						main += "} \n" +	
 					"} \n" +
 					"shadowing = 1.0 - ( sum / float(" + numSamples + ")); \n" +
 				"} \n";
 		}
 
-		main += "" + 
-			
+		main += (function(){
+				
+				var shadeSpot = "" +
 				"vec3 toLight = normalize(u_lPos" + i + " - v_pos); \n " +
-				"lambertTerm = max(dot(v_tSpaceNormal, toLight), 0.0); \n" +
-				"illuminence += lambertTerm * shadowing * LIGHT_INTENSITY / pow( v_fragLSpace" + i + ".z, 2.0 ); \n" +
+				"lambertTerm = max(dot(_tSpaceNormal, toLight), 0.0); \n" +
+				"illuminence += lColor * lambertTerm * shadowing * LIGHT_INTENSITY / pow( v_fragLSpace" + i + ".z, 2.0 ); \n";
 
-			"} \n";
+				var shadeDirectional = "" +
+				"vec3 toLight = normalize(u_lPos" + i + "); \n " +
+				"lambertTerm = max(dot(_tSpaceNormal, toLight), 0.0); \n" +
+				"illuminence += lColor * lambertTerm * shadowing * LIGHT_INTENSITY / 80.0; \n";
+
+				if(light instanceof SEC3.SpotLight) {
+					return shadeSpot;
+				}
+				else if(light instanceof SEC3.DiLight) {
+					return shadeDirectional;
+				}
+				else {
+					console.log("CHUNKER ERROR: Not instance of known Light type");
+				}
+
+			})();
+
+		main +=	"} \n";
 	}
-	main += "illuminence += AMBIENT_INTENSITY; \n" +
+	main += "illuminence += vec3(AMBIENT_INTENSITY); \n" +
 			"color.rgb *= illuminence; \n" +
 			"vec3 cascadeColors = getCascadeColor(linearDepth);\n" +				
 			"gl_FragData[0] = vec4(vec3(illuminence), 1.0); \n" + // diffuse illumination
-			"gl_FragData[1] = vec4(vec3(v_tSpaceNormal), 1.0); \n" +
+			"gl_FragData[1] = vec4(vec3(_tSpaceNormal), 1.0); \n" +
 			"gl_FragData[2] = sqrt(color); \n" + // reGamma correct result of our hokey forward shading
 			"gl_FragData[3] = vec4( 2.0 * sqrt(cascadeColors * color.rgb),  sqrt(color.a) ); \n" +
 		"} \n";
-
-	return declarations + methods + main;
+	var text = declarations + methods + main;
+	console.log(text);
+	return text;
 }

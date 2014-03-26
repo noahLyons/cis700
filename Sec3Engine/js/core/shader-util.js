@@ -96,6 +96,8 @@ SEC3.createShaderProgram = function(){
         	return null;
         }
         return program;
+
+        //TODO: delete shader objects
 	}
 
 	function createShaderObj( gl, shader_type, shader_src ){
@@ -152,7 +154,7 @@ SEC3.createShaderProgram = function(){
             }
         },
 
-        dispose: function(){
+        dispose: function(gl){
             gl.deleteProgram(program);
             callbackFunArray = [];
         }

@@ -5,10 +5,10 @@ SEC3 = SEC3 || {};
 SEC3.ShaderCreator = {};
 
 SEC3.ShaderCreator.buildShadowMapPrograms = function (gl, scene) {
-    var light = scene.getLight(0);
+   
     var prefixes = ["", 
-                "const float NEAR = " + light.zNear + "; \n" +
-                " const float FAR = " + light.zFar + "; \n"
+                "const float NEAR = " + scene.getCamera().zNear + "; \n" +
+                "const float FAR = " + scene.getCamera().zFar + "; \n"
                 ];
     program = SEC3.createShaderProgram();
     program.loadShader( gl,

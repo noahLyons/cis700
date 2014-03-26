@@ -23,6 +23,7 @@ SEC3.Projector = function() {
     this.projectionMat = mat4.create();
     this.zNear = 0.1;
     this.zFar = 1.0;
+
 };
 
 SEC3.Projector.prototype = {
@@ -177,30 +178,6 @@ SEC3.Projector.prototype = {
         vec3.scaleAndAdd( this.position, this.position, this.up, -direction );
         this.update();
     }
-
-    // clone: function( object ) { 
-    //     if( object === undefined ) object = new SEC3.Projector();
-
-    //     object.setType = this.setType;
-    //     object.goHome = this.goHome;
-    //     object.dolly = this.dolly;
-    //     object.setPosition = this.setPosition;
-    //     object.setAzimuth = this.setAzimuth;
-    //     object.changeAzimuth = this.changeAzimuth;
-    //     object.setElevation = this.setElevation;
-    //     object.changeElevation = this.changeElevation;
-    //     object.update = this.update;    
-    //     object.getViewTransform = this.getViewTransform;
-    //     object.moveForward = this.moveForward; 
-    //     object.moveBackward = this.moveBackward; 
-    //     object.moveLeft = this.moveLeft;
-    //     object.moveRight = this.moveRight; 
-    //     object.moveUp = this.moveUp;
-    //     object.moveDown = this.moveDown;
-
-    //     return object;
-
-    // }
 
 };
 
