@@ -19,8 +19,8 @@ var model_indexVBOs = [];    //buffer object for loaded model (index)
 var model_normalVBOs = [];   //buffer object for loaded model (normal)
 var model_texcoordVBOs = []; //buffer object for loaded model (texture)
 
-var passProg;           //shader program passing data to FBO
-var renderQuadProg;     //shader program showing the FBO buffers
+var fillGProg;           //shader program passing data to FBO
+var bufferRenderProg;     //shader program showing the FBO buffers
 var blurProg;
 var downsampleProg;
 var dofProg;
@@ -71,77 +71,107 @@ var demo = (function () {
 var createShaders = function() {
     //----------------------------------------------------FIRST PASS:
     //Create a shader program for output scene data to FB
-    passProg = SEC3.createShaderProgram();
+    fillGProg = SEC3.createShaderProgram();
     //Load the shader source asynchronously
-    passProg.loadShader( gl, 
+    fillGProg.loadShader( gl, 
                          "/../shader/deferredRenderPass1.vert", 
                          "/../shader/deferredRenderPass1.frag" );
     
-    passProg.addCallback( function() {
-        gl.useProgram( passProg.ref() );
+    fillGProg.addCallback( function() {
+        gl.useProgram( fillGProg.ref() );
         //query the locations of shader parameters
-        passProg.aVertexPosLoc = gl.getAttribLocation( passProg.ref(), "a_pos" );
-        passProg.aVertexNormalLoc = gl.getAttribLocation( passProg.ref(), "a_normal" );
-        passProg.aVertexTexcoordLoc = gl.getAttribLocation( passProg.ref(), "a_texcoord" );
+        fillGProg.aVertexPosLoc = gl.getAttribLocation( fillGProg.ref(), "a_pos" );
+        fillGProg.aVertexNormalLoc = gl.getAttribLocation( fillGProg.ref(), "a_normal" );
+        fillGProg.aVertexTexcoordLoc = gl.getAttribLocation( fillGProg.ref(), "a_texcoord" );
 
-        passProg.uPerspLoc = gl.getUniformLocation( passProg.ref(), "u_projection" );
-        passProg.uModelViewLoc = gl.getUniformLocation( passProg.ref(), "u_modelview" );
-        passProg.uMVPLoc = gl.getUniformLocation( passProg.ref(), "u_mvp" );
-        passProg.uNormalMatLoc = gl.getUniformLocation( passProg.ref(), "u_normalMat");
-        passProg.uShadowMapLoc = gl.getUniformLocation( passProg.ref(), "u_shadowMap");
-        passProg.uSamplerLoc = gl.getUniformLocation( passProg.ref(), "u_sampler");
-        passProg.uMLPLoc = gl.getUniformLocation( passProg.ref(), "u_mlp");
-        passProg.uModelLightLoc = gl.getUniformLocation( passProg.ref(), "u_modelLight");
+        fillGProg.uPerspLoc = gl.getUniformLocation( fillGProg.ref(), "u_projection" );
+        fillGProg.uModelViewLoc = gl.getUniformLocation( fillGProg.ref(), "u_modelview" );
+        fillGProg.uMVPLoc = gl.getUniformLocation( fillGProg.ref(), "u_mvp" );
+        fillGProg.uNormalMatLoc = gl.getUniformLocation( fillGProg.ref(), "u_normalMat");
+        fillGProg.uSamplerLoc = gl.getUniformLocation( fillGProg.ref(), "u_sampler");
+
     } );
 
     //Register the asynchronously-requested resources with the engine core
     //asynchronously-requested resources are loaded using AJAX 
-    SEC3.registerAsyncObj( gl, passProg );
+    SEC3.registerAsyncObj( gl, fillGProg );
 
-    //----------------------------------------------------SECOND PASS:
+    //----------------------------------------------------Render contents of fbo:
     //Create a shader program for displaying FBO contents
-    renderQuadProg = SEC3.createShaderProgram();
-    renderQuadProg.loadShader( gl, 
+    bufferRenderProg = SEC3.createShaderProgram();
+    bufferRenderProg.loadShader( gl, 
+                               "/../shader/bufferRender.vert", 
+                               "/../shader/bufferRender.frag" );
+
+    bufferRenderProg.addCallback( function(){
+        //query the locations of shader parameters
+        bufferRenderProg.aVertexPosLoc = gl.getAttribLocation( bufferRenderProg.ref(), "a_pos" );
+        bufferRenderProg.aVertexTexcoordLoc = gl.getAttribLocation( bufferRenderProg.ref(), "a_texcoord" );
+
+        bufferRenderProg.uPosSamplerLoc = gl.getUniformLocation( bufferRenderProg.ref(), "u_positionTex");
+        bufferRenderProg.uNormalSamplerLoc = gl.getUniformLocation( bufferRenderProg.ref(), "u_normalTex");
+        bufferRenderProg.uColorSamplerLoc = gl.getUniformLocation( bufferRenderProg.ref(), "u_colorTex");
+        bufferRenderProg.uDepthSamplerLoc = gl.getUniformLocation( bufferRenderProg.ref(), "u_depthTex");
+
+        bufferRenderProg.uZNearLoc = gl.getUniformLocation( bufferRenderProg.ref(), "u_zNear" );
+        bufferRenderProg.uZFarLoc = gl.getUniformLocation( bufferRenderProg.ref(), "u_zFar" );
+        bufferRenderProg.uDisplayTypeLoc = gl.getUniformLocation( bufferRenderProg.ref(), "u_displayType" );
+
+        gl.useProgram( bufferRenderProg.ref() );
+        gl.uniform1f( bufferRenderProg.uZNearLoc, demo.zNear );
+        gl.uniform1f( bufferRenderProg.uZFarLoc, demo.zFar );
+
+    } );
+    SEC3.registerAsyncObj( gl, bufferRenderProg );
+
+    //----------------------------------------------------Deferred Render:
+    //Create a shader program for displaying FBO contents
+    deferredRenderProg = SEC3.createShaderProgram();
+    deferredRenderProg.loadShader( gl, 
                                "/../shader/deferredRenderPass2.vert", 
                                "/../shader/deferredRenderPass2.frag" );
 
-    renderQuadProg.addCallback( function(){
+    deferredRenderProg.addCallback( function(){
         //query the locations of shader parameters
-        renderQuadProg.aVertexPosLoc = gl.getAttribLocation( renderQuadProg.ref(), "a_pos" );
-        renderQuadProg.aVertexTexcoordLoc = gl.getAttribLocation( renderQuadProg.ref(), "a_texcoord" );
+        deferredRenderProg.aVertexPosLoc = gl.getAttribLocation( deferredRenderProg.ref(), "a_pos" );
+        deferredRenderProg.aVertexTexcoordLoc = gl.getAttribLocation( deferredRenderProg.ref(), "a_texcoord" );
 
-        renderQuadProg.uPosSamplerLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_positionTex");
-        renderQuadProg.uNormalSamplerLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_normalTex");
-        renderQuadProg.uColorSamplerLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_colorTex");
-        renderQuadProg.uDepthSamplerLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_depthTex");
+        deferredRenderProg.uPosSamplerLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_positionTex");
+        deferredRenderProg.uNormalSamplerLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_normalTex");
+        deferredRenderProg.uColorSamplerLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_colorTex");
+        deferredRenderProg.uDepthSamplerLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_depthTex");
+        deferredRenderProg.uShadowMapLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_shadowMap");
+        deferredRenderProg.uMLPLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_mlp");
+        deferredRenderProg.uLPosLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_lPos");
 
-        renderQuadProg.uZNearLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_zNear" );
-        renderQuadProg.uZFarLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_zFar" );
-        renderQuadProg.uDisplayTypeLoc = gl.getUniformLocation( renderQuadProg.ref(), "u_displayType" );
 
-        gl.useProgram( renderQuadProg.ref() );
-        gl.uniform1f( renderQuadProg.uZNearLoc, demo.zNear );
-        gl.uniform1f( renderQuadProg.uZFarLoc, demo.zFar );
+        deferredRenderProg.uZNearLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_zNear" );
+        deferredRenderProg.uZFarLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_zFar" );
+        deferredRenderProg.uDisplayTypeLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_displayType" );
+
+        gl.useProgram( deferredRenderProg.ref() );
+        gl.uniform1f( deferredRenderProg.uZNearLoc, demo.zNear );
+        gl.uniform1f( deferredRenderProg.uZFarLoc, demo.zFar );
 
     } );
-    SEC3.registerAsyncObj( gl, renderQuadProg );
+    SEC3.registerAsyncObj( gl, deferredRenderProg );
 
     //---------------------------------------------------FINAL PASS:
 
-    finalPassProg = SEC3.createShaderProgram();
-    finalPassProg.loadShader( gl, 
+    finalfillGProg = SEC3.createShaderProgram();
+    finalfillGProg.loadShader( gl, 
                                "/../shader/finalPass.vert", 
                                "/../shader/finalPass.frag" );
 
-    finalPassProg.addCallback( function(){
+    finalfillGProg.addCallback( function(){
         //query the locations of shader parameters
-        finalPassProg.aVertexPosLoc = gl.getAttribLocation( finalPassProg.ref(), "a_pos" );
-        finalPassProg.aVertexTexcoordLoc = gl.getAttribLocation( finalPassProg.ref(), "a_texcoord" );
+        finalfillGProg.aVertexPosLoc = gl.getAttribLocation( finalfillGProg.ref(), "a_pos" );
+        finalfillGProg.aVertexTexcoordLoc = gl.getAttribLocation( finalfillGProg.ref(), "a_texcoord" );
         
-        finalPassProg.uFinalImageLoc = gl.getUniformLocation( finalPassProg.ref(), "u_colorTex");
+        finalfillGProg.uFinalImageLoc = gl.getUniformLocation( finalfillGProg.ref(), "u_colorTex");
 
     } );
-    SEC3.registerAsyncObj( gl, finalPassProg );
+    SEC3.registerAsyncObj( gl, finalfillGProg );
 
     //----------------------------------------------------BLUR PASS:
     //Create a shader program for displaying FBO contents
@@ -264,17 +294,23 @@ var createShaders = function() {
     
 };
 
-var updateShadowMaps = function(light){
+var updateShadowMaps = function(scene){
 
-    for( var ii = 0; ii < light.numCascades; ii++ ) {
-        drawShadowMap(light, ii);
+    var light;
+
+    for(var i = 0; i < scene.getNumLights(); i++ ) {
+            
+        light = scene.getLight(i);
+        
+        for( var ii = 0; ii < light.numCascades; ii++ ) {
+            drawShadowMap(light, ii);
+        }
     }
 };
 
 /*
  *  light to render from wich, cascade index
  */
-
 var drawShadowMap = function(light, index){
 
     if(index === undefined ){
@@ -320,82 +356,43 @@ var drawShadowMap = function(light, index){
     // gl.cullFace(gl.BACK);
 };
 
-var drawModel = function(scene, index){
-    
+var drawModel = function (program, textureOffset) {
 
-    if(index === undefined ){
-        index = 0;
-    }
-
-    //update the model-view matrix
-    var mvpMat = mat4.create();
-    mat4.multiply( mvpMat, camera.getProjectionMat(), camera.getViewTransform() );
-    gl.uniform3fv( renderWithCascadesProg.uCPosLoc, camera.getPosition());
-    gl.uniformMatrix4fv( renderWithCascadesProg.uMVPLoc, false, mvpMat ); 
-
+    textureOffset = textureOffset || 0;
 
     //update the normal matrix
     var nmlMat = mat4.create();
     mat4.invert( nmlMat, camera.getViewTransform() );
     mat4.transpose( nmlMat, nmlMat);
-
-
-    var textureUnit = 0;
-    //--------------------UPDATE LIGHT UNIFORMS:
-
-    //for selected light
-    var thisLight = scene.getLight(demo.selectedLight);
-    gl.uniform1i( renderWithCascadesProg.uNumCascades, thisLight.numCascades);
-
-    for( var i = 0; i < scene.getNumLights(); i++ ) { // for each light
-        var light = scene.getLight(i);
-        var lightLoc = renderWithCascadesProg.lights[i];
-        var lightPersp = light.getProjectionMat();
-        var mlpMat = mat4.create();
-        mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
-        gl.uniform3fv( lightLoc.uLPosLoc, light.getPosition());
-        gl.uniformMatrix4fv( lightLoc.uModelLightLoc, false, light.getViewTransform());      
-        gl.uniformMatrix4fv( lightLoc.uMLPLoc, false, mlpMat);
-
-        for(var j = 0; j < light.numCascades; j++ ){ // for each cascade
-            gl.activeTexture( gl.TEXTURE0 + textureUnit);
-            gl.bindTexture( gl.TEXTURE_2D, light.cascadeFramebuffers[j].depthTexture());
-            gl.uniform1i( lightLoc.uCascadeLocs[j], textureUnit);
-            textureUnit++;
-        }
-    }
+    gl.uniformMatrix4fv( program.uNormalMatLoc, false, nmlMat)
 
     //------------------DRAW MODEL:
     
     for ( var i = 0; i < model_vertexVBOs.length; ++i ){
         //Bind vertex pos buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[i] );
-        gl.vertexAttribPointer( renderWithCascadesProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( renderWithCascadesProg.aVertexPosLoc );
+        gl.vertexAttribPointer( program.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( program.aVertexPosLoc );
 
         //Bind vertex normal buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_normalVBOs[i] );
-        gl.vertexAttribPointer( renderWithCascadesProg.aVertexNormalLoc, 3, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( renderWithCascadesProg.aVertexNormalLoc );
+        gl.vertexAttribPointer( program.aVertexNormalLoc, 3, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( program.aVertexNormalLoc );
 
         //Bind vertex texcoord buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_texcoordVBOs[i] );
-        gl.vertexAttribPointer( renderWithCascadesProg.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( renderWithCascadesProg.aVertexTexcoordLoc );
+        gl.vertexAttribPointer( program.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
+        gl.enableVertexAttribArray( program.aVertexTexcoordLoc );
         
         if ( model_texcoordVBOs[i].texture ) {
             //Bind texture    
-            gl.activeTexture( gl.TEXTURE0 + textureUnit );
+            gl.activeTexture( gl.TEXTURE0 + textureOffset );
             gl.bindTexture( gl.TEXTURE_2D, model_texcoordVBOs[i].texture );
-            gl.uniform1i( renderWithCascadesProg.uSamplerLoc, textureUnit );
+            gl.uniform1i( program.uSamplerLoc, textureOffset );
         }
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, model_indexVBOs[i] );
         gl.drawElements( gl.TRIANGLES, model_indexVBOs[i].numIndex, gl.UNSIGNED_SHORT, 0 );
     }
-
-
-    gl.bindBuffer( gl.ARRAY_BUFFER, null );
-    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
 };
 
 function initDofButtons() {
@@ -468,23 +465,96 @@ function initDofButtons() {
                                  0.1);
 };
 
+var fillGPass = function( program, framebuffer ) {
+
+    gl.useProgram( program.ref() );
+    framebuffer.bind(gl);
+    gl.viewport( 0, 0, framebuffer.getWidth(), framebuffer.getHeight() );
+    gl.enable( gl.DEPTH_TEST );
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+     //update the model-view matrix
+    var mvpMat = mat4.create();
+    mat4.multiply( mvpMat, camera.getProjectionMat(), camera.getViewTransform() );
+    gl.uniformMatrix4fv( program.uModelViewLoc, false, camera.getViewTransform());
+    gl.uniformMatrix4fv( program.uMVPLoc, false, mvpMat ); 
+
+    drawModel( program );
+    framebuffer.unbind(gl);
+    gl.useProgram( null );
+};
+
+var deferredRenderSpotLight = function( light, textureUnit) {
+    
+        
+        var lightPersp = light.getProjectionMat();
+        var mlpMat = mat4.create();
+        mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
+        gl.uniform3fv( deferredRenderProg.uLPosLoc, light.getPosition());
+        // mat4.multiply( mlpMat, camera.getViewTransform(), mlpMat ); // put light in camera space
+        gl.uniformMatrix4fv( deferredRenderProg.uMLPLoc, false, mlpMat);
+
+        gl.activeTexture( gl.TEXTURE0 + textureUnit );
+        gl.bindTexture( gl.TEXTURE_2D, light.cascadeFramebuffers[0].depthTexture() );
+        gl.uniform1i( deferredRenderProg.uShadowMapLoc, textureUnit)
+        
+
+        gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
+};
+
+var deferredRender = function(scene, framebuffer) {
+
+    framebuffer.bind(gl);
+
+    gl.viewport(0, 0, framebuffer.getWidth(), framebuffer.getHeight() )
+    gl.useProgram( deferredRenderProg.ref() );
+
+    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+    gl.disable( gl.DEPTH_TEST );
+    gl.enable( gl.BLEND );
+    gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
+
+    gl.uniform1i( deferredRenderProg.uDisplayTypeLoc, demo.texToDisplay );
+    gl.uniform1f( deferredRenderProg.uZNearLoc, demo.zNear );
+    gl.uniform1f( deferredRenderProg.uZFarLoc, demo.zFar );
+
+    var textureUnit = 0
+    gl.activeTexture( gl.TEXTURE0 + textureUnit);  //position
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(0) );
+    gl.uniform1i( deferredRenderProg.uPosSamplerLoc, 0 );
+    textureUnit++;
+    gl.activeTexture( gl.TEXTURE0 + textureUnit);  //normal
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(1) );
+    gl.uniform1i( deferredRenderProg.uNormalSamplerLoc, 1 );
+    textureUnit++;
+    gl.activeTexture( gl.TEXTURE0 + textureUnit);  //Color
+    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(2) );
+    gl.uniform1i( deferredRenderProg.uColorSamplerLoc, textureUnit );
+    textureUnit++;
+    gl.activeTexture( gl.TEXTURE0 + textureUnit);  //depth
+    gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture() );
+    gl.uniform1i( deferredRenderProg.uDepthSamplerLoc, 3 );
+    textureUnit++;
+    bindQuadBuffers(deferredRenderProg);
+    for( var i = 0; i < scene.getNumLights(); i++ ){
+
+        deferredRenderSpotLight( scene.getLight(i), textureUnit);
+
+    }
+
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
+    gl.bindBuffer( gl.ARRAY_BUFFER, null );
+
+    gl.disable( gl.BLEND );
+    framebuffer.unbind(gl);
+};
 
 /*
  * Renders the geometry and output color, normal, depth information
  */
-var deferredRenderPass1 = function(scene, index){
+var forwardRenderPass = function(scene, index){
 
-    index = index || 0;
-    //Render the scene into the shadowMap from the light view
-    // drawShadowMap(light, index);
-    for(var i = 0; i < scene.getNumLights(); i++ ) {
-        
-        updateShadowMaps(scene.getLight(i));
-        
-    }
     // blurPasses(shadowFBO.texture(0), shadowFBO, demo.blurSigma);
     //Now render from the camera
-
 
     gl.bindTexture( gl.TEXTURE_2D, null );
     fbo.bind(gl);
@@ -493,42 +563,72 @@ var deferredRenderPass1 = function(scene, index){
     gl.enable( gl.DEPTH_TEST );
 
     gl.useProgram( renderWithCascadesProg.ref() );
+    var textureUnit = 0;
 
-    drawModel(scene, index);
+    //update the model-view matrix
+    var mvpMat = mat4.create();
+    mat4.multiply( mvpMat, camera.getProjectionMat(), camera.getViewTransform() );
+    gl.uniform3fv( renderWithCascadesProg.uCPosLoc, camera.getPosition());
+    gl.uniformMatrix4fv( renderWithCascadesProg.uMVPLoc, false, mvpMat ); 
+
+    //--------------------UPDATE LIGHT UNIFORMS:
+
+    //for selected light
+    var thisLight = scene.getLight(demo.selectedLight);
+    gl.uniform1i( renderWithCascadesProg.uNumCascades, thisLight.numCascades);
+
+    for( var i = 0; i < scene.getNumLights(); i++ ) { // for each light
+        var light = scene.getLight(i);
+        var lightLoc = renderWithCascadesProg.lights[i];
+        var lightPersp = light.getProjectionMat();
+        var mlpMat = mat4.create();
+        mat4.multiply( mlpMat, lightPersp, light.getViewTransform() );
+        gl.uniform3fv( lightLoc.uLPosLoc, light.getPosition());
+        gl.uniformMatrix4fv( lightLoc.uModelLightLoc, false, light.getViewTransform());      
+        gl.uniformMatrix4fv( lightLoc.uMLPLoc, false, mlpMat);
+
+        for(var j = 0; j < light.numCascades; j++ ){ // for each cascade
+            gl.activeTexture( gl.TEXTURE0 + textureUnit);
+            gl.bindTexture( gl.TEXTURE_2D, light.cascadeFramebuffers[j].depthTexture());
+            gl.uniform1i( lightLoc.uCascadeLocs[j], textureUnit);
+            textureUnit++;
+        }
+    }
+
+    drawModel(renderWithCascadesProg, textureUnit);
     fbo.unbind(gl);
-
 }; 
 
 /* 
  * Does post-processing effect using the data obtained in part 1 
  */
-var deferredRenderPass2 = function(framebuffer) {
+var bufferRender = function(framebuffer) {
 
     framebuffer.bind(gl);
 
     gl.viewport(0, 0, framebuffer.getWidth(), framebuffer.getHeight() )
-    gl.useProgram( renderQuadProg.ref() );
+    gl.useProgram( bufferRenderProg.ref() );
     gl.disable( gl.DEPTH_TEST );
 
-    gl.uniform1i( renderQuadProg.uDisplayTypeLoc, demo.texToDisplay );
+    gl.uniform1i( bufferRenderProg.uDisplayTypeLoc, demo.texToDisplay );
 
     gl.activeTexture( gl.TEXTURE0 );  //position
     gl.bindTexture( gl.TEXTURE_2D, fbo.texture(0) );
-    gl.uniform1i( renderQuadProg.uPosSamplerLoc, 0 );
+    gl.uniform1i( bufferRenderProg.uPosSamplerLoc, 0 );
 
     gl.activeTexture( gl.TEXTURE1 );  //normal
     gl.bindTexture( gl.TEXTURE_2D, fbo.texture(1) );
-    gl.uniform1i( renderQuadProg.uNormalSamplerLoc, 1 );
+    gl.uniform1i( bufferRenderProg.uNormalSamplerLoc, 1 );
 
     gl.activeTexture( gl.TEXTURE2 );  //Color
     gl.bindTexture( gl.TEXTURE_2D, fbo.texture(2) );
-    gl.uniform1i( renderQuadProg.uColorSamplerLoc, 2 );
+    gl.uniform1i( bufferRenderProg.uColorSamplerLoc, 2 );
 
     gl.activeTexture( gl.TEXTURE3 );  //depth
-    gl.bindTexture( gl.TEXTURE_2D, fbo.texture(3) );
-    gl.uniform1i( renderQuadProg.uDepthSamplerLoc, 3 );
+    gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture() );
+    gl.uniform1i( bufferRenderProg.uDepthSamplerLoc, 3 );
 
-    bindQuadBuffers(renderQuadProg);
+    bindQuadBuffers(bufferRenderProg);
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 
@@ -538,11 +638,9 @@ var deferredRenderPass2 = function(framebuffer) {
     framebuffer.unbind(gl);
 };
 
-
 /*
  * Two passes, one to blur vertically and one to blur horizontally
  */
-
 var blurPasses = function(srcTex, framebuffer, sigma) {
     var vertical = 1;
     var horizontal = 0;
@@ -707,8 +805,6 @@ var dofPass = function(){
     gl.disable(gl.BLEND);
 };
 
-
-
 var downsamplePass = function(hiResTex, writeSlot){
 
     gl.useProgram( downsampleProg.ref() );
@@ -734,7 +830,7 @@ var finalPass = function(texture, framebuffer){
 
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); 
-    gl.useProgram(finalPassProg.ref());
+    gl.useProgram(finalfillGProg.ref());
     
     if(framebuffer) {
         gl.viewport( 0, 0, framebuffer.getWidth(), framebuffer.getHeight());
@@ -746,10 +842,10 @@ var finalPass = function(texture, framebuffer){
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(finalPassProg.uFinalImageLoc, 0);
+    gl.uniform1i(finalfillGProg.uFinalImageLoc, 0);
 
     gl.disable( gl.DEPTH_TEST );
-    bindQuadBuffers(finalPassProg);
+    bindQuadBuffers(finalfillGProg);
 
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 
@@ -784,10 +880,13 @@ var myRender = function() {
     moveLight(light);
     var canvasResolution = [SEC3.canvas.width, SEC3.canvas.height];
 
-    deferredRenderPass1(scene, demo.selectedLight );
+    updateShadowMaps(scene);
+    
+    // forwardRenderPass(scene, demo.selectedLight );
+    fillGPass( fillGProg, fbo );
+    deferredRender( scene, workingFBO );
 
-    if ( demo.secondPass === renderQuadProg) {
-        deferredRenderPass2(workingFBO);
+    if ( demo.secondPass === bufferRenderProg) {
         finalPass(workingFBO.texture(0));
     }
     else if ( demo.secondPass === blurProg) {
@@ -811,7 +910,7 @@ var myRenderLoop = function() {
         initLightUi();
         initBlurButtons();
         initDofButtons();
-        demo.secondPass = renderQuadProg;
+        demo.secondPass = bufferRenderProg;
         
         SEC3.setup = true;
     }
@@ -871,8 +970,8 @@ var loadObjects = function() {
     var objLoader = SEC3.createOBJLoader(scene);
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
     // objLoader.loadFromFile( gl, '/../models/buddha_new/buddha_scaled_.obj', '/../models/buddha_new/buddha_scaled_.mtl');
-    objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza3.obj', '/../models/dabrovic-sponza/sponza.mtl');
-    // objLoader.loadFromFile( gl, '/../models/cubeworld/cubeworld.obj', '/../models/cubeworld/cubeworld.mtl');
+    // objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza2.obj', '/../models/dabrovic-sponza/sponza2.mtl');
+    objLoader.loadFromFile( gl, '/../models/cubeworld/cubeworld.obj', '/../models/cubeworld/cubeworld.mtl');
     
        
     //Register a callback function that extracts vertex and normal 
@@ -925,7 +1024,7 @@ var setKeyInputs = function() {
           case 52: demo.texToDisplay = 3; break;     //show depth texture
 
           case 53: demo.secondPass = blurProg; break;
-          case 54: demo.secondPass = renderQuadProg; break;
+          case 54: demo.secondPass = bufferRenderProg; break;
           case 55: demo.secondPass = dofProg; break;
           case 56: 
             demo.secondPass = buildShadowMapProg; 
@@ -994,7 +1093,6 @@ var initLightUi = function() {
                  1);
 };
 
-
 function initBlurButtons() {
     
     SEC3.ui = SEC3.ui || new UI("uiWrapper");
@@ -1017,8 +1115,6 @@ function initBlurButtons() {
                  0.1);
 };
 
-
-
 var updateLightCount = function( newCount ) {
 
     var difference = newCount - scene.getNumLights();
@@ -1035,11 +1131,11 @@ var updateLightCount = function( newCount ) {
         }
     }
     demo.selectedLight =  newCount - 1;
-    buildShadowMapProg.dispose(gl);
-    buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
-    renderWithCascadesProg.dispose(gl);
-    renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
-    SEC3.run(gl);
+    // buildShadowMapProg.dispose(gl);
+    // buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+    // renderWithCascadesProg.dispose(gl);
+    // renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+    // SEC3.run(gl);
 }
 
 /*
@@ -1134,11 +1230,11 @@ var setupScene = function(canvasId, messageId ) {
 
     scene.setCamera(camera);
 
-    var nextLight = new SEC3.DiLight();
+    var nextLight = new SEC3.SpotLight();
     nextLight.goHome ( [ 0, 20, 0] ); 
     nextLight.setAzimuth( 45 );    
     nextLight.setElevation( -90.0 );
-    nextLight.setOrtho( 20, 20, demo.zNear, demo.zFar );
+    nextLight.setPerspective( 30, 1, demo.zNear, demo.zFar );
     nextLight.setupCascades( 1, 1024, gl, scene );
     scene.addLight(nextLight);
     demo.cascadeToDisplay = 0.0;

@@ -2,16 +2,18 @@ precision highp float;
 
 //--------------------------------------------------------------VARIABLES:
 
-uniform sampler2D u_colorTex;
+attribute vec3 a_pos;
+attribute vec2 a_texcoord;
 
 varying vec2 v_texcoord;
 
-
 //-------------------------------------------------------------------MAIN:
 
-void main() {
-
-	vec4 color = texture2D( u_colorTex, v_texcoord );
-	// color.rgb = sqrt(color.rgb);
-	gl_FragColor = sqrt(color);
+void main(void) {
+	
+    v_texcoord = a_texcoord * 0.5 + vec2(0.5);
+    gl_Position = vec4( a_pos, 1.0 );
 }
+
+
+
