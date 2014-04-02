@@ -105,19 +105,8 @@ SEC3.PerspProjector.prototype.getFrustumVerts = function () {
     spanXFar = vec4.fromValues( spanXFar, 0, 0, 0 );
     spanYFar = vec4.fromValues( 0, spanYFar, 0, 0 );
 
-    // var matrix = this.getViewTransform();
-    // vec4.transformMat4(spanXNear, spanXNear, matrix);
-    // vec4.transformMat4(spanYNear, spanYNear, matrix);
-    // vec4.transformMat4(spanXFar, spanXFar, matrix);
-    // vec4.transformMat4(spanYFar, spanYFar, matrix);
-
     var nearCenter = vec4.fromValues(0, 0, this.zNear, 1);
     var farCenter = vec4.fromValues(0, 0, this.zFar, 1);
-
-    // vec4.scale(nearCenter, nearCenter, this.zNear);
-    // vec4.scale(farCenter, farCenter, this.zFar);
-    // vec4.add(nearCenter, nearCenter, this.position);
-    // vec4.add(farCenter, farCenter, this.position);
 
     var verts = [];
 
@@ -175,6 +164,79 @@ SEC3.PerspProjector.prototype.getFrustumVerts = function () {
     verts.push(vec4.clone(result));
 
     return verts;
+};
+
+// returns far plane verts in world space
+SEC3.PerspProjector.prototype.getFarPlaneVerts = function () {
+
+    var inverseMvp = mat4.create();
+    var proj = mat4.clone(this.getProjectionMat());
+    mat4.invert(proj, proj);
+    var view = mat4.clone(this.getViewTransform());
+    mat4.invert(view, view);
+    mat4.multiply( inverseMvp, this.getProjectionMat(), this.getViewTransform() );
+    mat4.invert(inverseMvp, inverseMvp);
+
+    var upLeft = vec4.fromValues(-1, 1, 1, 1);
+    var downLeft = vec4.fromValues(-1, -1, 1, 1);
+    var downRight = vec4.fromValues(1, -1, 1, 1);
+    var upRight = vec4.fromValues(1, 1, 1, 1);
+
+    var vertices = [ upLeft, downLeft, downRight, upRight ];
+
+    for (var i = 0; i < vertices.length; i++ ) {
+
+        vec4.transformMat4(vertices[i], vertices[i], proj);
+        vec4.transformMat4(vertices[i], vertices[i], view);           
+        var scale = 1.0 / vertices[i][3];   
+        vec4.scale( vertices[i], vertices[i], scale );   
+        // vertices[i][2] = 1.0 * vertices[i][2];
+    }
+    return vertices;
+}
+
+// returns far plane verts in world space
+SEC3.PerspProjector.prototype.getNearPlaneVerts = function () {
+
+    var inverseMvp = mat4.create();
+    var proj = mat4.clone(this.getProjectionMat());
+    mat4.invert(proj, proj);
+    var view = mat4.clone(this.getViewTransform());
+    mat4.invert(view, view);
+    mat4.multiply( inverseMvp, this.getProjectionMat(), this.getViewTransform() );
+    mat4.invert(inverseMvp, inverseMvp);
+
+    var upLeft = vec4.fromValues(-1, 1, -1, 1);
+    var downLeft = vec4.fromValues(-1, -1, -1, 1);
+    var downRight = vec4.fromValues(1, -1, -1, 1);
+    var upRight = vec4.fromValues(1, 1, -1, 1);
+
+    var vertices = [ upLeft, downLeft, downRight, upRight ];
+
+    for (var i = 0; i < vertices.length; i++ ) {
+
+        vec4.transformMat4(vertices[i], vertices[i], proj);
+        vec4.transformMat4(vertices[i], vertices[i], view);           
+        var scale = 1.0 / vertices[i][3];   
+        vec4.scale( vertices[i], vertices[i], scale );
+        vertices[i][2] = -1.0 * vertices[i][2];     
+    }
+    return vertices;
+}
+
+SEC3.PerspProjector.prototype.getEyeRays = function () {
+
+    var farVertices = this.getFarPlaneVerts();
+    // var nearVertices = this.getNearPlaneVerts();
+    var components = [];
+
+    for( var i = 0; i < 4; i++ ) {
+        for( var j = 0; j < 3; j++ ) {
+    
+            components.push(farVertices[i][j]);
+        }
+    }
+    return components;
 };
 
 /*

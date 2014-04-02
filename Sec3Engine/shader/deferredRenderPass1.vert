@@ -22,10 +22,12 @@ void main(void) {
 
 	gl_Position = u_mvp * vec4( a_pos, 1.0 );
 
-	// v_pos = u_modelview * vec4( a_pos, 1.0 );
-	v_pos = vec4( a_pos, 1.0);
+	v_pos = u_modelview * vec4( a_pos, 1.0 );
+
+	// v_pos = vec4( a_pos, 1.0);
 	
-	v_normal = vec3( u_normalMat * vec4(a_normal,0.0) );
+	// v_normal = vec3( u_normalMat * vec4(a_normal,0.0) );
+	v_normal = a_normal;
 
 	v_texcoord = a_texcoord;
 
