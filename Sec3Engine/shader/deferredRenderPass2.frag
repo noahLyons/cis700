@@ -4,7 +4,7 @@ precision highp float;
 #define DISPLAY_NORMAL 1
 #define DISPLAY_COLOR 2
 #define DISPLAY_DEPTH 3
-#define BIAS 0.001
+#define BIAS 0.002
 #define LIGHT_INTENSITY 40.0
 //--------------------------------------------------------------VARIABLES:
 

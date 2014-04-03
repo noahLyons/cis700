@@ -15,6 +15,7 @@ void main(void) {
 	
 	worldPosition = texture2D(uParticlePositions, aParticleIndex).rgb;
    	gl_Position = uCameraTransform * vec4(worldPosition, 1.0);//write 
-	gl_PointSize = uSize;
+
+	gl_PointSize = 1.0;
 
 }

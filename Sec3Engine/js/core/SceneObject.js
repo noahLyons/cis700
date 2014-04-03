@@ -1,5 +1,5 @@
 /**
-*   Camera object
+*   projector object
 *   Based on the code sample from WebGL Beginner's Guide.
 */
 
@@ -10,54 +10,47 @@ var SEC3 = SEC3 || {};
  */
 SEC3.SceneObject = function() {
 
-    this.matrix     = mat4.create();
-    this.up         = vec3.create();
-    this.right      = vec3.create();
-    this.normal     = vec3.create();
-    this.position   = vec3.create();
-    this.home       = vec3.create();
-    this.azimuth    = 0.0;
-    this.elevation  = 0.0;
-    this.steps      = 0;
-
+    this.matrix      = mat4.create();
+    this.up          = vec3.create();
+    this.right       = vec3.create();
+    this.normal      = vec3.create();
+    this.position    = vec3.create();
+    this.home        = vec3.create();
+    this.azimuth     = 0.0;
+    this.elevation   = 0.0;
+   
 };
 
 SEC3.SceneObject.prototype = {
 
     constructor: SEC3.SceneObject,
 
+    update: function () {
+        mat4.identity(this.matrix);
+        mat4.translate( this.matrix, this.matrix, this.position );
+        mat4.rotateY( this.matrix, this.matrix, this.azimuth * Math.PI/180 );
+        mat4.rotateX( this.matrix, this.matrix, this.elevation * Math.PI/180 );
+
+        var m = this.matrix;
+        
+        vec4.transformMat4( this.right, [1,0,0,0], m );
+        vec4.transformMat4( this.up, [0,1,0,0], m );
+        vec4.transformMat4( this.normal, [0,0,1,0], m );
+        vec3.normalize( this.normal, this.normal );
+        vec3.normalize( this.up, this.up );
+        vec3.normalize( this.right, this.right );
+        vec4.transformMat4( this.position, [0,0,0,1], m );
+    },
+
     setPosition: function (p){
         vec3.set( this.position, p[0], p[1], p[2] );
         this.update();
     },
-
-    dolly: function(s){
-        
-        var p =  vec3.create();
-        var n = vec3.create();
-        
-        p = this.position;
-        
-        var step = s - this.steps;
-        
-        vec3.normalize( n, this.normal );
-        
-        var newPosition = vec3.create();
-        
-        if(type == CAMERA_TRACKING_TYPE){
-            newPosition[0] = p[0] - step*n[0];
-            newPosition[1] = p[1] - step*n[1];
-            newPosition[2] = p[2] - step*n[2];
-        }
-        else{
-            newPosition[0] = p[0];
-            newPosition[1] = p[1];
-            newPosition[2] = p[2] - step; 
-        }
-    	
-        this.setPosition(newPosition);
-        this.steps = s;
+    
+    getPosition: function (){
+        return this.position;
     },
+
 
     setAzimuth: function(az){
         this.changeAzimuth(az - this.azimuth);
@@ -68,8 +61,8 @@ SEC3.SceneObject.prototype = {
         this.azimuth +=az;
         
         if (this.azimuth > 360 || this.azimuth <-360) {
-    		this.azimuth = this.azimuth % 360;
-    	}
+            this.azimuth = this.azimuth % 360;
+        }
         this.update();
     },
 
@@ -82,8 +75,8 @@ SEC3.SceneObject.prototype = {
         this.elevation +=el;
         
         if (this.elevation > 360 || this.elevation <-360) {
-    		this.elevation = this.elevation % 360;
-    	}
+            this.elevation = this.elevation % 360;
+        }
         this.update();
     },
 
@@ -97,71 +90,41 @@ SEC3.SceneObject.prototype = {
         this.steps = 0;
     },
 
-    getViewTransform: function(){
-        var m = mat4.create();
-        mat4.invert( m, this.matrix );
-        return m;
-    },
-
-    moveForward: function(){
-       
-        vec3.scaleAndAdd( this.position, this.position, this.normal, -0.1 );
+    moveForward: function(direction){
+       direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.normal, -direction );
         this.update();
     },
 
-    moveBackward: function(){
-       
-        vec3.scaleAndAdd( this.position, this.position, normal, 0.1 );
+    moveBackward: function(direction){
+       direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.normal, direction );
         this.update();
     },
 
-    moveLeft: function(){
-        
-        vec3.scaleAndAdd( this.position, this.position, this.right, -0.01 );
+    moveLeft: function(direction){
+        direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.right, -direction );
         this.update();
     },
 
-    moveRight: function(){
-        
-        vec3.scaleAndAdd( this.position, this.position, this.right, 0.01 );
+    moveRight: function(direction){
+        direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.right, direction );
         this.update();
     },
 
-    moveU: function(){
-        
-        vec3.scaleAndAdd( this.position, this.position, this.up, 0.1 );
+    moveUp: function(direction){
+        direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.up, direction );
         this.update();
     },
 
-    moveDown: function(){
-        
-        vec3.scaleAndAdd( this.position, this.position, this.up, -0.1 );
+    moveDown: function(direction){
+        direction = direction || 0.1;
+        vec3.scaleAndAdd( this.position, this.position, this.up, -direction );
         this.update();
     }
-
-    // clone: function( object ) { 
-    //     if( object === undefined ) object = new SEC3.SceneObject();
-
-    //     object.setType = this.setType;
-    //     object.goHome = this.goHome;
-    //     object.dolly = this.dolly;
-    //     object.setPosition = this.setPosition;
-    //     object.setAzimuth = this.setAzimuth;
-    //     object.changeAzimuth = this.changeAzimuth;
-    //     object.setElevation = this.setElevation;
-    //     object.changeElevation = this.changeElevation;
-    //     object.update = this.update;    
-    //     object.getViewTransform = this.getViewTransform;
-    //     object.moveForward = this.moveForward; 
-    //     object.moveBackward = this.moveBackward; 
-    //     object.moveLeft = this.moveLeft;
-    //     object.moveRight = this.moveRight; 
-    //     object.moveUp = this.moveUp;
-    //     object.moveDown = this.moveDown;
-
-    //     return object;
-
-    // }
 
 };
 

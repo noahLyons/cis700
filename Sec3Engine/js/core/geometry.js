@@ -1,4 +1,4 @@
-var SEC3ENGINE = SEC3ENGINE || {};
+var SEC3 = SEC3 || {};
 
 	
 
@@ -9,12 +9,12 @@ var SEC3ENGINE = SEC3ENGINE || {};
 
 	geometry.prototype = {
 	}
-SEC3ENGINE.geometry = geometry;
+SEC3.geometry = geometry;
 	
 })();
 (function() {
 	function fullScreenQuad(){
-		SEC3ENGINE.geometry.apply(this);
+		SEC3.geometry.apply(this);
 			return [ -1.0, 1.0,
 					 1.0, 1.0,
 					 1.0, -1.0,
@@ -24,5 +24,5 @@ SEC3ENGINE.geometry = geometry;
 
 		}
 		
-SEC3ENGINE.geometry.fullScreenQuad = fullScreenQuad;
+SEC3.geometry.fullScreenQuad = fullScreenQuad;
 })();

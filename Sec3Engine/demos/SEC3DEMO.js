@@ -381,7 +381,9 @@ var drawShadowMap = function(light, index){
    
     gl.viewport(0, 0, resolution, resolution );
     gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT );
-    // gl.colorMask(false,false,false,false);
+    if ( demo.secondPass === buildShadowMapProg) {
+         gl.colorMask(false,false,false,false);
+    }
     gl.enable( gl.DEPTH_TEST );
     // gl.cullFace(gl.BACK);
     gl.useProgram(buildShadowMapProg.ref());
@@ -403,9 +405,9 @@ var drawShadowMap = function(light, index){
         gl.bindBuffer( gl.ARRAY_BUFFER, null );
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
     }
-
-    // gl.colorMask(true,true,true,true);
-
+    if ( demo.secondPass === buildShadowMapProg) {
+        gl.colorMask(true,true,true,true);
+    }
     shadowFbo.unbind(gl);
     // gl.cullFace(gl.BACK);
 };
@@ -980,8 +982,8 @@ var myRender = function() {
     updateShadowMaps(scene);
     
     // forwardRenderPass(scene, demo.selectedLight );
-    fillGPass( fillGProg, fbo );
-    deferredRender( scene, fbo, workingFBO );
+    fillGPass( fillGProg, SEC3.gBuffer );
+    deferredRender( scene, SEC3.gBuffer, workingFBO );
 
     if ( demo.secondPass === bufferRenderProg) {
         finalPass(workingFBO.texture(demo.texToDisplay));
@@ -1014,6 +1016,8 @@ var myRenderLoop = function() {
 
     window.requestAnimationFrame( myRenderLoop );
     myRender();
+    gl.flush();
+    particleSystem.draw();
 };
 
 var main = function( canvasId, messageId ){
@@ -1026,8 +1030,6 @@ var main = function( canvasId, messageId ){
         //'2' = Attachment 2: vertex normal
         //'3' = Attachment 3: vertex color
         //'4' = Attachment 4: vertex depth 
-
-    createScreenSizedQuad();
 
     createShaders();
 
@@ -1042,27 +1044,6 @@ var main = function( canvasId, messageId ){
 
 //-----------------------------------------------------------STANDARD SETUP METHODS:
 
-var createScreenSizedQuad = function() {
-
-    quad_vertexVBO = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, quad_vertexVBO );
-    gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(screenQuad.vertices), gl.STATIC_DRAW );
- 
-    quad_texcoordVBO = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, quad_texcoordVBO );
-    gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(screenQuad.texcoords), gl.STATIC_DRAW );   
-    gl.bindBuffer( gl.ARRAY_BUFFER, null );
-
-    quad_indexVBO = gl.createBuffer();
-    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, quad_indexVBO );
-    gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(screenQuad.indices), gl.STATIC_DRAW );
-    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
-
-    quad_eyeRayVBO = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, quad_eyeRayVBO );
-    gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(), gl.STREAM_DRAW );
-    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );   
-};
 
 /*
  * Loads objects from obj files into the model_VBOs
@@ -1071,7 +1052,7 @@ var loadObjects = function() {
     //Load a OBJ model from file
     var objLoader = SEC3.createOBJLoader(scene);
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
-    // objLoader.loadFromFile( gl, '/../models/buddha_new/buddha_scaled_.obj', '/../models/buddha_new/buddha_scaled_.mtl');
+    objLoader.loadFromFile( gl, '/../models/buddha_new/buddha_scaled_.obj', '/../models/buddha_new/buddha_scaled_.mtl');
     objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza.obj', '/../models/dabrovic-sponza/sponza.mtl');
     // objLoader.loadFromFile( gl, '/../models/cubeworld/cubeworld.obj', '/../models/cubeworld/cubeworld.mtl');
     
@@ -1314,6 +1295,8 @@ var setupScene = function(canvasId, messageId ) {
     }
     
     gl.viewport( 0, 0, canvas.width, canvas.height );
+    gl.viewportWidth = canvas.width;
+    gl.viewportHeight = canvas.height;
     // gl.clearColor( 0.3, 0.3, 0.3, 1.0 );
     gl.clearColor( 0.0, 0.0, 0.0, 0.0);
 
@@ -1327,7 +1310,7 @@ var setupScene = function(canvasId, messageId ) {
     camera = new SEC3.Camera();
     camera.goHome( [0.0, 8.0, 0.0] ); //initial camera posiiton
     camera.setAzimuth( 0.0 );
-    camera.setElevation( 10.0 );
+    camera.setElevation( 0.0 );
     interactor = SEC3.CameraInteractor( camera, canvas );
     camera.setPerspective( 60, canvas.width / canvas.height, demo.zNear, demo.zFar );
 
@@ -1344,10 +1327,33 @@ var setupScene = function(canvasId, messageId ) {
     lightAngle = 0.0;
     elCounter = 125;
 
-    // setupLights();
     loadObjects();
 
+    var particleSpecs = {
+        maxParticles : 1000000,
+        emitters : [],
+        gravityModifier : -20.0,
+        RGBA : [0.0, 0.2, 0.9, 0.025],
+        damping : 1.00,
+        type : "nBody",
+        activeBodies : 4,
+        particleSize : 4.0,
+        luminence : 166.0,
+        scatterMultiply : 1.75,
+        shadowMultiply : 0.1,
+        scale : 350.0
+        //TODO phi and theta?
+    };
+    particleSystem = SEC3.createParticleSystem(particleSpecs);
+
     //Create a FBO
+
+    SEC3.gBuffer = SEC3.createFBO();
+    if (! SEC3.gBuffer.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "FBO initialization failed.");
+        return;
+    }
+
     fbo = SEC3.createFBO();
     if (! fbo.initialize( gl, canvas.width, canvas.height )) {
         console.log( "FBO initialization failed.");
@@ -1391,22 +1397,7 @@ var setupScene = function(canvasId, messageId ) {
 
 var bindQuadBuffers = function(program, farPlaneVerts) {
 
-    gl.bindBuffer( gl.ARRAY_BUFFER, quad_vertexVBO );
-    gl.vertexAttribPointer( program.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( program.aVertexPosLoc );
-
-    gl.bindBuffer( gl.ARRAY_BUFFER, quad_texcoordVBO );
-    gl.vertexAttribPointer( program.aVertexTexcoordLoc, 2, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( program.aVertexTexcoordLoc );
-
-    if( farPlaneVerts ) {
-        gl.bindBuffer( gl.ARRAY_BUFFER, quad_eyeRayVBO );
-        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(farPlaneVerts), gl.STREAM_DRAW );
-        gl.vertexAttribPointer( program.aVertexEyeRayLoc, 3, gl.FLOAT, false, 0, 0 );
-        gl.enableVertexAttribArray( program.aVertexEyeRayLoc );
-    }
-
-    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, quad_indexVBO );  
+    SEC3.renderer.bindQuadBuffers(program, farPlaneVerts);
 }
 
 var setActiveTexture = function(gl, texNum) {
