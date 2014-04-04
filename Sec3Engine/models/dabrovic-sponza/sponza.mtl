@@ -28,10 +28,10 @@ newmtl sp_svod_kapitel
 	Kd 0.713726 0.705882 0.658824
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka 00_SKAP.jpeg
-	map_Kd 00_SKAP.jpeg
-	map_bump 00_SKAP.jpeg
-	bump 00_SKAP.jpeg
+	map_Ka 00_S_kap.jpeg
+	map_Kd 00_S_kap.jpeg
+	map_bump 00_S_kap.jpeg
+	bump 00_S_kap.jpeg
 
 newmtl sp_01_stub_baza_
 	Ns 19.999998
@@ -88,10 +88,10 @@ newmtl sp_01_stub_baza
 	Kd 0.800000 0.784314 0.749020
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka 01_S_BA.jpeg
-	map_Kd 01_S_BA.jpeg
-	map_bump 01_S_BA.jpeg
-	bump 01_S_BA.jpeg
+	map_Ka 01_S_ba.jpeg
+	map_Kd 01_S_ba.jpeg
+	map_bump 01_S_ba.jpeg
+	bump 01_S_ba.jpeg
 
 newmtl sp_00_luk_mal1
 	Ns 50.000000
@@ -104,8 +104,8 @@ newmtl sp_00_luk_mal1
 	Kd 0.745098 0.709804 0.674510
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka 01_ST_KP.jpeg
-	map_Kd 01_ST_KP.jpeg
+	map_Ka 01_St_kp.jpeg
+	map_Kd 01_St_kp.jpeg
 	map_bump 01_St_kp-bump.jpeg
 	bump 01_St_kp-bump.jpeg
 
@@ -150,10 +150,10 @@ newmtl sp_vijenac
 	Kd 0.713726 0.705882 0.658824
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka 00_SKAP.jpeg
-	map_Kd 00_SKAP.jpeg
-	map_bump 00_SKAP.jpeg
-	bump 00_SKAP.jpeg
+	map_Ka 00_S_kap.jpeg
+	map_Kd 00_S_kap.jpeg
+	map_bump 00_S_kap.jpeg
+	bump 00_S_kap.jpeg
 
 newmtl sp_00_svod
 	Ns 1.000000
@@ -230,10 +230,10 @@ newmtl sp_01_stup_baza
 	Kd 0.800000 0.784314 0.749020
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka 01_S_BA.jpeg
-	map_Kd 01_S_BA.jpeg
-	map_bump 01_S_BA.jpeg
-	bump 01_S_BA.jpeg
+	map_Ka 01_S_ba.jpeg
+	map_Kd 01_S_ba.jpeg
+	map_bump 01_S_ba.jpeg
+	bump 01_S_ba.jpeg
 
 newmtl sp_00_zid
 	Ns 50.000000
