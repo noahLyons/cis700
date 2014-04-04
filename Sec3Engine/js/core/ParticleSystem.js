@@ -44,20 +44,22 @@ SEC3.createParticleSystem = function(specs) {
 	var renderProgram;
 	var stepProgram;
 	var interactor = {};
-	interactor.attractor = [ 0.0, 4.0, 0.1 ];
+	interactor.attractor = [ -13.5, 6.0, 0.0 ];
 	var self = {};
 
 //----------------------------------------------------------------METHODS:
 	
-	var draw = function() { // PUBLIC
-		// Determine from which position particle info will be read and written
-	    swapSrcDestIndices();
+
+	var update = function() {
+		swapSrcDestIndices();
 
 	    stepParticles();
-	    // updateShadowMap();
-	    renderParticles();
+	    updateShadowMap(scene.getLight(0));
+	};
 
-	    systemCycles++; // TODO time?
+	var draw = function() {
+		renderParticles();
+		systemCycles++;
 	};
 	
 	/*
@@ -96,7 +98,7 @@ SEC3.createParticleSystem = function(specs) {
 	    gl.vertexAttribPointer(stepProgram.aVertexPosition, 2, gl.FLOAT, false, 0, 0); 
 	    gl.enableVertexAttribArray(stepProgram.aVertexPosition);
 
-	    gl.uniform3f(stepProgram.uAttractor, interactor.attractor[0], interactor.attractor[1], interactor.attractor[2]);
+	    gl.uniform3f(stepProgram.uAttractor, interactor.attractor[0], scene.getCamera().getPosition()[1] * 0.8, interactor.attractor[2]);
 
 	    gl.drawArrays(gl.TRIANGLES, 0, 6); 
 	}
@@ -104,46 +106,44 @@ SEC3.createParticleSystem = function(specs) {
 	/*
 	 * draws current scene into shadow map
 	 */
-	// var updateShadowMap = function () {
+	var updateShadowMap = function ( light  ) {
 
-	// 	gl.colorMask(false,false,false,false);
-	//     gl.useProgram(self.shadowProgram.ref());
-	//     gl.viewport(0, 0, SHADOWMAP_SIZE, SHADOWMAP_SIZE)
+		var fbo = light.cascadeFramebuffers[0];
+		gl.colorMask(false,false,false,false);
+	    gl.useProgram(self.shadowProgram.ref());
+	    gl.viewport(0, 0, fbo.getWidth(), fbo.getHeight());
 
-	//     gl.activeTexture(gl.TEXTURE0);
-	//     gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
-	//     gl.uniform1i(shadowProgram.uParticlePositions, 0);
+	    gl.activeTexture(gl.TEXTURE0);
+	    gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
+	    gl.uniform1i(shadowProgram.uParticlePositions, 0);
 
-	//     gl.uniformMatrix4fv(shadowProgram.uLightMatrix, false, self.light.getViewTransform());
-	//     gl.enable(gl.DEPTH_TEST);
-	//     gl.disable(gl.BLEND);
 
-	//     //enable particle index and draw particles to the screen
-	//     gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer);
-	//     gl.vertexAttribPointer(shadowProgram.particleIndexAttribute, 2, gl.FLOAT, false, 0, 0); 
-	//     gl.enableVertexAttribArray(shadowProgram.particleIndexAttribute); 
+	    gl.uniformMatrix4fv(shadowProgram.uLightMatrix, false, light.getMVP());
+	    gl.enable(gl.DEPTH_TEST);
+	    gl.disable(gl.BLEND);
 
-	//     gl.bindFramebuffer(gl.FRAMEBUFFER, depthBuffer); //bind the depth buffer
-	//    	gl.clear(gl.DEPTH_BUFFER_BIT);
-
+	    //enable particle index and draw particles to the screen
+	    gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer);
+	    gl.vertexAttribPointer(shadowProgram.particleIndexAttribute, 2, gl.FLOAT, false, 0, 0); 
+	    gl.enableVertexAttribArray(shadowProgram.particleIndexAttribute); 
 	   			
-	//     gl.drawArrays(gl.POINTS, 0, self.maxParticles); 
-	//     gl.colorMask(true,true,true,true);
-	// }
+	    fbo.bind(gl);
+	   	// gl.clear(gl.DEPTH_BUFFER_BIT);
+	    gl.drawArrays(gl.POINTS, 0, self.maxParticles / 3.0); 
+	    fbo.unbind(gl);
+	    gl.colorMask(true,true,true,true);
+	}
 
 	/*
 	 * Draws all particles in system
 	 */
 	var renderParticles = function () {
-		//light setup
-		// light.changeAzimuth(0.1);
-		// mat4.rotate(light.matrix)
-		// interactor.attractor[2] = 0.01 * (elCounter % 1000.0);
+
 	    gl.useProgram(self.renderProgram.ref());
 	    gl.viewport(0, 0, SEC3.canvas.width, SEC3.canvas.height );
 
-		// var lightPosition = self.light.getPosition();
-	    // gl.uniform3f(renderProgram.uLightPosition, lightPosition[0], lightPosition[1], lightPosition[2]);
+		
+	    gl.uniform3fv(renderProgram.uLightPosition, scene.getLight(0).getPosition());
 
 	    gl.activeTexture(gl.TEXTURE0);
 	    gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
@@ -152,26 +152,28 @@ SEC3.createParticleSystem = function(specs) {
 	    gl.activeTexture( gl.TEXTURE1 );
 	    gl.bindTexture( gl.TEXTURE_2D, SEC3.gBuffer.depthTexture() );
 	    gl.uniform1i( renderProgram.uGDepthLoc, 1 );
-	    // gl.activeTexture(gl.TEXTURE1);
-	    // gl.bindTexture(gl.TEXTURE_2D, shadowMapTexture);
-	    // gl.uniform1i(renderProgram.uShadowMap, 1);
-	   	
-	   	// gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, self.light.getViewTransform());
-	    gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, scene.getCamera().getMVP());
 
+	    gl.activeTexture(gl.TEXTURE2);
+	    gl.bindTexture(gl.TEXTURE_2D, scene.getLight(0).cascadeFramebuffers[0].depthTexture() );
+	    gl.uniform1i(renderProgram.uShadowMap, 2);
+	   	
+	   	gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, scene.getLight(0).getMVP() );
+	    gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, scene.getCamera().getMVP());
+	    gl.uniform3fv(renderProgram.uLightPosition, scene.getLight(0).getPosition() );
 	    //bind the default frame buffer, disable depth testing and enable alpha blending
 	    gl.bindFramebuffer(gl.FRAMEBUFFER, null); //bind the default frame buffer
 	    // gl.enable(gl.DEPTH_TEST);
 	    gl.enable(gl.BLEND);
-	    // gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.SRC_ALPHA, gl.ONE);
+	    // gl.blendFunc( gl.ONE, gl.ONE_MINUS_SRC_ALPHA );
+	    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.SRC_ALPHA, gl.ONE);
 	    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	    //enable particle index and draw particles to the screen
 	    gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer);
 	    gl.vertexAttribPointer(renderProgram.particleIndexAttribute, 2, gl.FLOAT, false, 0, 0); 
 	    gl.enableVertexAttribArray(renderProgram.particleIndexAttribute); 
+	   	// gl.enable(0x0B10);
 	    gl.drawArrays(gl.POINTS, 0, self.maxParticles); 
-	    gl.flush();
 	    gl.disable(gl.BLEND);
 
 	}
@@ -206,11 +208,6 @@ SEC3.createParticleSystem = function(specs) {
 		self.scatterMultiply = specs.scatterMultiply;
 		self.shadowMultiply = specs.shadowMultiply;
 		self.scale = specs.scale;
-		// light = SEC3.createCamera(CAMERA_TRACKING_TYPE);
-		// light.goHome([0.0, 12.0, 0.0]);
-		// light.setAzimuth(0.0);
-		// light.setElevation(-90.0);
-		// self.light = light;
 		
     };
 
@@ -247,46 +244,6 @@ SEC3.createParticleSystem = function(specs) {
 	        ext.COLOR_ATTACHMENT1_WEBGL,
 	    ]);
 
-	    // SHADOW MAP STUFF
-	  	
-	    // setup shadow map render target
-	 //  	var depthExt = SEC3.extensions.depthTexture(gl);
-
-		// shadowMapTexture = gl.createTexture();
-		// gl.bindTexture(gl.TEXTURE_2D, shadowMapTexture);
-		// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	 //    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	 //    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	 //    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	 //    gl.texImage2D(gl.TEXTURE_2D,
-	 //    			  0, 
-	 //    			  gl.DEPTH_COMPONENT,
-	 //    			  SHADOWMAP_SIZE,
-	 //    			  SHADOWMAP_SIZE,
-	 //    			  0,
-	 //    			  gl.DEPTH_COMPONENT,
-	 //    			  gl.UNSIGNED_SHORT,
-	 //    			  null);
-
-	 //    nullTexture = {};
-	 //    nullTexture = generateTexture(null, SHADOWMAP_SIZE);
-
-	 //    depthBuffer = gl.createFramebuffer();
-	 //    gl.bindFramebuffer(gl.FRAMEBUFFER,depthBuffer);
-	 //    gl.framebufferTexture2D(gl.FRAMEBUFFER, 
-	 //                            SEC3.extensions.drawBuffers(gl).COLOR_ATTACHMENT0_WEBGL, 
-	 //                            gl.TEXTURE_2D, 
-	 //                            nullTexture, 
-	 //                            0); 
-
-	 //    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, shadowMapTexture, 0);
-	    
-	 //    gl.framebufferTexture2D(gl.FRAMEBUFFER, 
-	 //                            SEC3.extensions.drawBuffers(gl).COLOR_ATTACHMENT0_WEBGL, 
-	 //                            gl.TEXTURE_2D, 
-	 //                            nullTexture, 
-	 //                            0);
-	   	
 	};
 
 	var generateTexture = function(values, size) { // TODO must change for emitter
@@ -310,18 +267,16 @@ SEC3.createParticleSystem = function(specs) {
 
 	    SEC3.extensions.drawBuffers(gl);
 
-	    // shadowProgram = SEC3.createShaderProgram();
-	    // shadowProgram.loadShader(gl, "SEC3/shader/shadowMapAdd.vert", "SEC3/shader/shadowMapAdd.frag");
-	    // shadowProgram.addCallback( function() {
-	    //     shadowProgram.particleIndexAttribute = gl.getAttribLocation(shadowProgram.ref(), "aParticleIndex");
-	    //     shadowProgram.uLightMatrix = gl.getUniformLocation(shadowProgram.ref(), "uLightMatrix");
-	    //     shadowProgram.uParticlePositions = gl.getUniformLocation(shadowProgram.ref(), "uParticlePositions");
-	    //     // gl.useProgram(shadowProgram.ref());
-    	// 	// gl.uniformMatrix4fv(shadowProgram.uLightMatrix, false, light.getViewTransform());
-	    //     self.shadowProgram = shadowProgram;
-	    // });
+	    shadowProgram = SEC3.createShaderProgram();
+	    shadowProgram.loadShader(gl, "shader/shadowMapAdd.vert", "shader/shadowMapAdd.frag");
+	    shadowProgram.addCallback( function() {
+	        shadowProgram.particleIndexAttribute = gl.getAttribLocation(shadowProgram.ref(), "aParticleIndex");
+	        shadowProgram.uLightMatrix = gl.getUniformLocation(shadowProgram.ref(), "uLightMatrix");
+	        shadowProgram.uParticlePositions = gl.getUniformLocation(shadowProgram.ref(), "uParticlePositions");
+	        self.shadowProgram = shadowProgram;
+	    });
 
-	    // SEC3.registerAsyncObj(gl, shadowProgram);
+	    SEC3.registerAsyncObj(gl, shadowProgram);
 
 	    renderProgram = SEC3.createShaderProgram();
 	    renderProgram.loadShader(gl, "shader/nBodyRender.vert", "shader/nBodyRender.frag");
@@ -331,25 +286,25 @@ SEC3.createParticleSystem = function(specs) {
 	        renderProgram.uParticlePositions = gl.getUniformLocation(renderProgram.ref(), "uParticlePositions");
 	        renderProgram.uGDepthLoc = gl.getUniformLocation( renderProgram.ref(), "u_gDepth");
 	        renderProgram.uScreenSizeLoc = gl.getUniformLocation( renderProgram.ref(), "u_screenSize");
-	        // renderProgram.uAlpha = gl.getUniformLocation(renderProgram.ref(), "uAlpha");
-	        // renderProgram.uSize = gl.getUniformLocation(renderProgram.ref(), "uSize");
-	        // renderProgram.uShadowMap = gl.getUniformLocation(renderProgram.ref(), "uShadowMap");
-	        // renderProgram.uShadowMapTransform = gl.getUniformLocation(renderProgram.ref(), "uShadowMapTransform")
-			// renderProgram.uLightPosition = gl.getUniformLocation(renderProgram.ref(), "uLightPosition");
-			// renderProgram.uLuminence = gl.getUniformLocation(renderProgram.ref(), "uLuminence");
-			// renderProgram.uScatterMultiply = gl.getUniformLocation(renderProgram.ref(), "uScatterMultiply");
-			// renderProgram.uShadowMultiply = gl.getUniformLocation(renderProgram.ref(), "uShadowMultiply");
-			// renderProgram.uScale = gl.getUniformLocation(renderProgram.ref(), "uScale");
+	        renderProgram.uAlpha = gl.getUniformLocation(renderProgram.ref(), "uAlpha");
+	        renderProgram.uSize = gl.getUniformLocation(renderProgram.ref(), "uSize");
+	        renderProgram.uShadowMap = gl.getUniformLocation(renderProgram.ref(), "uShadowMap");
+	        renderProgram.uShadowMapTransform = gl.getUniformLocation(renderProgram.ref(), "uShadowMapTransform")
+			renderProgram.uLightPosition = gl.getUniformLocation(renderProgram.ref(), "uLightPosition");
+			renderProgram.uLuminence = gl.getUniformLocation(renderProgram.ref(), "uLuminence");
+			renderProgram.uScatterMultiply = gl.getUniformLocation(renderProgram.ref(), "uScatterMultiply");
+			renderProgram.uShadowMultiply = gl.getUniformLocation(renderProgram.ref(), "uShadowMultiply");
+			renderProgram.uScale = gl.getUniformLocation(renderProgram.ref(), "uScale");
 	        gl.useProgram(renderProgram.ref());
-	        // gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, light.getViewTransform());
+	        gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, scene.getLight(0).getMVP());
     		gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, scene.getCamera().getMVP());
     		gl.uniform2fv( renderProgram.uScreenSizeLoc, vec2.fromValues(SEC3.canvas.width, SEC3.canvas.height ));
-    		// gl.uniform1f(renderProgram.uLuminence, self.luminence);	
-   	        // gl.uniform1f(renderProgram.uAlpha, self.RGBA[3]);
-	        // gl.uniform1f(renderProgram.uSize, self.particleSize);
-	        // gl.uniform1f(renderProgram.uShadowMultiply, self.shadowMultiply);
-	        // gl.uniform1f(renderProgram.uScatterMultiply, self.scatterMultiply);
-	        // gl.uniform1f(renderProgram.uScale, self.scale);
+    		gl.uniform1f(renderProgram.uLuminence, self.luminence);	
+   	        gl.uniform1f(renderProgram.uAlpha, self.RGBA[3]);
+	        gl.uniform1f(renderProgram.uSize, self.particleSize);
+	        gl.uniform1f(renderProgram.uShadowMultiply, self.shadowMultiply);
+	        gl.uniform1f(renderProgram.uScatterMultiply, self.scatterMultiply);
+	        gl.uniform1f(renderProgram.uScale, self.scale);
 
 	        // var lightPosition = self.light.getPosition();
 	        // gl.uniform3f(renderProgram.uLightPosition, lightPosition[0], lightPosition[1], lightPosition[2]);
@@ -400,12 +355,12 @@ SEC3.createParticleSystem = function(specs) {
 
 		positionTextures = [];
 		velocityTextures = [];	
-		velocities = [];
-		accelerations = []; 
-		startPositions = [];
-		textureMemoryLocation = [];
+		// velocities = [];
+		// accelerations = []; 
+		// startPositions = [];
+		// textureMemoryLocation = [];
 
-		createParticlesInSphere();
+		// createParticlesInSphere();
 		initBuffers();
 	};
 
@@ -454,16 +409,16 @@ SEC3.createParticleSystem = function(specs) {
 
     	for(i = 0; i < max_parts; i++) {
 
-       		var startingVelocity = getUniformPointInSphere(2.0);
-       		// var startingVelocity = getUniformPointOnSphere(0.8);
+       		var startingVelocity = getUniformPointInSphere(0.8);
+       		// var startingVelocity = getUniformPointOnSphere(0.5);
             
        		velocities.push(0.0);
        		velocities.push(0.0);
        		velocities.push(0.0);
        		velocities.push(1.0);
 
-       		startPositions.push(startingVelocity[0]);
-       		startPositions.push(startingVelocity[1]);
+       		startPositions.push(startingVelocity[0] - 13.5);
+       		startPositions.push(startingVelocity[1] + 7.0);
        		startPositions.push(startingVelocity[2]);
        		startPositions.push(Math.random());
 
@@ -480,7 +435,7 @@ SEC3.createParticleSystem = function(specs) {
 	// Assign public methods
 	self.restart = restart;
 	self.draw = draw;
-
+	self.update = update;
 
 	// run setup
 	init(); 

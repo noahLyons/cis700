@@ -955,15 +955,18 @@ var finalPass = function(texture, framebuffer){
 
 var moveLight = function(light) {
     elCounter++;
+    if(elCounter % 200 == 1.0) particleSystem.restart();
     if(elCounter % 500 < 250) {
         // light.changeAzimuth(0.14);
-        light.changeElevation(0.125);
+        light.changeElevation(0.05);
+        light.moveRight(0.01);        
         // light.changeElevation(1.5);        
         // light.moveUp(0.02);
     }
     else {
         // light.changeAzimuth(-0.14);
-        light.changeElevation(-0.125);
+        light.changeElevation(-0.05);
+        light.moveLeft(0.01);
         // light.changeElevation(1.5);                
         // light.moveDown(0.02);
     }
@@ -980,7 +983,7 @@ var myRender = function() {
     var canvasResolution = [SEC3.canvas.width, SEC3.canvas.height];
 
     updateShadowMaps(scene);
-    
+    particleSystem.update();
     // forwardRenderPass(scene, demo.selectedLight );
     fillGPass( fillGProg, SEC3.gBuffer );
     deferredRender( scene, SEC3.gBuffer, workingFBO );
@@ -1016,7 +1019,6 @@ var myRenderLoop = function() {
 
     window.requestAnimationFrame( myRenderLoop );
     myRender();
-    gl.flush();
     particleSystem.draw();
 };
 
@@ -1052,7 +1054,7 @@ var loadObjects = function() {
     //Load a OBJ model from file
     var objLoader = SEC3.createOBJLoader(scene);
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
-    objLoader.loadFromFile( gl, '/../models/buddha_new/buddha_scaled_.obj', '/../models/buddha_new/buddha_scaled_.mtl');
+    // objLoader.loadFromFile( gl, '/../models/buddha_new/buddha_scaled_.obj', '/../models/buddha_new/buddha_scaled_.mtl');
     objLoader.loadFromFile( gl, '/../models/dabrovic-sponza/sponza.obj', '/../models/dabrovic-sponza/sponza.mtl');
     // objLoader.loadFromFile( gl, '/../models/cubeworld/cubeworld.obj', '/../models/cubeworld/cubeworld.mtl');
     
@@ -1247,35 +1249,6 @@ var addLight = function() {
 
 }
 
-var setupLights = function() {
-
-    scene.clearLights();
-    var radius = 0.5 * scene.getBoundingRadius();
-    radius = radius || 20.0;
-
-    for(var i = 1; i < scene.getNumLights(); i++ ) {
-        var xPos = ((Math.random() - 0.5 ) * 2.0) * 8.0;
-        var yPos = Math.random() * 10.0 + 8;
-        var zPos = ((Math.random() - 0.5 ) * 2.0) * 2.0;
-        var azimuth = Math.random() * 360;
-
-        var nextLight = new SEC3.SpotLight();
-        nextLight.goHome ( [xPos, yPos, zPos] ); 
-        nextLight.setAzimuth(azimuth );    
-        nextLight.setElevation( -70.0 );
-        nextLight.setPerspective(25, 1.0, demo.zNear, demo.zFar);
-        nextLight.setupCascades( 1, 512, gl );
-        scene.addLight(nextLight);
-
-    }
-  
-    demo.cascadeToDisplay = 0.0;
-    lightAngle = 0.0;
-    elCounter = 125;
-
-    buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
-    renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
-};
 
 /*
  * Sets up basics of scene; camera, viewport, projection matrix, fbo
@@ -1298,7 +1271,7 @@ var setupScene = function(canvasId, messageId ) {
     gl.viewportWidth = canvas.width;
     gl.viewportHeight = canvas.height;
     // gl.clearColor( 0.3, 0.3, 0.3, 1.0 );
-    gl.clearColor( 0.0, 0.0, 0.0, 0.0);
+    gl.clearColor( 0.0, 0.0, 0.0, 0.5);
 
     gl.enable( gl.DEPTH_TEST);
     gl.depthFunc(gl.LESS);
@@ -1308,8 +1281,8 @@ var setupScene = function(canvasId, messageId ) {
     //Setup camera
     view = mat4.create();
     camera = new SEC3.Camera();
-    camera.goHome( [0.0, 8.0, 0.0] ); //initial camera posiiton
-    camera.setAzimuth( 0.0 );
+    camera.goHome( [-5.0, 7.0, 1.5] ); //initial camera posiiton
+    camera.setAzimuth( 75.0 );
     camera.setElevation( 0.0 );
     interactor = SEC3.CameraInteractor( camera, canvas );
     camera.setPerspective( 60, canvas.width / canvas.height, demo.zNear, demo.zFar );
@@ -1317,11 +1290,11 @@ var setupScene = function(canvasId, messageId ) {
     scene.setCamera(camera);
 
     var nextLight = new SEC3.SpotLight();
-    nextLight.goHome ( [ 0, 20, 0] ); 
-    nextLight.setAzimuth( 50.0 );    
-    nextLight.setElevation( -90.0 );
+    nextLight.goHome ( [ 0, 15, 0] ); 
+    nextLight.setAzimuth( 90.0 );    
+    nextLight.setElevation( -40.0 );
     nextLight.setPerspective( 30, 1, demo.zNear, demo.zFar );
-    nextLight.setupCascades( 1, 256, gl, scene );
+    nextLight.setupCascades( 1, 1024, gl, scene );
     scene.addLight(nextLight);
     demo.cascadeToDisplay = 0.0;
     lightAngle = 0.0;
@@ -1332,16 +1305,16 @@ var setupScene = function(canvasId, messageId ) {
     var particleSpecs = {
         maxParticles : 1000000,
         emitters : [],
-        gravityModifier : -20.0,
-        RGBA : [0.0, 0.2, 0.9, 0.025],
-        damping : 1.00,
+        gravityModifier : -3000.0,
+        RGBA : [0.0, 0.2, 0.9, 0.1001],
+        damping : 1.060,
         type : "nBody",
-        activeBodies : 4,
-        particleSize : 4.0,
-        luminence : 166.0,
-        scatterMultiply : 1.75,
+        activeBodies : 1,
+        particleSize : 1.6,
+        luminence : 150.0,
+        scatterMultiply : 0.6,
         shadowMultiply : 0.1,
-        scale : 350.0
+        scale : 14.0
         //TODO phi and theta?
     };
     particleSystem = SEC3.createParticleSystem(particleSpecs);

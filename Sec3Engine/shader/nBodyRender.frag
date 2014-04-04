@@ -1,19 +1,19 @@
 precision highp float;
 
-const float EPSILON = 0.000000001;
+const float EPSILON = 0.0025;
 const vec3 color = vec3(0.4, 0.8, 1.0);
-const vec3 shadowColor = vec3(0.3, 0.0, 0.3);
+const vec3 shadowColor = vec3(0.01, 0.007, 0.015);
 
 uniform sampler2D u_gDepth;
 uniform vec2 u_screenSize;
-// uniform float uAlpha;
-// uniform sampler2D uShadowMap;
-// uniform vec3 uLightPosition;
-// uniform mat4 uShadowMapTransform;
-// uniform float uLuminence;
-// uniform float uScatterMultiply;
-// uniform float uShadowMultiply;
-// uniform float uScale;
+uniform float uAlpha;
+uniform sampler2D uShadowMap;
+uniform vec3 uLightPosition;
+uniform mat4 uShadowMapTransform;
+uniform float uLuminence;
+uniform float uScatterMultiply;
+uniform float uShadowMultiply;
+uniform float uScale;
 varying vec3 worldPosition;
 
 bool withinLightFrustum(vec2 coordinate) {
@@ -24,54 +24,69 @@ bool withinLightFrustum(vec2 coordinate) {
 
  }
 
+float linearize( float exp_depth, float near, float far ) {
+	
+	return ( 2.0 * near ) / ( far + near - exp_depth * ( far - near ) );
+}
+
 void main(void) {
 	
-		
-	// vec4 lightSpacePos = uShadowMapTransform * vec4(worldPosition, 1.0);
-	// lightSpacePos /= lightSpacePos.w;
-
-	// lightSpacePos.xyz = 0.5 + (lightSpacePos.xyz * 0.5);
-	
-	// float shadowDepth = texture2D(uShadowMap, lightSpacePos.xy).b;
-
- 
-   	// ---SET COLOR 	
-   	
-   	// vec3 lightVector = worldPosition - uLightPosition;
-   	// float lightSquaredDistance = dot(lightVector,lightVector);
-    // float lightDistance = length(lightVector);
     float u = gl_FragCoord.x / u_screenSize.x;
     float v = gl_FragCoord.y / u_screenSize.y;
-
    	float gDepth = texture2D(u_gDepth, (vec2(u, v))).r;
    	float depth = gl_FragCoord.z;
    	vec4 v_color = vec4(u, v, 0.0, 0.06);
 
    	if( depth > gDepth ){
-   		// v_color.b = 1.0;
-   		// v_color.a = 0.0;
    		discard;
    	}
-   	//if point transformed into light space is outside of light view frustum, 
-	// if(! withinLightFrustum(lightSpacePos.xy)) {
-	// 	discard;
-	// }
+   	float distanceFade = pow((1.5 - linearize(depth, 0.4, 30.0)), 2.0);
+   	float softenEdge = max(1.0 - length(2.0 * gl_PointCoord - 1.0), 0.0);
+   	float alpha = uAlpha * distanceFade * softenEdge;
 
-	// vec3 lightFalloff = color / lightSquaredDistance;
-	// if(EPSILON + shadowDepth < lightSpacePos.z) {  // current particle is 
-		
-	// 	float occluderDistance = (lightSpacePos.z - shadowDepth) * uScale;
-	// 	float occluderDistanceSquared = occluderDistance * occluderDistance;
-	// 	float falloff = uLuminence / (1.0 + occluderDistanceSquared);
-	// 	v_color = vec4( (( uScatterMultiply * lightFalloff) * falloff) + (uShadowMultiply * shadowColor ), uAlpha);
-		
-	// }
-	// else {
-	// 	v_color = vec4( lightFalloff * uLuminence * uLuminence, uAlpha);// + (uAlpha * uLuminence * 0.06 / max(1.0, lightSquaredDistance) ));//	 + min((2.0/ lightSquaredDistance),uAlpha));
-	// }
+	vec4 lightSpacePos = uShadowMapTransform * vec4(worldPosition, 1.0);
+	lightSpacePos /= lightSpacePos.w;
 
+	lightSpacePos.xyz = 0.5 + (lightSpacePos.xyz * 0.5);
+	
+	float shadowDepth = linearize(texture2D(uShadowMap, lightSpacePos.xy).b, 0.4, 30.0);
 
-	gl_FragColor = v_color;
+ 
+   	// ---SET COLOR 	
+   	
+   	vec3 lightVector = worldPosition - uLightPosition;
+    float lightDistance = length(lightVector);
+   	float lightSquaredDistance = (lightDistance * lightDistance);
+
+   	// if point transformed into light space is inside of light view frustum, 
+	if( withinLightFrustum(lightSpacePos.xy)) {
+		v_color = vec4(shadowColor, alpha);
+		vec2 spotUv = (lightSpacePos.xy - 0.5); 
+		float radius = sqrt(dot(spotUv, spotUv)); 
+		if( (radius) < 0.49){ 
+			vec3 lightFalloff = color / lightSquaredDistance;
+			if(EPSILON + shadowDepth < linearize(lightSpacePos.z, 0.4, 30.0)) {  // current particle is 
+				
+				float occluderDistance = (lightSpacePos.z - shadowDepth) * uScale;
+				float occluderDistanceSquared = occluderDistance * occluderDistance;
+				float falloff = uLuminence / (1.0 + occluderDistanceSquared);
+				v_color = vec4( (( uScatterMultiply * lightFalloff) * falloff) + (uShadowMultiply * shadowColor ), alpha);
+				// v_color.a *= length(v_color.rgb);
+
+			}
+			else {
+				v_color = vec4( lightFalloff * uLuminence, alpha);// + (alpha * uLuminence * 0.06 / max(1.0, lightSquaredDistance) ));//	 + min((2.0/ lightSquaredDistance),alpha));
+				v_color.a *= uLuminence / lightSquaredDistance;
+				v_color.a = (v_color.a);
+			}
+		}
+		// v_color.a *= length(v_color.rgb);
+	}
+	else {
+			v_color = vec4(shadowColor, alpha);
+	}
+
+	gl_FragColor = vec4(sqrt(v_color.rgb), v_color.a);
 	// float magnitude = length(gl_FragColor);
 	// gl_FragColor.a = uAlpha * max(1.0, magnitude);
 	// gl_FragColor.rgb += vec3(0.08);
