@@ -268,7 +268,7 @@ SEC3.createParticleSystem = function(specs) {
 	    SEC3.extensions.drawBuffers(gl);
 
 	    shadowProgram = SEC3.createShaderProgram();
-	    shadowProgram.loadShader(gl, "shader/shadowMapAdd.vert", "shader/shadowMapAdd.frag");
+	    shadowProgram.loadShader(gl, "Sec3Engine/shader/shadowMapAdd.vert", "Sec3Engine/shader/shadowMapAdd.frag");
 	    shadowProgram.addCallback( function() {
 	        shadowProgram.particleIndexAttribute = gl.getAttribLocation(shadowProgram.ref(), "aParticleIndex");
 	        shadowProgram.uLightMatrix = gl.getUniformLocation(shadowProgram.ref(), "uLightMatrix");
@@ -279,7 +279,7 @@ SEC3.createParticleSystem = function(specs) {
 	    SEC3.registerAsyncObj(gl, shadowProgram);
 
 	    renderProgram = SEC3.createShaderProgram();
-	    renderProgram.loadShader(gl, "shader/nBodyRender.vert", "shader/nBodyRender.frag");
+	    renderProgram.loadShader(gl, "Sec3Engine/shader/nBodyRender.vert", "Sec3Engine/shader/nBodyRender.frag");
 	    renderProgram.addCallback( function() {
 	        renderProgram.particleIndexAttribute = gl.getAttribLocation(renderProgram.ref(), "aParticleIndex");
 	        renderProgram.uCameraTransform = gl.getUniformLocation(renderProgram.ref(), "uCameraTransform");
@@ -314,7 +314,7 @@ SEC3.createParticleSystem = function(specs) {
 	    SEC3.registerAsyncObj(gl, renderProgram);
 
 	    stepProgram = SEC3.createShaderProgram();
-	    stepProgram.loadShader(gl, "shader/nBodyUpdate.vert", "shader/nBodyUpdate.frag");
+	    stepProgram.loadShader(gl, "Sec3Engine/shader/nBodyUpdate.vert", "Sec3Engine/shader/nBodyUpdate.frag");
 	    stepProgram.addCallback( function() {
 	        gl.useProgram(stepProgram.ref());
 	        stepProgram.aVeretexPosition = gl.getAttribLocation(stepProgram.ref(),"aVertexPosition");
