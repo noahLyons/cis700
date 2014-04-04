@@ -75,8 +75,8 @@ var createShaders = function() {
     fillGProg = SEC3.createShaderProgram();
     //Load the shader source asynchronously
     fillGProg.loadShader( gl, 
-                         "/Sec3Engine/shader/deferredRenderPass1.vert", 
-                         "/Sec3Engine/shader/deferredRenderPass1.frag" );
+                         "Sec3Engine/shader/deferredRenderPass1.vert", 
+                         "Sec3Engine/shader/deferredRenderPass1.frag" );
     
     fillGProg.addCallback( function() {
         gl.useProgram( fillGProg.ref() );
@@ -102,8 +102,8 @@ var createShaders = function() {
     blendAdditiveProg = SEC3.createShaderProgram();
     //Load the shader source asynchronously
     blendAdditiveProg.loadShader( gl, 
-                         "/Sec3Engine/shader/deferredRenderPass2.vert", 
-                         "/Sec3Engine/shader/blendAdditive.frag" );
+                         "Sec3Engine/shader/deferredRenderPass2.vert", 
+                         "Sec3Engine/shader/blendAdditive.frag" );
     
     blendAdditiveProg.addCallback( function() {
         gl.useProgram( blendAdditiveProg.ref() );
@@ -125,8 +125,8 @@ var createShaders = function() {
     //Create a shader program for displaying FBO contents
     bufferRenderProg = SEC3.createShaderProgram();
     bufferRenderProg.loadShader( gl, 
-                               "/Sec3Engine/shader/bufferRender.vert", 
-                               "/Sec3Engine/shader/bufferRender.frag" );
+                               "Sec3Engine/shader/bufferRender.vert", 
+                               "Sec3Engine/shader/bufferRender.frag" );
 
     bufferRenderProg.addCallback( function(){
         //query the locations of shader parameters
@@ -153,8 +153,8 @@ var createShaders = function() {
     //Create a shader program for displaying FBO contents
     deferredRenderProg = SEC3.createShaderProgram();
     deferredRenderProg.loadShader( gl, 
-                               "/Sec3Engine/shader/deferredRenderPass2.vert", 
-                               "/Sec3Engine/shader/deferredRenderPass2.frag" );
+                               "Sec3Engine/shader/deferredRenderPass2.vert", 
+                               "Sec3Engine/shader/deferredRenderPass2.frag" );
 
     deferredRenderProg.addCallback( function(){
         //query the locations of shader parameters
@@ -186,8 +186,8 @@ var createShaders = function() {
     //Create a shader program for displaying FBO contents
     debugGProg = SEC3.createShaderProgram();
     debugGProg.loadShader( gl, 
-                               "/Sec3Engine/shader/deferredRenderPass2.vert", 
-                               "/Sec3Engine/shader/debugGBuffer.frag" );
+                               "Sec3Engine/shader/deferredRenderPass2.vert", 
+                               "Sec3Engine/shader/debugGBuffer.frag" );
 
     debugGProg.addCallback( function(){
         //query the locations of shader parameters
@@ -213,8 +213,8 @@ var createShaders = function() {
 
     finalfillGProg = SEC3.createShaderProgram();
     finalfillGProg.loadShader( gl, 
-                               "/Sec3Engine/shader/finalPass.vert", 
-                               "/Sec3Engine/shader/finalPass.frag" );
+                               "Sec3Engine/shader/finalPass.vert", 
+                               "Sec3Engine/shader/finalPass.frag" );
 
     finalfillGProg.addCallback( function(){
         //query the locations of shader parameters
@@ -230,8 +230,8 @@ var createShaders = function() {
     //Create a shader program for displaying FBO contents
     blurProg = SEC3.createShaderProgram();
     blurProg.loadShader( gl, 
-                         "/Sec3Engine/shader/texture.vert", 
-                         "/Sec3Engine/shader/gaussianBlur.frag" );
+                         "Sec3Engine/shader/texture.vert", 
+                         "Sec3Engine/shader/gaussianBlur.frag" );
 
     blurProg.addCallback( function(){
         //query the locations of shader parameters
@@ -254,8 +254,8 @@ var createShaders = function() {
     //Create a shader program for displaying FBO contents
     downsampleProg = SEC3.createShaderProgram();
     downsampleProg.loadShader( gl, 
-                         "/Sec3Engine/shader/finalPass.vert", 
-                         "/Sec3Engine/shader/downSample.frag" );
+                         "Sec3Engine/shader/finalPass.vert", 
+                         "Sec3Engine/shader/downSample.frag" );
 
     downsampleProg.addCallback( function(){
         //query the locations of shader parameters
@@ -277,8 +277,8 @@ var createShaders = function() {
   
     dofDownsampleProg = SEC3.createShaderProgram();
     dofDownsampleProg.loadShader( gl, 
-                         "/Sec3Engine/shader/finalPass.vert", 
-                         "/Sec3Engine/shader/dofDownSample.frag" );
+                         "Sec3Engine/shader/finalPass.vert", 
+                         "Sec3Engine/shader/dofDownSample.frag" );
 
     dofDownsampleProg.addCallback( function(){
         //query the locations of shader parameters
@@ -305,8 +305,8 @@ var createShaders = function() {
     
     dofCompProg = SEC3.createShaderProgram();
     dofCompProg.loadShader( gl,
-                            "/Sec3Engine/shader/finalPass.vert",
-                            "/Sec3Engine/shader/dofComp.frag");
+                            "Sec3Engine/shader/finalPass.vert",
+                            "Sec3Engine/shader/dofComp.frag");
 
     dofCompProg.addCallback( function(){
 
@@ -329,8 +329,8 @@ var createShaders = function() {
 
     dofCalcCocProg = SEC3.createShaderProgram();
     dofCalcCocProg.loadShader( gl,
-                               "/Sec3Engine/shader/finalPass.vert",
-                               "/Sec3Engine/shader/dofCalcCoc.frag");
+                               "Sec3Engine/shader/finalPass.vert",
+                               "Sec3Engine/shader/dofCalcCoc.frag");
 
     dofCalcCocProg.addCallback( function(){
 
@@ -1054,9 +1054,9 @@ var loadObjects = function() {
     //Load a OBJ model from file
     var objLoader = SEC3.createOBJLoader(scene);
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
-    // objLoader.loadFromFile( gl, '/Sec3Engine/models/buddha_new/buddha_scaled_.obj', '/Sec3Engine/models/buddha_new/buddha_scaled_.mtl');
-    objLoader.loadFromFile( gl, '/Sec3Engine/models/dabrovic-sponza/sponza.obj', '/Sec3Engine/models/dabrovic-sponza/sponza.mtl');
-    // objLoader.loadFromFile( gl, '/Sec3Engine/models/cubeworld/cubeworld.obj', '/Sec3Engine/models/cubeworld/cubeworld.mtl');
+    // objLoader.loadFromFile( gl, 'Sec3Engine/models/buddha_new/buddha_scaled_.obj', 'Sec3Engine/models/buddha_new/buddha_scaled_.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/dabrovic-sponza/sponza.obj', 'Sec3Engine/models/dabrovic-sponza/sponza.mtl');
+    // objLoader.loadFromFile( gl, 'Sec3Engine/models/cubeworld/cubeworld.obj', 'Sec3Engine/models/cubeworld/cubeworld.mtl');
     
        
     //Register a callback function that extracts vertex and normal 
