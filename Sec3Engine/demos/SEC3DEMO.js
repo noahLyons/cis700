@@ -1055,7 +1055,7 @@ var loadObjects = function() {
     var objLoader = SEC3.createOBJLoader(scene);
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/buddha_new/buddha_scaled_.obj', 'Sec3Engine/models/buddha_new/buddha_scaled_.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/dabrovic-sponza/sponza.obj', 'Sec3Engine/models/dabrovic-sponza/sponza.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/dabrovic-sponza/sponza2.obj', 'Sec3Engine/models/dabrovic-sponza/sponza2.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/cubeworld/cubeworld.obj', 'Sec3Engine/models/cubeworld/cubeworld.mtl');
     
        
