@@ -12,8 +12,8 @@ newmtl sp_00_luk_mali
 	Kd 0.745098 0.709804 0.674510
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka SP_LUK.jpeg
-	map_Kd SP_LUK.jpeg
+	map_Ka sp_luk.jpeg
+	map_Kd sp_luk.jpeg
 	map_bump sp_luk-bump.jpeg
 	bump sp_luk-bump.jpeg
 
@@ -136,8 +136,8 @@ newmtl sp_01_stup
 	Kd 0.827451 0.800000 0.768628
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka X01_ST.jpeg
-	map_Kd X01_ST.jpeg
+	map_Ka x01_st.jpeg
+	map_Kd x01_st.jpeg
 
 newmtl sp_vijenac
 	Ns 50.000000
@@ -166,10 +166,10 @@ newmtl sp_00_svod
 	Kd 0.941177 0.866667 0.737255
 	Ks 0.034039 0.032314 0.029333
 	Ke 0.000000 0.000000 0.000000
-        map_Kd KAMEN-stup.jpeg
-        map_Ka KAMEN-stup.jpeg
-        map_bump KAMEN-stup.jpeg
-        bump KAMEN-stup.jpeg
+        map_Kd KAMEN-stup.JPEG
+        map_Ka KAMEN-stup.JPEG
+        map_bump KAMEN-stup.JPEG
+        bump KAMEN-stup.JPEG
 
 newmtl sp_02_reljef
 	Ns 50.000000
@@ -182,8 +182,8 @@ newmtl sp_02_reljef
 	Kd 0.529412 0.498039 0.490196
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka RELJEF.jpeg
-	map_Kd RELJEF.jpeg
+	map_Ka reljef.jpeg
+	map_Kd reljef.jpeg
 	map_bump reljef-bump.jpeg
 	bump reljef-bump.jpeg
 
@@ -198,8 +198,8 @@ newmtl sp_01_luk_a
 	Kd 0.745098 0.709804 0.674510
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka SP_LUK.jpeg
-	map_Kd SP_LUK.jpeg
+	map_Ka sp_luk.jpeg
+	map_Kd sp_luk.jpeg
 	map_bump sp_luk-bump.jpeg
 	bump sp_luk-bump.jpeg
 
