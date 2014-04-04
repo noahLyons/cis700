@@ -278,7 +278,7 @@ var createShaders = function() {
     dofDownsampleProg = SEC3.createShaderProgram();
     dofDownsampleProg.loadShader( gl, 
                          "Sec3Engine/shader/finalPass.vert", 
-                         "Sec3Engine/shader/dofDownSample.frag" );
+                         "Sec3Engine/shader/dofDownsample.frag" );
 
     dofDownsampleProg.addCallback( function(){
         //query the locations of shader parameters
