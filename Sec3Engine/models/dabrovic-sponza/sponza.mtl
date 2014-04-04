@@ -12,10 +12,10 @@ newmtl sp_00_luk_mali
 	Kd 0.745098 0.709804 0.674510
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka sp_luk.jpeg
-	map_Kd sp_luk.jpeg
-	map_bump sp_luk-bump.jpeg
-	bump sp_luk-bump.jpeg
+	map_Ka sp_luk.JPEG
+	map_Kd sp_luk.JPEG
+	map_bump sp_luk-bump.JPEG
+	bump sp_luk-bump.JPEG
 
 newmtl sp_svod_kapitel
 	Ns 50.000000
@@ -198,10 +198,10 @@ newmtl sp_01_luk_a
 	Kd 0.745098 0.709804 0.674510
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka sp_luk.jpeg
-	map_Kd sp_luk.jpeg
-	map_bump sp_luk-bump.jpeg
-	bump sp_luk-bump.jpeg
+	map_Ka sp_luk.JPEG
+	map_Kd sp_luk.JPEG
+	map_bump sp_luk-bump.JPEG
+	bump sp_luk-bump.JPEG
 
 newmtl sp_zid_vani
 	Ns 50.000000
@@ -214,8 +214,8 @@ newmtl sp_zid_vani
 	Kd 0.627451 0.572549 0.560784
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka KAMEN.jpeg
-	map_Kd KAMEN.jpeg
+	map_Ka KAMEN.JPEG
+	map_Kd KAMEN.JPEG
 	map_bump KAMEN-bump.jpeg
 	bump KAMEN-bump.jpeg
 
@@ -246,8 +246,8 @@ newmtl sp_00_zid
 	Kd 0.627451 0.572549 0.560784
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka KAMEN.jpeg
-	map_Kd KAMEN.jpeg
+	map_Ka KAMEN.JPEG
+	map_Kd KAMEN.JPEG
 	map_bump KAMEN-bump.jpeg
 	bump KAMEN-bump.jpeg
 
@@ -262,10 +262,10 @@ newmtl sp_00_prozor
 	Kd 1.000000 1.000000 1.000000
 	Ks 0.000000 0.000000 0.000000
 	Ke 0.000000 0.000000 0.000000
-	map_Ka PROZOR1.JPEG
-	map_Kd PROZOR1.JPEG
-	map_bump PROZOR1.JPEG
-	bump PROZOR1.JPEG
+	map_Ka prozor1.JPEG
+	map_Kd prozor1.JPEG
+	map_bump prozor1.JPEG
+	bump prozor1.JPEG
 
 newmtl sp_00_vrata_krug
 	Ns 19.999998
