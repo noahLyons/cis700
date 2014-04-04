@@ -1309,7 +1309,7 @@ var setupScene = function(canvasId, messageId ) {
         RGBA : [0.0, 0.2, 0.9, 0.1001],
         damping : 1.060,
         type : "nBody",
-        activeBodies : 1,
+        activeBodies : 2,
         particleSize : 1.6,
         luminence : 150.0,
         scatterMultiply : 0.6,
