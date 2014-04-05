@@ -44,7 +44,7 @@ SEC3.createParticleSystem = function(specs) {
 	var renderProgram;
 	var stepProgram;
 	var interactor = {};
-	interactor.attractor = [ -14.0, 6.0, 0.1 ];
+	interactor.attractor = [ -13.0, 6.0, 1.0, 1.0 ];
 	var self = {};
 
 //----------------------------------------------------------------METHODS:
@@ -97,8 +97,11 @@ SEC3.createParticleSystem = function(specs) {
 
 	    gl.vertexAttribPointer(stepProgram.aVertexPosition, 2, gl.FLOAT, false, 0, 0); 
 	    gl.enableVertexAttribArray(stepProgram.aVertexPosition);
-
-	    gl.uniform3f(stepProgram.uAttractor, interactor.attractor[0], scene.getCamera().getPosition()[1] * 0.8, interactor.attractor[2]);
+	    var center = vec3.clone(scene.getCamera().getPosition());
+	    var offset = vec3.clone(camera.normal);
+	    vec3.scale(offset, offset, -6.0);
+	    vec3.add(center, center, offset);
+	    gl.uniform4f(stepProgram.uAttractor, center[0], center[1], center[2], interactor.attractor[3]);
 
 	    gl.drawArrays(gl.TRIANGLES, 0, 6); 
 	}
@@ -144,6 +147,7 @@ SEC3.createParticleSystem = function(specs) {
 
 		
 	    gl.uniform3fv(renderProgram.uLightPosition, scene.getLight(0).getPosition());
+	    gl.uniform3fv(renderProgram.uCPosLoc, scene.getCamera().getPosition());
 
 	    gl.activeTexture(gl.TEXTURE0);
 	    gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
@@ -291,6 +295,7 @@ SEC3.createParticleSystem = function(specs) {
 	        renderProgram.uShadowMap = gl.getUniformLocation(renderProgram.ref(), "uShadowMap");
 	        renderProgram.uShadowMapTransform = gl.getUniformLocation(renderProgram.ref(), "uShadowMapTransform")
 			renderProgram.uLightPosition = gl.getUniformLocation(renderProgram.ref(), "uLightPosition");
+			renderProgram.uCPosLoc = gl.getUniformLocation(renderProgram.ref(), "u_cPos");
 			renderProgram.uLuminence = gl.getUniformLocation(renderProgram.ref(), "uLuminence");
 			renderProgram.uScatterMultiply = gl.getUniformLocation(renderProgram.ref(), "uScatterMultiply");
 			renderProgram.uShadowMultiply = gl.getUniformLocation(renderProgram.ref(), "uShadowMultiply");

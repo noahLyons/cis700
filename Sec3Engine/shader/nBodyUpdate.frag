@@ -6,7 +6,7 @@ precision highp float;
 uniform float uGravityModifier;
 uniform sampler2D uParticleVelocities;
 uniform sampler2D uParticlePositions; 
-uniform vec3 uAttractor;
+uniform vec4 uAttractor;
 uniform float uDamping;
 uniform float uInteractions;
 const int max_Iterations = 64;
@@ -29,7 +29,7 @@ vec3 accumulateAcceleration(vec4 position, float uvStep) {
 			vec3 distance = (otherPosition.rgb - position.rgb);
 			float distanceSquared = dot(distance,distance);
 
-			if(distanceSquared > 0.000001){
+			if(distanceSquared > 0.0000001){
 				accelleration += uGravityModifier * uGravityModifier *position.a * otherPosition.a * normalize(distance) * (0.0000001/distanceSquared);
 			}
 			otherUv.y += uvStep;
@@ -50,14 +50,14 @@ void main(void) {
 	vec3 accellerationFinal = accumulateAcceleration(oldPosition,uvStep); 
 
 	// particle interactor 
-	vec3 attractorPos = vec3(uAttractor.xy,0.0);
+	vec3 attractorPos = vec3(uAttractor.xyz);
 	// if(uAttractor.z < 0.1) {
 	// 	attractorPos = vec3(0.0);
 	// }
 	vec3 distance = attractorPos - oldPosition.rgb;
 	float distanceSquared = dot(distance, distance);
-	accellerationFinal += distanceSquared * distance * (uAttractor.z ) * 0.00001; // anti-diffusion
-	accellerationFinal += (uAttractor.z * normalize(distance)) * min((0.004/ distanceSquared),0.02);
+	accellerationFinal += distanceSquared * distance * (uAttractor.w) * 0.00001; // anti-diffusion
+	accellerationFinal += (uAttractor.w * normalize(distance)) * min((0.1/ distanceSquared),0.05);
 	vec3 newVelocity = (oldVelocity.rgb + accellerationFinal) / uDamping;
 	vec4 newPosition = vec4(oldPosition.rgb + newVelocity,oldPosition.a);
 		

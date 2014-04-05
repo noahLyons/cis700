@@ -13,7 +13,7 @@ varying float v_depth;
 
 float linearizeDepth( float exp_depth) {
 	
-	return ( 2.0 * 0.1 ) / ( 30.0 + 0.1 - exp_depth * ( 30.0 - 0.1 ) );
+	return ( 2.0 * 0.6 ) / ( 26.0 + 0.6 - exp_depth * ( 26.0 - 0.6 ) );
 }
 
 //-------------------------------------------------------------------MAIN:

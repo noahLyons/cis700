@@ -33,8 +33,8 @@ var workingFBO;
 var demo = (function () {
 
     var demo = [];
-    demo.zFar = 30.0;
-    demo.zNear = 0.4;
+    demo.zFar = 26.0;
+    demo.zNear = 0.6;
     demo.selectedLight = 0;
     demo.MAX_LIGHTS = 8;
     demo.MAX_CASCADES = 6;
@@ -987,17 +987,17 @@ var myRender = function() {
     // forwardRenderPass(scene, demo.selectedLight );
     fillGPass( fillGProg, SEC3.gBuffer );
     deferredRender( scene, SEC3.gBuffer, workingFBO );
-
+    
     if ( demo.secondPass === bufferRenderProg) {
         finalPass(workingFBO.texture(demo.texToDisplay));
     }
     else if ( demo.secondPass === blurProg) {
         blurPasses(fbo.texture( demo.texToDisplay),workingFBO, demo.blurSigma);
-        finalPass(workingFBO.texture(0));
+        finalPass(workingFBO.texture(demo.texToDisplay));
     }
     else if ( demo.secondPass === dofProg) {
         dofPass();
-        finalPass(workingFBO.texture(0));
+        finalPass(workingFBO.texture(demo.texToDisplay));
     }
     else if ( demo.secondPass === buildShadowMapProg) {
         finalPass(light.cascadeFramebuffers[demo.cascadeToDisplay].texture(0));
@@ -1303,18 +1303,18 @@ var setupScene = function(canvasId, messageId ) {
     loadObjects();
 
     var particleSpecs = {
-        maxParticles : 1000000,
+        maxParticles : 100000,
         emitters : [],
-        gravityModifier : -500.0,
-        RGBA : [0.0, 0.2, 0.9, 0.1001],
-        damping : 1.02,
+        gravityModifier : -8000.0,
+        RGBA : [0.0, 0.2, 0.9, 0.101],
+        damping : 1.09,
         type : "nBody",
-        activeBodies : 2,
-        particleSize : 0.5,
-        luminence : 150.0,
-        scatterMultiply : 20.0,
+        activeBodies : 7,
+        particleSize : 1.0,
+        luminence : 50.0,
+        scatterMultiply : 4.0,
         shadowMultiply : 0.1,
-        scale : 60.0
+        scale : 30.0
         //TODO phi and theta?
     };
     particleSystem = SEC3.createParticleSystem(particleSpecs);
