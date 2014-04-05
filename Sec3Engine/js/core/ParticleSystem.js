@@ -44,7 +44,7 @@ SEC3.createParticleSystem = function(specs) {
 	var renderProgram;
 	var stepProgram;
 	var interactor = {};
-	interactor.attractor = [ -13.5, 6.0, 0.0 ];
+	interactor.attractor = [ -14.0, 6.0, 0.1 ];
 	var self = {};
 
 //----------------------------------------------------------------METHODS:

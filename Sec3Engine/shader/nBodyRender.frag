@@ -69,10 +69,11 @@ void main(void) {
 				
 				float occluderDistance = (lightSpacePos.z - shadowDepth) * uScale;
 				float occluderDistanceSquared = occluderDistance * occluderDistance;
-				float falloff = uLuminence / (1.0 + occluderDistanceSquared);
+				float falloff = uLuminence / (0.0 + occluderDistanceSquared);
 				v_color = vec4( (( uScatterMultiply * lightFalloff) * falloff) + (uShadowMultiply * shadowColor ), alpha);
-				// v_color.a *= length(v_color.rgb);
-
+				// v_color.a *= (length(v_color.rgb));
+				// v_color.a = sqrt(v_color.a);
+				// v_color.a *= falloff / lightSquaredDistance;
 			}
 			else {
 				v_color = vec4( lightFalloff * uLuminence, alpha);// + (alpha * uLuminence * 0.06 / max(1.0, lightSquaredDistance) ));//	 + min((2.0/ lightSquaredDistance),alpha));

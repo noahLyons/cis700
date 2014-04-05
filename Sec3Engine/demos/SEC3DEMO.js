@@ -955,7 +955,7 @@ var finalPass = function(texture, framebuffer){
 
 var moveLight = function(light) {
     elCounter++;
-    if(elCounter % 200 == 1.0) particleSystem.restart();
+    // if(elCounter % 200 == 1.0) particleSystem.restart();
     if(elCounter % 500 < 250) {
         // light.changeAzimuth(0.14);
         light.changeElevation(0.05);
@@ -1305,16 +1305,16 @@ var setupScene = function(canvasId, messageId ) {
     var particleSpecs = {
         maxParticles : 1000000,
         emitters : [],
-        gravityModifier : -3000.0,
+        gravityModifier : -500.0,
         RGBA : [0.0, 0.2, 0.9, 0.1001],
-        damping : 1.060,
+        damping : 1.02,
         type : "nBody",
         activeBodies : 2,
-        particleSize : 1.6,
+        particleSize : 0.5,
         luminence : 150.0,
-        scatterMultiply : 0.6,
+        scatterMultiply : 20.0,
         shadowMultiply : 0.1,
-        scale : 14.0
+        scale : 60.0
         //TODO phi and theta?
     };
     particleSystem = SEC3.createParticleSystem(particleSpecs);
