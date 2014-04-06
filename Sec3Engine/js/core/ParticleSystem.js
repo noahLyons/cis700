@@ -98,7 +98,7 @@ SEC3.createParticleSystem = function(specs) {
 	    gl.enableVertexAttribArray(stepProgram.aVertexPosition);
 	    var center = vec3.clone(scene.getCamera().getPosition());
 	    var offset = vec3.clone(camera.normal);
-	    vec3.scale(offset, offset, -6.0);
+	    vec3.scale(offset, offset, -8.0);
 	    vec3.add(center, center, offset);
 	    gl.uniform4f(stepProgram.uAttractor, center[0], center[1], center[2], interactor.attractor[3]);
 
@@ -165,6 +165,7 @@ SEC3.createParticleSystem = function(specs) {
 	    gl.uniform3fv(renderProgram.uLightPosition, light.getPosition() );
 	    //bind the default frame buffer, disable depth testing and enable alpha blending
 	    finalFBO.bind(gl);
+
 	    // gl.bindFramebuffer(gl.FRAMEBUFFER, null); //bind the default frame buffer
 	    gl.enable(gl.DEPTH_TEST);
 	    gl.depthFunc(gl.ALWAYS);
