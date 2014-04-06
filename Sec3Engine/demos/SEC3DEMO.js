@@ -33,12 +33,12 @@ var workingFBO;
 var demo = (function () {
 
     var demo = [];
-    demo.zFar = 26.0;
+    demo.zFar = 30.0;
     demo.zNear = 0.6;
     demo.selectedLight = 0;
     demo.MAX_LIGHTS = 8;
     demo.MAX_CASCADES = 6;
-    demo.AMBIENT_INTENSITY = 0.05;
+    demo.AMBIENT_INTENSITY = 0.03;
 
     demo.texToDisplay = 2;
     demo.secondPass;
@@ -46,8 +46,8 @@ var demo = (function () {
     demo.nearSlope = -6.6;
     demo.nearIntercept = 1.39;
 
-    demo.farSlope = 0.8;
-    demo.farIntercept = -0.25
+    demo.farSlope = 1.4;
+    demo.farIntercept = -0.28;
 
     demo.blurSigma = 2.0;
 
@@ -102,7 +102,7 @@ var createShaders = function() {
     blendAdditiveProg = SEC3.createShaderProgram();
     //Load the shader source asynchronously
     blendAdditiveProg.loadShader( gl, 
-                         "Sec3Engine/shader/deferredRenderPass2.vert", 
+                         "Sec3Engine/shader/blendAdditive.vert", 
                          "Sec3Engine/shader/blendAdditive.frag" );
     
     blendAdditiveProg.addCallback( function() {
@@ -115,6 +115,8 @@ var createShaders = function() {
         blendAdditiveProg.uWeight1Loc = gl.getUniformLocation( blendAdditiveProg.ref(), "u_weight1");
         blendAdditiveProg.uTexture2Loc = gl.getUniformLocation( blendAdditiveProg.ref(), "u_texture2");
         blendAdditiveProg.uWeight2Loc = gl.getUniformLocation( blendAdditiveProg.ref(), "u_weight2");        
+        blendAdditiveProg.uDepthLoc = gl.getUniformLocation( blendAdditiveProg.ref(), "u_depth");
+        blendAdditiveProg.uDepthWriteLoc = gl.getUniformLocation( blendAdditiveProg.ref(), "u_depthWrite");
     } );
 
     //Register the asynchronously-requested resources with the engine core
@@ -609,7 +611,7 @@ var deferredRender = function(scene, gBuffer, framebuffer) {
 
     blendAdditive(gBuffer.texture(2), demo.AMBIENT_INTENSITY,
                   lightFBO.texture(0), 1.0, 
-                  framebuffer );
+                  finalFBO, gBuffer.depthTexture() );
 
     // debugFBO.bind(gl);
     // gl.viewport( 0, 0, debugFBO.getWidth(), debugFBO.getHeight() );
@@ -713,7 +715,7 @@ var bufferRender = function(framebuffer) {
     framebuffer.unbind(gl);
 };
 
-var blendAdditive = function( texture1, weight1, texture2, weight2, destBuffer ) {
+var blendAdditive = function( texture1, weight1, texture2, weight2, destBuffer, depthTexture ) {
 
     destBuffer.bind(gl);
     gl.viewport( 0, 0, destBuffer.getWidth(), destBuffer.getHeight() );
@@ -721,7 +723,8 @@ var blendAdditive = function( texture1, weight1, texture2, weight2, destBuffer )
     gl.disable( gl.BLEND );
     gl.useProgram( blendAdditiveProg.ref() );
     gl.uniform1f( blendAdditiveProg.uWeight1Loc, weight1 );
-    gl.uniform1f( blendAdditiveProg.uWeight2Loc, weight2 );    
+    gl.uniform1f( blendAdditiveProg.uWeight2Loc, weight2 ); 
+
 
     gl.activeTexture( gl.TEXTURE0 );
     gl.bindTexture( gl.TEXTURE_2D, texture1);
@@ -731,6 +734,16 @@ var blendAdditive = function( texture1, weight1, texture2, weight2, destBuffer )
     gl.bindTexture( gl.TEXTURE_2D, texture2);
     gl.uniform1i( blendAdditiveProg.uTexture2Loc, 1);
     
+    if( depthTexture ) {
+        gl.uniform1i( blendAdditiveProg.uDepthWriteLoc, 1 );
+        gl.activeTexture( gl.TEXTURE2 );
+        gl.bindTexture( gl.TEXTURE_2D, depthTexture );
+        gl.uniform1i( blendAdditiveProg.uDepthLoc, 2 );
+    }
+    else {
+        gl.uniform1i( blendAdditiveProg.uDepthWriteLoc, 0 );
+    }
+
     bindQuadBuffers( blendAdditiveProg );
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
     destBuffer.unbind(gl);
@@ -800,11 +813,11 @@ var dofPass = function(){
     gl.disable( gl.DEPTH_TEST );
     gl.disable( gl.BLEND);
     gl.activeTexture( gl.TEXTURE0 );
-    gl.bindTexture( gl.TEXTURE_2D, fbo.texture( demo.texToDisplay) );
+    gl.bindTexture( gl.TEXTURE_2D, finalFBO.texture(0) );
     gl.uniform1i( dofDownsampleProg.uSourceLoc, 0);
 
     gl.activeTexture( gl.TEXTURE1 );
-    gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture() );
+    gl.bindTexture( gl.TEXTURE_2D, finalFBO.texture(1) );
     gl.uniform1i( dofDownsampleProg.uDepthLoc, 1);
 
     gl.uniform2fv( dofDownsampleProg.uPixDimLoc, vec2.fromValues(1.0 / SEC3.canvas.width, 1.0 / SEC3.canvas.height) );
@@ -856,7 +869,7 @@ var dofPass = function(){
      blurPasses(lowResFBO.texture(2), lowResFBO, demo.MEDIUM_BLUR);
     // lowResFBO[0] has small blur on final near coc 
 
-    blurPasses(fbo.texture( demo.texToDisplay), workingFBO, demo.SMALL_BLUR);
+    blurPasses(finalFBO.texture( 0 ), workingFBO, demo.SMALL_BLUR);
     workingFBO.swapBuffers(0, 1, gl);
     
 
@@ -883,11 +896,11 @@ var dofPass = function(){
     gl.uniform1i( dofCompProg.uSmallBlurLoc, 2);
 
     gl.activeTexture( gl.TEXTURE3 );
-    gl.bindTexture( gl.TEXTURE_2D, fbo.texture( demo.texToDisplay) );
+    gl.bindTexture( gl.TEXTURE_2D, finalFBO.texture( 0 ) );
     gl.uniform1i( dofCompProg.uUnalteredImageLoc, 3 );
 
     gl.activeTexture( gl.TEXTURE4 );
-    gl.bindTexture( gl.TEXTURE_2D, fbo.depthTexture());
+    gl.bindTexture( gl.TEXTURE_2D, finalFBO.texture(1));
     gl.uniform1i( dofCompProg.uDepthLoc, 4 );
 
     gl.uniform2fv( dofCompProg.uFarEqLoc, vec2.fromValues( demo.farSlope, demo.farIntercept));
@@ -977,27 +990,33 @@ var myRender = function() {
     if(SEC3.isWaiting) {
         return;
     }
+    particleSystem.stepParticles();
+    
     var light = scene.getLight( demo.selectedLight );
 
     moveLight(light);
     var canvasResolution = [SEC3.canvas.width, SEC3.canvas.height];
 
     updateShadowMaps(scene);
-    particleSystem.update();
+    particleSystem.updateShadowMap(scene.getLight(demo.selectedLight));
+    // particleSystem.update();
     // forwardRenderPass(scene, demo.selectedLight );
     fillGPass( fillGProg, SEC3.gBuffer );
-    deferredRender( scene, SEC3.gBuffer, workingFBO );
+    deferredRender( scene, SEC3.gBuffer, SEC3.gBuffer );
     
     if ( demo.secondPass === bufferRenderProg) {
-        finalPass(workingFBO.texture(demo.texToDisplay));
+        particleSystem.draw(light);
+        finalPass(finalFBO.texture(0));
     }
     else if ( demo.secondPass === blurProg) {
-        blurPasses(fbo.texture( demo.texToDisplay),workingFBO, demo.blurSigma);
-        finalPass(workingFBO.texture(demo.texToDisplay));
+        particleSystem.draw(light);
+        blurPasses(finalFBO.texture( 0 ), workingFBO, demo.blurSigma);
+        finalPass(workingFBO.texture(0));
     }
     else if ( demo.secondPass === dofProg) {
+        particleSystem.draw(light);
         dofPass();
-        finalPass(workingFBO.texture(demo.texToDisplay));
+        finalPass(workingFBO.texture(0));
     }
     else if ( demo.secondPass === buildShadowMapProg) {
         finalPass(light.cascadeFramebuffers[demo.cascadeToDisplay].texture(0));
@@ -1019,7 +1038,7 @@ var myRenderLoop = function() {
 
     window.requestAnimationFrame( myRenderLoop );
     myRender();
-    particleSystem.draw();
+    // particleSystem.draw();
 };
 
 var main = function( canvasId, messageId ){
@@ -1055,7 +1074,7 @@ var loadObjects = function() {
     var objLoader = SEC3.createOBJLoader(scene);
     // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/buddha_new/buddha_scaled_.obj', 'Sec3Engine/models/buddha_new/buddha_scaled_.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/dabrovic-sponza/sponza.obj', 'Sec3Engine/models/dabrovic-sponza/sponza.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/dabrovic-sponza/sponza3.obj', 'Sec3Engine/models/dabrovic-sponza/sponza3.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/cubeworld/cubeworld.obj', 'Sec3Engine/models/cubeworld/cubeworld.mtl');
     
        
@@ -1303,16 +1322,16 @@ var setupScene = function(canvasId, messageId ) {
     loadObjects();
 
     var particleSpecs = {
-        maxParticles : 100000,
+        maxParticles : 500000,
         emitters : [],
         gravityModifier : -8000.0,
-        RGBA : [0.0, 0.2, 0.9, 0.101],
-        damping : 1.09,
+        RGBA : [0.0, 0.2, 0.9, 0.211],
+        damping : 1.08,
         type : "nBody",
-        activeBodies : 7,
-        particleSize : 1.0,
-        luminence : 50.0,
-        scatterMultiply : 4.0,
+        activeBodies : 3,
+        particleSize : 0.5,
+        luminence : 40.0,
+        scatterMultiply : 2.0,
         shadowMultiply : 0.1,
         scale : 30.0
         //TODO phi and theta?
@@ -1343,6 +1362,12 @@ var setupScene = function(canvasId, messageId ) {
     workingFBO = SEC3.createFBO();
     if (! workingFBO.initialize( gl, canvas.width, canvas.height )) {
         console.log( "workingFBO initialization failed.");
+        return;
+    }
+
+    finalFBO = SEC3.createFBO();
+    if (! finalFBO.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "finalFBO initialization failed.");
         return;
     }
 

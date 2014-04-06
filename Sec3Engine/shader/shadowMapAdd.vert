@@ -5,6 +5,7 @@ attribute vec2 aParticleIndex;
 
 uniform sampler2D uParticlePositions;  //rename uParticlePositions
 uniform mat4 uLightMatrix;
+uniform float u_size;
 	
 void main(void) {
 
@@ -13,6 +14,6 @@ void main(void) {
 
    	gl_Position = uLightMatrix * vec4(oldPosition.rgb, 1.0);//write 
 
-   	gl_PointSize = 1.0;
+   	gl_PointSize = u_size;
    	
 }

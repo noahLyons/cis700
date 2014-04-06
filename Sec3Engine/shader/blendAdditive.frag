@@ -6,7 +6,8 @@ uniform float u_weight1;
 uniform float u_weight2;
 uniform sampler2D u_texture1;
 uniform sampler2D u_texture2;
-
+uniform sampler2D u_depth;
+uniform bool u_depthWrite;
 varying vec2 v_texcoord;
 
 
@@ -22,5 +23,8 @@ void main(void) {
 	color2.rgb *= u_weight2;
 
 	gl_FragData[0] = color1 + color2;
-
+	if( u_depthWrite ) {
+		float depth = texture2D(u_depth, v_texcoord).r;
+		gl_FragData[1] = vec4( vec3(depth), 1.0 );
+	}
 }

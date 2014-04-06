@@ -51,14 +51,13 @@ SEC3.createParticleSystem = function(specs) {
 	
 
 	var update = function() {
-		swapSrcDestIndices();
 
 	    stepParticles();
 	    updateShadowMap(scene.getLight(0));
 	};
 
-	var draw = function() {
-		renderParticles();
+	var draw = function( light ) {
+		renderParticles( light );
 		systemCycles++;
 	};
 	
@@ -66,7 +65,7 @@ SEC3.createParticleSystem = function(specs) {
 	 * Updates locations and velocities of all particles in system
 	 */
 	var stepParticles = function () {
-
+		swapSrcDestIndices();	
 	    // disble depth testing and update the state in texture memory
 	    gl.disable(gl.DEPTH_TEST);
 	    gl.disable(gl.BLEND);
@@ -109,7 +108,7 @@ SEC3.createParticleSystem = function(specs) {
 	/*
 	 * draws current scene into shadow map
 	 */
-	var updateShadowMap = function ( light  ) {
+	var updateShadowMap = function ( light ) {
 
 		var fbo = light.cascadeFramebuffers[0];
 		gl.colorMask(false,false,false,false);
@@ -120,7 +119,7 @@ SEC3.createParticleSystem = function(specs) {
 	    gl.bindTexture(gl.TEXTURE_2D, positionTextures[srcIndex]);
 	    gl.uniform1i(shadowProgram.uParticlePositions, 0);
 
-
+	    gl.uniform1f( shadowProgram.uSizeLoc, self.particleSize )
 	    gl.uniformMatrix4fv(shadowProgram.uLightMatrix, false, light.getMVP());
 	    gl.enable(gl.DEPTH_TEST);
 	    gl.disable(gl.BLEND);
@@ -132,7 +131,7 @@ SEC3.createParticleSystem = function(specs) {
 	   			
 	    fbo.bind(gl);
 	   	// gl.clear(gl.DEPTH_BUFFER_BIT);
-	    gl.drawArrays(gl.POINTS, 0, self.maxParticles / 3.0); 
+	    gl.drawArrays(gl.POINTS, 0, self.limit); 
 	    fbo.unbind(gl);
 	    gl.colorMask(true,true,true,true);
 	}
@@ -140,13 +139,13 @@ SEC3.createParticleSystem = function(specs) {
 	/*
 	 * Draws all particles in system
 	 */
-	var renderParticles = function () {
+	var renderParticles = function ( light ) {
 
 	    gl.useProgram(self.renderProgram.ref());
 	    gl.viewport(0, 0, SEC3.canvas.width, SEC3.canvas.height );
 
 		
-	    gl.uniform3fv(renderProgram.uLightPosition, scene.getLight(0).getPosition());
+	    gl.uniform3fv(renderProgram.uLightPosition, light.getPosition());
 	    gl.uniform3fv(renderProgram.uCPosLoc, scene.getCamera().getPosition());
 
 	    gl.activeTexture(gl.TEXTURE0);
@@ -158,15 +157,17 @@ SEC3.createParticleSystem = function(specs) {
 	    gl.uniform1i( renderProgram.uGDepthLoc, 1 );
 
 	    gl.activeTexture(gl.TEXTURE2);
-	    gl.bindTexture(gl.TEXTURE_2D, scene.getLight(0).cascadeFramebuffers[0].depthTexture() );
+	    gl.bindTexture(gl.TEXTURE_2D, light.cascadeFramebuffers[0].depthTexture() );
 	    gl.uniform1i(renderProgram.uShadowMap, 2);
 	   	
-	   	gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, scene.getLight(0).getMVP() );
+	   	gl.uniformMatrix4fv(renderProgram.uShadowMapTransform, false, light.getMVP() );
 	    gl.uniformMatrix4fv(renderProgram.uCameraTransform, false, scene.getCamera().getMVP());
-	    gl.uniform3fv(renderProgram.uLightPosition, scene.getLight(0).getPosition() );
+	    gl.uniform3fv(renderProgram.uLightPosition, light.getPosition() );
 	    //bind the default frame buffer, disable depth testing and enable alpha blending
-	    gl.bindFramebuffer(gl.FRAMEBUFFER, null); //bind the default frame buffer
-	    // gl.enable(gl.DEPTH_TEST);
+	    finalFBO.bind(gl);
+	    // gl.bindFramebuffer(gl.FRAMEBUFFER, null); //bind the default frame buffer
+	    gl.enable(gl.DEPTH_TEST);
+	    gl.depthFunc(gl.ALWAYS);
 	    gl.enable(gl.BLEND);
 	    // gl.blendFunc( gl.ONE, gl.ONE_MINUS_SRC_ALPHA );
 	    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.SRC_ALPHA, gl.ONE);
@@ -177,8 +178,9 @@ SEC3.createParticleSystem = function(specs) {
 	    gl.vertexAttribPointer(renderProgram.particleIndexAttribute, 2, gl.FLOAT, false, 0, 0); 
 	    gl.enableVertexAttribArray(renderProgram.particleIndexAttribute); 
 	   	// gl.enable(0x0B10);
-	    gl.drawArrays(gl.POINTS, 0, self.maxParticles); 
+	    gl.drawArrays(gl.POINTS, 0, self.limit); 
 	    gl.disable(gl.BLEND);
+	    gl.depthFunc(gl.LESS);
 
 	}
 
@@ -201,6 +203,7 @@ SEC3.createParticleSystem = function(specs) {
 		var len = SEC3.math.roundUpToPower(Math.sqrt(specs.maxParticles), 2);
 		self.textureSideLength = len;
 		self.maxParticles = len * len;
+		self.limit = specs.maxParticles;
 		self.gravityModifier = specs.gravityModifier;
 
 		self.activeBodies = specs.activeBodies;
@@ -277,6 +280,8 @@ SEC3.createParticleSystem = function(specs) {
 	        shadowProgram.particleIndexAttribute = gl.getAttribLocation(shadowProgram.ref(), "aParticleIndex");
 	        shadowProgram.uLightMatrix = gl.getUniformLocation(shadowProgram.ref(), "uLightMatrix");
 	        shadowProgram.uParticlePositions = gl.getUniformLocation(shadowProgram.ref(), "uParticlePositions");
+	        shadowProgram.uSizeLoc = gl.getUniformLocation(shadowProgram.ref(), "u_size");
+
 	        self.shadowProgram = shadowProgram;
 	    });
 
@@ -441,6 +446,8 @@ SEC3.createParticleSystem = function(specs) {
 	self.restart = restart;
 	self.draw = draw;
 	self.update = update;
+	self.stepParticles = stepParticles;
+	self.updateShadowMap = updateShadowMap;
 
 	// run setup
 	init(); 
