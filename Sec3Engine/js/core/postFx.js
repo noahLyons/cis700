@@ -2,7 +2,10 @@ SEC3 = SEC3 || {};
 
 SEC3.postFx = {};
 
-// create postFx shaders and register them as async objects
+/*
+ *	create postFx shaders and register them as async objects.
+ *	must be called before SEC3.postFx can be used
+ */
 SEC3.postFx.init = function() {
 
 //----------------------------------------------------BLEND ADDITIVE:
@@ -141,9 +144,12 @@ SEC3.postFx.init = function() {
 };
 
 
-// additively blend texture1 with texture2 according to their weights
-// write result into destBuffer.texture(0)
-// if depthTexture is specified, write it into destBuffer.texture(1)
+//------------------------------------------------------------------------POST PASSES:
+/*
+ * additively blend texture1 with texture2 according to their weights
+ * write result into destBuffer.texture(0)
+ * if depthTexture is specified, write it into destBuffer.texture(1)
+ */
 SEC3.postFx.blendAdditive = function( texture1, weight1, texture2, weight2, destBuffer, depthTexture ) {
 
     destBuffer.bind(gl);
@@ -179,7 +185,9 @@ SEC3.postFx.blendAdditive = function( texture1, weight1, texture2, weight2, dest
     gl.useProgram( null );
 };
 
-// write contents of texture to BackBuffer, or other framebuffer if specified
+/*
+ * write contents of texture to BackBuffer, or other framebuffer if specified
+ */
 SEC3.postFx.finalPass = function(texture, framebuffer){
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); 
@@ -207,8 +215,10 @@ SEC3.postFx.finalPass = function(texture, framebuffer){
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 };
 
-// Two passes, one to blur vertically and one to blur horizontally
-// write result into framebuffer
+/*
+ * Two passes, one to blur vertically and one to blur horizontally
+ * write result into framebuffer
+ */
 SEC3.postFx.blurGaussian = function(srcTex, framebuffer, sigma) {
     var vertical = 1;
     var horizontal = 0;
@@ -259,6 +269,10 @@ SEC3.postFx.blurGaussian = function(srcTex, framebuffer, sigma) {
     framebuffer.unbind(gl); 
 };
 
+/*
+ * applies depth of field to contents of finalFBO(0)
+ * uses depth stored in finalFBO(1)
+ */
 SEC3.postFx.dofPass = function(){
    
     gl.useProgram( SEC3.postFx.dofDownsampleProg.ref() );

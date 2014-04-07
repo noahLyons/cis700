@@ -1,6 +1,10 @@
 SEC3 = SEC3 || {};
 SEC3.renderer = {};
 
+/*
+ *  create renderer shaders and register them as async objects.
+ *  must be called before SEC3.renderer can be used
+ */
 SEC3.renderer.init = function () {
 
 //----------------------------------------------------FILL GBUFFER PASS:
@@ -99,6 +103,10 @@ SEC3.renderer.init = function () {
 
 };
 
+//-------------------------------------------------------------------RENDERING METHODS:
+/*
+ *  fills the gBuffer 
+ */
 SEC3.renderer.fillGPass = function( framebuffer ) {
 
     gl.useProgram( SEC3.renderer.fillGProg.ref() );
@@ -117,6 +125,9 @@ SEC3.renderer.fillGPass = function( framebuffer ) {
     gl.useProgram( null );
 };
 
+/*
+ *  re draws shadow maps for each cascade for each lights in scene
+ */
 SEC3.renderer.updateShadowMaps = function(scene){
 
     var light;
@@ -132,7 +143,7 @@ SEC3.renderer.updateShadowMaps = function(scene){
 };
 
 /*
- *  light to render from wich, cascade index
+ *  draws scene geometry into light's cascade(index) shadow map
  */
 SEC3.renderer.drawShadowMap = function(light, index){
 
@@ -182,6 +193,9 @@ SEC3.renderer.drawShadowMap = function(light, index){
     // gl.cullFace(gl.BACK);
 };
 
+/*
+ *  binds scene geometry vbos and draws into currently bound FBO
+ */
 SEC3.renderer.drawModel = function (program, textureOffset) {
 
     textureOffset = textureOffset || 0;
@@ -221,6 +235,9 @@ SEC3.renderer.drawModel = function (program, textureOffset) {
     }
 };
 
+/*
+ *  adds contribution from light to lightAccumulation FBO
+ */
 SEC3.renderer.deferredRenderSpotLight = function( light, textureUnit ) {
 
     // var lightPersp = light.getProjectionMat();
@@ -241,8 +258,10 @@ SEC3.renderer.deferredRenderSpotLight = function( light, textureUnit ) {
     gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
 };
 
-
-SEC3.renderer.deferredRender = function(scene, gBuffer, framebuffer) {
+/*
+ *  renders scene from gBuffer data into finalFBO
+ */
+SEC3.renderer.deferredRender = function(scene, gBuffer) {
 
     
     gl.useProgram( SEC3.renderer.deferredRenderProg.ref() );
@@ -283,7 +302,12 @@ SEC3.renderer.deferredRender = function(scene, gBuffer, framebuffer) {
     gl.bindBuffer( gl.ARRAY_BUFFER, null );
 };
 
-
+//----------------------------------------------------------------------HELPER METHODS:
+/*
+ *  sends gBuffer data to program uniforms
+ *  program must have: 
+ *      uPosSamplerLoc, uNormalSamplerLoc, uColorSamplerLoc, uDepthSamplerLoc
+ */
 SEC3.renderer.bindGBufferTextures = function( program, gBuffer ) {
 
     gl.activeTexture( gl.TEXTURE0);  //position
@@ -303,6 +327,9 @@ SEC3.renderer.bindGBufferTextures = function( program, gBuffer ) {
     gl.uniform1i( program.uDepthSamplerLoc, 3 );
 };
 
+/*
+ *  binds buffers for fullscreen quad rendering, farPlaneVerts optional
+ */
 SEC3.renderer.bindQuadBuffers = function ( program, farPlaneVerts ) {
 
     if( ! SEC3.fullScreenQuad ) {
@@ -326,7 +353,29 @@ SEC3.renderer.bindQuadBuffers = function ( program, farPlaneVerts ) {
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, SEC3.fullScreenQuad.indexVBO );  
 };
 
+/*
+ *  initializes fullscreen quad rendering vbos
+ */
 SEC3.renderer.createScreenSizedQuad = function () {
+
+    //screen quad geometry
+
+    var screenQuad ={
+        vertices: [
+            -1.0, 1.0, 0.0,
+            -1.0, -1.0, 0.0,
+            1.0, -1.0, 0.0,
+            1.0, 1.0, 0.0
+            ],
+        texcoords:[
+                -1.0,1.0,
+                -1.0, -1.0,
+                1.0, -1.0,
+                1.0, 1.0
+            ],
+        indices: [0,1,2,0,2,3]
+
+    };
 
     SEC3.fullScreenQuad = {};
 

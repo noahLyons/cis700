@@ -462,7 +462,8 @@ var updateLightCount = function( newCount ) {
 }
 
 /*
- * Creates a light at a random position within camera's view frustum
+ * Creates a light at a random position inside Sponza
+ * TODO: within camera's view frustum
  */
 var addLight = function() {
 
@@ -483,8 +484,6 @@ var addLight = function() {
     nextLight.setPerspective(25, 1.0, demo.zNear, demo.zFar);
     nextLight.setupCascades( 1, 256, gl, scene );
     scene.addLight(nextLight);
-
-
 }
 
 
@@ -609,24 +608,3 @@ var setupScene = function(canvasId, messageId ) {
     }
 
 };
-
-//--------------------------------------------------------------------------HELPERS:
-
-var setActiveTexture = function(gl, texNum) {
-    
-    switch (texNum) {
-        case 0:
-            gl.activeTexture( gl.TEXTURE0 );
-            break;
-        case 1:
-            gl.activeTexture( gl.TEXTURE1 );
-            break;
-        case 2:
-            gl.activeTexture( gl.TEXTURE2 );
-            break;
-        case 3:
-            gl.activeTexture( gl.TEXTURE3 );
-            break;
-
-    }
-}

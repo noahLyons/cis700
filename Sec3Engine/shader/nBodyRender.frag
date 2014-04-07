@@ -94,7 +94,7 @@ void main(void) {
 	}
 	else {
 		v_color = vec4( lightFalloff * luminence * (4.0 - (3.0 * amount)), alpha);// + (alpha * uLuminence * 0.06 / max(1.0, lightSquaredDistance) ));//	 + min((2.0/ lightSquaredDistance),alpha));
-		v_color.a += (0.9 - max(amount, 0.0)) * alpha * min( length(v_color.rgb), 1.0);
+		// v_color.a += (0.9 - max(amount, 0.0)) * alpha * min( length(v_color.rgb), 1.0);
 		
 	}
 	// v_color = vec4(0.1);
