@@ -14,6 +14,6 @@ void main(void) {
 
    	gl_Position = uLightMatrix * vec4(oldPosition.rgb, 1.0);//write 
 
-   	gl_PointSize = u_size;
+   	gl_PointSize = 1.0;
    	
 }	
