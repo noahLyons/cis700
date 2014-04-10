@@ -185,20 +185,6 @@ SEC3.createParticleSystem = function(specs) {
 
 	}
 
-
-    var createBuffer = function(itemSize, numItems, content, location) {
-    	// TODO move to webgl-util.js
-	    var newBuffer = gl.createBuffer();  
-	    newBuffer.itemSize = itemSize;
-	    newBuffer.numItems = numItems;
-	    gl.bindBuffer(gl.ARRAY_BUFFER, newBuffer);
-	    var vert32Array = new Float32Array(content);
-	    gl.bufferData(gl.ARRAY_BUFFER, vert32Array, gl.STATIC_DRAW);
-	    gl.vertexAttribPointer(location, itemSize, gl.FLOAT, false, 0, 0);  
-	    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-	    return newBuffer;
-	};
-
 	var init = function() {
 
 		var len = SEC3.math.roundUpToPower(Math.sqrt(specs.maxParticles), 2);
@@ -222,12 +208,12 @@ SEC3.createParticleSystem = function(specs) {
     var initBuffers = function() {
 
 	    // create attribute buffer
-	    indexBuffer = createBuffer(2, //item size
+	    indexBuffer = SEC3.createBuffer(2, //item size
 	                               self.maxParticles, //num items
 	                               textureMemoryLocation, //data
 	                               renderProgram.particleIndexAttribute); //location
 	    // create fullScreen Quad buffer
-	    quadBuffer = createBuffer(2, 
+	    quadBuffer = SEC3.createBuffer(2, 
 	                 6,
 	                 SEC3.geometry.fullScreenQuad(),
 	                 stepProgram.aVeretexPosition);

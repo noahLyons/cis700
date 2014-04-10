@@ -3,6 +3,32 @@
     //SEC3 is a core function interface
     var SEC3 = SEC3 || {};
 
+    SEC3.generateTexture = function(width, height, values) {
+        
+        gl.getExtension( "OES_texture_float" );
+        gl.getExtension( "OES_texture_float_linear" );
+
+        var texture = gl.createTexture();
+
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        
+        if (values) {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 
+                          0, gl.RGBA, gl.FLOAT, new Float32Array(values)); //TODO will initialize empty array
+        }
+        else {
+             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height,
+                           0, gl.RGBA, gl.FLOAT, null );
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        return texture;
+    };
+
     SEC3.createFBO = function() {
     "use strict"
 
@@ -12,7 +38,7 @@
     var resolution = [];
     var drawbuffers = [];
 
-    function init( gl, width, height, numAttatchments ){
+    function init( gl, width, height, numAttatchments, inputTextures ){
         numAttatchments = numAttatchments || 4;
 
     	gl.getExtension( "OES_texture_float" );
@@ -38,13 +64,7 @@
 
         //Create textures for FBO attachment
         for( var i = 0; i < numAttatchments; ++i ){
-        	textures[i] = gl.createTexture()
-        	gl.bindTexture( gl.TEXTURE_2D,  textures[i] );
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); // TODO nearest?
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, null); 
+        	textures[i] = textures ? textures[i] : SEC3.generateTexture(width, height);
         }
 
         //Create FBO
@@ -74,71 +94,66 @@
         return true;
     }
 
-        return {
-            swapBuffers: function(a, b, gl){
-                gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );
-                var tempTex = textures[a];
-                textures[a] = textures[b];
-                textures[b] = tempTex;
-                gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[a], gl.TEXTURE_2D, textures[a], 0 );
-                gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[b], gl.TEXTURE_2D, textures[b], 0 );
-                // var FBOstatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-                // if( FBOstatus !== gl.FRAMEBUFFER_COMPLETE ){
-                //     console.log( "FBO incomplete! Initialization failed!" );
-                //     return false;
-                // }
-                gl.bindFramebuffer( gl.FRAMEBUFFER, null );
-                gl.bindTexture( gl.TEXTURE_2D, null );
-            },
-            getWidth: function(){
-                return resolution[0];
-            },
-            getHeight: function(){
-                return resolution[1];
-            },
-            ref: function(){
-            	return fbo;    
-            },
-            initialize: function( gl, width, height, numAttatchments ){
-                return init( gl, width, height, numAttatchments );
-            },
-            dispose: function(gl) {
-                var i;
-                for(i = 0; i < textures.length; i++) {
-                    gl.deleteTexture(textures[i]);
-                }
-                gl.deleteTexture(depthTex);
-                gl.deleteFramebuffer(fbo);
-            },
-            bind: function(gl){
-                gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );
-            },
-            unbind: function(gl){
-                gl.bindFramebuffer( gl.FRAMEBUFFER, null );
-            },
-            texture: function(i){
-                return textures[i];
-            },
-            depthTexture: function(){
-                return depthTex; 
-            },
-            ///// The following 3 functions should be implemented for all objects
-            ///// whose resources are retrieved asynchronously
-            isReady: function(){
-            	var isReady = ready;
-                for( var i = 0; i < textures.length; ++i ){
-                    isReady &= textures[i].ready;
-                }
-                console.log( isReady );
-                return isReady;
-            },
-            addCallback: function( functor ){
-                callbackFunArray[callbackFunArray.length] = functor;
-            },
-            executeCallBackFunc: function(){
-                var i;
-                for( i = 0; i < callbackFunArray.length; ++i ){
-                    callbackFunArray[i]();
+    return {
+        swapBuffers: function(a, b, gl){
+            gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );
+            var tempTex = textures[a];
+            textures[a] = textures[b];
+            textures[b] = tempTex;
+            gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[a], gl.TEXTURE_2D, textures[a], 0 );
+            gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[b], gl.TEXTURE_2D, textures[b], 0 );
+            gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+            gl.bindTexture( gl.TEXTURE_2D, null );
+        },
+        getWidth: function(){
+            return resolution[0];
+        },
+        getHeight: function(){
+            return resolution[1];
+        },
+        ref: function(){
+        	return fbo;    
+        },
+        initialize: function( gl, width, height, numAttatchments ){
+            return init( gl, width, height, numAttatchments );
+        },
+        dispose: function(gl) {
+            var i;
+            for(i = 0; i < textures.length; i++) {
+                gl.deleteTexture(textures[i]);
+            }
+            gl.deleteTexture(depthTex);
+            gl.deleteFramebuffer(fbo);
+        },
+        bind: function(gl){
+            gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );
+        },
+        unbind: function(gl){
+            gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+        },
+        texture: function(i){
+            return textures[i];
+        },
+        depthTexture: function(){
+            return depthTex; 
+        },
+        ///// The following 3 functions should be implemented for all objects
+        ///// whose resources are retrieved asynchronously
+        isReady: function(){
+        	var isReady = ready;
+            for( var i = 0; i < textures.length; ++i ){
+                isReady &= textures[i].ready;
+            }
+            console.log( isReady );
+            return isReady;
+        },
+        addCallback: function( functor ){
+            callbackFunArray[callbackFunArray.length] = functor;
+        },
+        executeCallBackFunc: function(){
+            var i;
+            for( i = 0; i < callbackFunArray.length; ++i ){
+                callbackFunArray[i]();
             }
         }       
     };

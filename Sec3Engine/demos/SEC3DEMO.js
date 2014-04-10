@@ -195,7 +195,7 @@ var main = function( canvasId, messageId ){
 
     setupScene(canvasId, messageId);
 
-    TODO: setKeyInputs();
+    setKeyInputs();
         //'1' = Attachment 1: vertex position
         //'2' = Attachment 2: vertex normal
         //'3' = Attachment 3: vertex color
@@ -516,7 +516,6 @@ var setupScene = function(canvasId, messageId ) {
     scene = new SEC3.Scene();
 
     //Setup camera
-    view = mat4.create();
     camera = new SEC3.Camera();
     camera.goHome( [-5.0, 7.0, 1.5] ); //initial camera posiiton
     camera.setAzimuth( 75.0 );

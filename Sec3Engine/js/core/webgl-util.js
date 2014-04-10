@@ -2,6 +2,19 @@
 //SEC3 is a core function interface
 var SEC3 = SEC3 || {};
 
+SEC3.createBuffer = function(itemSize, numItems, content, location) {
+        
+    var newBuffer = gl.createBuffer();  
+    newBuffer.itemSize = itemSize;
+    newBuffer.numItems = numItems;
+    gl.bindBuffer(gl.ARRAY_BUFFER, newBuffer);
+    var vert32Array = new Float32Array(content);
+    gl.bufferData(gl.ARRAY_BUFFER, vert32Array, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(location, itemSize, gl.FLOAT, false, 0, 0);  
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    return newBuffer;
+};
+
 SEC3.getWebGLContext = function( canvas, message ){
 
     var ctx = null;
