@@ -48,6 +48,8 @@ SEC3.SPH = function(specs) {
 //-----------------------------------------------------------------CONSTANTS/FIELDS:
 	
 	this.isSrcIndex0 = true;
+	this.srcIndex = 0;
+	this.destIndex = 1;
 
 	this.movementFBOs = [];
 	// slot 0: position
@@ -70,6 +72,7 @@ SEC3.SPH = function(specs) {
 	this.initFBOs();
 	this.initShaders();
 
+
 };
 //--------------------------------------------------------------------------METHODS:
 
@@ -79,29 +82,59 @@ SEC3.SPH.prototype = {
 	
 	draw : function( scene, framebuffer ) {
 
+	    if (framebuffer)  framebuffer.bind(gl);
+	    else   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
 		var width = framebuffer != null ? framebuffer.getWidth() : SEC3.canvas.width;
 		var height = framebuffer != null ? framebuffer.getWidth() : SEC3.canvas.height;
-		gl.useProgram(this.renderProgram.ref());
 	    gl.viewport(0, 0, width, height );
 	   
+	   	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+	    // gl.disable(gl.DEPTH_TEST);
+	    gl.enable(gl.BLEND);
+	    gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+		gl.useProgram(this.renderProgram.ref());
 	    gl.activeTexture(gl.TEXTURE0);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[0].texture(0));
-	    gl.uniform1i( this.renderProgram.uPosLoc, 0);
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(0));
+	    gl.uniform1i( this.renderProgram.uPositionsLoc, 0);
 	   	   
 	    gl.uniformMatrix4fv(this.renderProgram.uMVPLoc, false, scene.getCamera().getMVP());
 
-	    if (framebuffer)  framebuffer.bind(gl);
-	    else   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-	   
-	    gl.disable(gl.DEPTH_TEST);
-	    gl.enable(gl.BLEND);
-	    gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
 	   	//TODO eliminate
-	    gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer);
-	    gl.vertexAttribPointer(this.renderProgram.particleIndexAttribute, 2, gl.FLOAT, false, 0, 0); 
-	    gl.enableVertexAttribArray(this.renderProgram.particleIndexAttribute); 
-
+	    gl.bindBuffer(gl.ARRAY_BUFFER, this.renderProgram.indexBuffer);
+	    gl.vertexAttribPointer(this.renderProgram.aIndexLoc, 2, gl.FLOAT, false, 0, 0); 
+	    gl.enableVertexAttribArray(this.renderProgram.aIndexLoc); 
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+		this.swapSrcDestIndices();
+	},
+
+	move : function( sene, framebuffer ) {
+
+			
+	    // disble depth testing and update the state in texture memory
+	    gl.disable(gl.DEPTH_TEST);
+	    gl.disable(gl.BLEND);
+
+	    gl.useProgram( this.moveProgram.ref());
+	    SEC3.renderer.bindQuadBuffers( this.moveProgram );
+	   	// this.movementFBOs[this.destIndex].bind(gl);
+	   	gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+	    gl.viewport(0, 0, this.textureSideLength, this.textureSideLength);
+	    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+	    
+	    gl.activeTexture(gl.TEXTURE0);
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
+	    gl.uniform1i(this.moveProgram.uPositionsLoc, 0);
+
+	    gl.activeTexture(gl.TEXTURE1);
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(1));
+	    gl.uniform1i(this.moveProgram.uVelocityLoc, 1);
+	   	
+	    gl.drawElements(gl.TRIANGLES, 0, gl.UNSIGNED_SHORT, 6); 
+	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
+    	gl.bindBuffer( gl.ARRAY_BUFFER, null );
+	    // this.swapSrcDestIndices();
 	},
 
 //----------------------------------------------------------------------------SETUP:
@@ -175,13 +208,15 @@ SEC3.SPH.prototype = {
 													this.textureSideLength,
 													startPositions);
 		var positionTextureB = SEC3.generateTexture(this.textureSideLength,
-													this.textureSideLength);
+													this.textureSideLength
+													);
 
 		var velocityTextureA = SEC3.generateTexture(this.textureSideLength,
 													this.textureSideLength,
 													startVelocities);
 		var velocityTextureB = SEC3.generateTexture(this.textureSideLength,
-													this.textureSideLength);
+													this.textureSideLength
+													);
 		this.movementFBOs = [];
 
 		var movementFBOa = SEC3.createFBO();
@@ -193,14 +228,14 @@ SEC3.SPH.prototype = {
 		this.movementFBOs.push(movementFBOa)
 
 		var movementFBOb = SEC3.createFBO();
-		movementFBOa.initialize( gl, this.textureSideLength,
+		movementFBOb.initialize( gl, this.textureSideLength,
 								this.textureSideLength,
 								2,
 								[ positionTextureB, 
 								velocityTextureB ]);	
 		this.movementFBOs.push(movementFBOb)
 
-		this.systemFBO = SEC3.createFBO
+		this.systemFBO = SEC3.createFBO();
 		this.systemFBO.initialize( gl, this.textureSideLength,
 								  this.textureSideLength,
 								  1 );
@@ -208,14 +243,24 @@ SEC3.SPH.prototype = {
 
 	initShaders : function() {
 		var indices = this.genParticleIndices();
+		var self = this;
+		// -------------------------------------------------MOVE:
+		var moveProgram = SEC3.createShaderProgram();
+		moveProgram.loadShader(gl,
+							   "Sec3Engine/shader/moveSPH.vert",
+							   "Sec3Engine/shader/moveSPH.frag");
+		moveProgram.addCallback( function() {
+			moveProgram.aVertexPosLoc = gl.getAttribLocation( moveProgram.ref(), "a_pos" );
+	        moveProgram.aVertexTexcoordLoc = gl.getAttribLocation( moveProgram.ref(), "a_texCoord" );
+	        moveProgram.uPositionsLoc = gl.getUniformLocation( moveProgram.ref(), "u_positions" );
+	        moveProgram.uVelocityLoc = gl.getUniformLocation( moveProgram.ref(), "u_velocity" );
+	        moveProgram.uGravityLoc = gl.getUniformLocation( moveProgram.ref(), "u_gravity" );
+	        gl.useProgram( moveProgram.ref() );
+	        gl.uniform1f( moveProgram.uGravityLoc, self.gravity );
 
-		//-------------------------------------------------MOVE:
-		// var moveProgram = SEC3.createShaderProgram();
-		// moveProgram.loadShader(gl,
-		// 					   "Sec3Engine/shader/moveSPH.vert",
-		// 					   "Sec3Engine/shader/moveSPH.frag");
-		// SEC3.registerAsyncObj( gl, moveProgram );
-		// this.moveProgram = moveProgram;
+		} );
+		SEC3.registerAsyncObj( gl, moveProgram );
+		this.moveProgram = moveProgram;
 
 		// //-------------------------------------------------RELAX:
 		// var relaxProgram = SEC3.createShaderProgram();
@@ -241,18 +286,36 @@ SEC3.SPH.prototype = {
 		renderProgram.addCallback( function() {
 	        renderProgram.aIndexLoc = gl.getAttribLocation(renderProgram.ref(), "a_index");
 	        renderProgram.uMVPLoc = gl.getUniformLocation(renderProgram.ref(), "u_MVP");
-	        renderProgram.uPosLoc = gl.getUniformLocation(renderProgram.ref(), "u_pos");
+	        renderProgram.uPositionsLoc = gl.getUniformLocation(renderProgram.ref(), "u_positions");
 	        gl.useProgram( renderProgram.ref() );
-			indexBuffer = SEC3.createBuffer(2, //item size
-	                          this.numParticles, //num items
+			renderProgram.indexBuffer = SEC3.createBuffer(2, //item size
+	                          self.numParticles, //num items
 	                          indices, //data
 	                          renderProgram.aIndexLoc); //location
 
 	    } );
 		SEC3.registerAsyncObj( gl, renderProgram );
 		this.renderProgram = renderProgram;
+	},
+
+//--------------------------------------------------------------------------HELPERS:
+	
+	/*
+	 * Updates/toggles globals srcIndex and destIndex
+	 */
+	swapSrcDestIndices : function() {
+
+	    this.isSrcIndex0 = ! this.isSrcIndex0;
+
+	    if (this.isSrcIndex0) {
+	        this.srcIndex = 0;
+	        this.destIndex = 1;
+	    }
+	    else {
+	        this.srcIndex = 1;
+	        this.destIndex = 0;
+	    }
 	}
-
-
 };
+
 

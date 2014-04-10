@@ -62,8 +62,8 @@ SEC3.renderer.init = function () {
         deferredRenderProg.uShadowMapResLoc = gl.getUniformLocation( deferredRenderProg.ref(), "u_shadowMapRes" );
 
         gl.useProgram( deferredRenderProg.ref() );
-        gl.uniform1f( deferredRenderProg.uZNearLoc, demo.zNear );
-        gl.uniform1f( deferredRenderProg.uZFarLoc, demo.zFar );
+        gl.uniform1f( deferredRenderProg.uZNearLoc, scene.getCamera().zNear );
+        gl.uniform1f( deferredRenderProg.uZFarLoc, scene.getCamera().zFar );
 
     } );
     SEC3.registerAsyncObj( gl, deferredRenderProg );
@@ -90,16 +90,16 @@ SEC3.renderer.init = function () {
         debugGProg.uZFarLoc = gl.getUniformLocation( debugGProg.ref(), "u_zFar" );
        
         gl.useProgram( debugGProg.ref() );
-        gl.uniform1f( debugGProg.uZNearLoc, demo.zNear );
-        gl.uniform1f( debugGProg.uZFarLoc, demo.zFar );
+        gl.uniform1f( debugGProg.uZNearLoc, scene.getCamera().zNear);
+        gl.uniform1f( debugGProg.uZFarLoc, scene.getCamera().zFar );
 
     } );
     SEC3.registerAsyncObj( gl, debugGProg );
     SEC3.renderer.debugGProg = debugGProg;
 
-    SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+    //SEC3.renderer.buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
 
-    SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+    //SEC3.renderer.renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
 
 };
 

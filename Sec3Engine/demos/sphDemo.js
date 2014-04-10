@@ -17,12 +17,14 @@ var myRender = function() {
 		sph.updateVelocities();
 	*/
 
-	gl.clear( gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT );
-	sph.draw( scene, null );	
+	sph.move();
+	// sph.draw( scene, null );	
 };
 
 var main = function( canvasId, messageId ){
 	setupScene(canvasId, messageId);
+
+	SEC3.renderer.init();
 	SEC3.render = myRender;
 	SEC3.renderLoop = myRenderLoop;
 	SEC3.run(gl);	
@@ -53,6 +55,7 @@ var setupScene = function(canvasId, messageId){
     initCamera();
 
     initParticleSystem();
+
 
 };
 

@@ -64,7 +64,7 @@
 
         //Create textures for FBO attachment
         for( var i = 0; i < numAttatchments; ++i ){
-        	textures[i] = textures ? textures[i] : SEC3.generateTexture(width, height);
+        	textures[i] = inputTextures ? inputTextures[i] : SEC3.generateTexture(width, height);
         }
 
         //Create FBO
@@ -114,8 +114,8 @@
         ref: function(){
         	return fbo;    
         },
-        initialize: function( gl, width, height, numAttatchments ){
-            return init( gl, width, height, numAttatchments );
+        initialize: function( gl, width, height, numAttatchments, inputTextures ){
+            return init( gl, width, height, numAttatchments, inputTextures);
         },
         dispose: function(gl) {
             var i;
