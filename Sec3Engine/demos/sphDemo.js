@@ -18,13 +18,13 @@ var myRender = function() {
 	*/
 
 	sph.move();
-	// sph.draw( scene, null );	
+	sph.draw( scene, null );	
 };
 
 var main = function( canvasId, messageId ){
 	setupScene(canvasId, messageId);
 
-	SEC3.renderer.init();
+	// SEC3.renderer.init();
 	SEC3.render = myRender;
 	SEC3.renderLoop = myRenderLoop;
 	SEC3.run(gl);	

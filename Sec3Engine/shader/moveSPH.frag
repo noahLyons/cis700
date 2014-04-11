@@ -14,10 +14,10 @@ void main(void) {
 
 	vec4 oldPosition = texture2D(u_positions, v_texCoord);
 	vec4 oldVelocity = texture2D(u_velocity, v_texCoord);
-	vec3 accellerationFinal = vec3( 0.0, u_gravity, 0.0);
-	vec3 newVelocity = (oldVelocity.rgb + accellerationFinal);
+	vec3 accellerationFinal = vec3( 0.0, -u_gravity, 0.0);
+	vec3 newVelocity = (oldVelocity.rgb + accellerationFinal / 60.0);
 	vec4 newPosition = vec4(oldPosition.rgb + newVelocity, oldPosition.a);
-		
-	gl_FragData[0] = vec4( 1, 0, 0, 1 );
+	newPosition.y = max( 0.0 , newPosition.y );
+	gl_FragData[0] = vec4( newPosition );
 	gl_FragData[1] = vec4(newVelocity.rgb, 1.0);
 }

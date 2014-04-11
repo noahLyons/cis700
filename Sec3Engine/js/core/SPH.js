@@ -95,7 +95,7 @@ SEC3.SPH.prototype = {
 	    gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 		gl.useProgram(this.renderProgram.ref());
 	    gl.activeTexture(gl.TEXTURE0);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(0));
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
 	    gl.uniform1i( this.renderProgram.uPositionsLoc, 0);
 	   	   
 	    gl.uniformMatrix4fv(this.renderProgram.uMVPLoc, false, scene.getCamera().getMVP());
@@ -111,17 +111,13 @@ SEC3.SPH.prototype = {
 
 	move : function( sene, framebuffer ) {
 
-			
-	    // disble depth testing and update the state in texture memory
+	    gl.useProgram( this.moveProgram.ref() );
+	    SEC3.renderer.bindQuadBuffers( this.moveProgram );
+	   	this.movementFBOs[this.destIndex].bind(gl);
+	   	// gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+	    gl.viewport(0, 0, this.textureSideLength, this.textureSideLength);
 	    gl.disable(gl.DEPTH_TEST);
 	    gl.disable(gl.BLEND);
-
-	    gl.useProgram( this.moveProgram.ref());
-	    SEC3.renderer.bindQuadBuffers( this.moveProgram );
-	   	// this.movementFBOs[this.destIndex].bind(gl);
-	   	gl.bindFramebuffer( gl.FRAMEBUFFER, null );
-	    gl.viewport(0, 0, this.textureSideLength, this.textureSideLength);
-	    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 	    
 	    gl.activeTexture(gl.TEXTURE0);
 	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
@@ -131,7 +127,7 @@ SEC3.SPH.prototype = {
 	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(1));
 	    gl.uniform1i(this.moveProgram.uVelocityLoc, 1);
 	   	
-	    gl.drawElements(gl.TRIANGLES, 0, gl.UNSIGNED_SHORT, 6); 
+	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     	gl.bindBuffer( gl.ARRAY_BUFFER, null );
 	    // this.swapSrcDestIndices();
