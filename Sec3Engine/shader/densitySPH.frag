@@ -29,9 +29,10 @@ float getDensity( vec3 position ) {
  			
 			vec3 neighborPos = texture2D( u_positions, vec2( u, v ) ).xyz;
 			float dist = length(  position - neighborPos );
-			if (dist < h ) {
+			if (dist < 0.05 ) {
 				float dist2 = dist * dist;
 				density += kDensity * pow((h2 - dist2), 3.0);
+				// density += pow(((1.0 - dist) / 0.05), 2.0);
 			}
 
 

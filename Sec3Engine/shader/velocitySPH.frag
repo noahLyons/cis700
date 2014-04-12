@@ -6,8 +6,8 @@ const float box = 2.0;
 
 const float dT = (1.0 / 60.0);
 const float dT2 = dT * dT;
-const float k = 1.0;
-const float restPressure =  1.0;
+const float k = 0.0001;
+const float restPressure =  0.011;
 const float restDensity = 1.0;
 
 uniform float h; // effective radius
@@ -48,16 +48,16 @@ vec3 assembleForces( vec3 position, vec3 myVelocity, float myDensity  ) {
 				// add pressure force from neighbor
 				float neighborDensity = texture2D( u_densities, uv ).r;
 				float neighborPressure = getPressure( neighborDensity );
-				vec3 fPressure = kPressure * pow((h - dist), 3.0) * (toNeighbor / dist);
-
+				vec3 fPressure = kPressure * pow(( 0.05 - dist), 3.0) * (toNeighbor / dist);
 				fPressure *= ( myPressure + neighborPressure ) / ( 2.0 * neighborDensity);
 				// forces -= fPressure;
+
 				// add viscosity force from neighbor
 				vec3 neighborVelocity = texture2D( u_velocity, uv ).rgb;
 				vec3 fVis = ( neighborVelocity - myVelocity ) / neighborDensity;
-				fVis *= kVis * ( h - dist );
+				fVis *= kVis * (  0.05 - dist );
 				// forces += fVis;
-				forces -= toNeighbor * 64.0;//normalize(toNeighbor);	
+				forces -= toNeighbor * neighborPressure;//normalize(toNeighbor);	
 			}	
 
 		}
@@ -96,6 +96,7 @@ void main() {
 	forces +=  getWallForces(myPosition);
 
 	myVelocity = myVelocity + (forces / myDensity);// * ( 1.0 / myDensity );
+	
 	myPosition += myVelocity * dT;
 
 	float myPressure = getPressure(myDensity);
