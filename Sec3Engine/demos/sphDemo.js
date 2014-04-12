@@ -91,7 +91,7 @@ var initParticleSystem = function() {
 		restDensity : 10,
 		pressureK : 10,
 		nearPressureK : 10,
-		h : 0.05     
+		h : 0.02     
 	}
 
 	sph = new SEC3.SPH(specs);
@@ -111,8 +111,8 @@ var initUI = function() {
     SEC3.ui.addSlider( sph.h + " :effective radius" ,
                  setEffectiveRadius,
                  sph.h,
-                 0, 1.0,
-                 0.1);
+                 0.001, 0.099,
+                 0.001);
 }
 
 /*

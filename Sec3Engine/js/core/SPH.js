@@ -378,7 +378,7 @@ SEC3.SPH.prototype = {
 			densityProgram.aVertexPosLoc = gl.getAttribLocation( densityProgram.ref(), "a_pos" );
 	        densityProgram.aVertexTexcoordLoc = gl.getAttribLocation( densityProgram.ref(), "a_texCoord" );
 	        densityProgram.uPositionsLoc = gl.getUniformLocation( densityProgram.ref(), "u_positions" );
-	        densityProgram.uHLoc = gl.getUniformLocation( densityProgram.ref(), "h" );
+	        densityProgram.uHLoc = gl.getUniformLocation( densityProgram.ref(), "u_h" );
 	        // densityProgram.uInvTextureLengthLoc = gl.getUniformLocation( densityProgram.ref(), "u_invTextureLength" );	        
 	        // gl.useProgram( densityProgram.ref() );
 	        // gl.uniform1f( densityProgram.uInvTextureLengthLoc, self.textureSideLength );
@@ -392,12 +392,14 @@ SEC3.SPH.prototype = {
 		velocityProgram.loadShader(gl, 
 										   "Sec3Engine/shader/densitySPH.vert",
 								   		   "Sec3Engine/shader/velocitySPH.frag");
+
 		velocityProgram.addCallback( function() {
 			velocityProgram.aVertexPosLoc = gl.getAttribLocation( velocityProgram.ref(), "a_pos" );
 	        velocityProgram.aVertexTexcoordLoc = gl.getAttribLocation( velocityProgram.ref(), "a_texCoord" );
 	        velocityProgram.uPositionsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_positions" );
 	        velocityProgram.uVelocityLoc = gl.getUniformLocation( velocityProgram.ref(), "u_velocity" );
 	        velocityProgram.uDensitiesLoc = gl.getUniformLocation( velocityProgram.ref(), "u_densities" );
+	        velocityProgram.uHLoc = gl.getUniformLocation( velocityProgram.ref(), "u_h");
 	        // densityProgram.uInvTextureLengthLoc = gl.getUniformLocation( densityProgram.ref(), "u_invTextureLength" );	        
 	        // gl.useProgram( densityProgram.ref() );
 	        // gl.uniform1f( densityProgram.uInvTextureLengthLoc, self.textureSideLength );

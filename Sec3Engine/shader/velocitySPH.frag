@@ -6,16 +6,16 @@ const float box = 2.0;
 
 const float dT = (1.0 / 60.0);
 const float dT2 = dT * dT;
-const float k = 0.0001;
-const float restPressure =  0.011;
-const float restDensity = 1.0;
+const float k = 0.00001;
+const float restPressure =  10.0;
+const float restDensity = 10.1;
 
-uniform float h; // effective radius
 uniform sampler2D u_positions;
 uniform sampler2D u_velocity;
 uniform sampler2D u_densities;
 // uniform float u_invTextureLength; 
 
+varying float h;
 varying float h2;
 varying vec2 v_texCoord;
 varying float kPressure;
@@ -44,19 +44,19 @@ vec3 assembleForces( vec3 position, vec3 myVelocity, float myDensity  ) {
 			 // TODO: pack density into position texture
 			vec3 toNeighbor = neighborPos - position;
 			float dist = length( toNeighbor );
-			if( dist < 0.05 ) {
+			if( dist < h ) {
 				// add pressure force from neighbor
 				float neighborDensity = texture2D( u_densities, uv ).r;
 				float neighborPressure = getPressure( neighborDensity );
-				vec3 fPressure = kPressure * pow(( 0.05 - dist), 3.0) * (toNeighbor / dist);
+				vec3 fPressure = kPressure * pow(( h - dist), 3.0) * (toNeighbor / dist);
 				fPressure *= ( myPressure + neighborPressure ) / ( 2.0 * neighborDensity);
-				// forces -= fPressure;
+				// forces -= fPressure * 0.00000000;
 
 				// add viscosity force from neighbor
 				vec3 neighborVelocity = texture2D( u_velocity, uv ).rgb;
 				vec3 fVis = ( neighborVelocity - myVelocity ) / neighborDensity;
-				fVis *= kVis * (  0.05 - dist );
-				// forces += fVis;
+				fVis *= kVis * (  h - dist );
+				forces += fVis;
 				forces -= toNeighbor * neighborPressure;//normalize(toNeighbor);	
 			}	
 
@@ -73,7 +73,7 @@ bool inBox( vec3 position ){
 
 vec3 getWallForces( vec3 myPosition) {
 
-	float floorDistance = myPosition.y;
+	float floorDistance = myPosition.y + 0.01;
 	if ( floorDistance < h ) {
 		return  (h - floorDistance ) * vec3( 0.0, 1.0, 0.0 ) / dT2;
 	}
@@ -91,13 +91,13 @@ void main() {
 	forces += assembleForces( myPosition, myVelocity, myDensity );
 		// forces = myDensity * forces;
 	// Apply gravity
-	forces += vec3(0.0, -10.0, 0.0);
+	forces += vec3(0.0, -10.0, 0.0) / dT2;
 	//Collide with floor/walls
 	forces +=  getWallForces(myPosition);
 
-	myVelocity = myVelocity + (forces / myDensity);// * ( 1.0 / myDensity );
+	myVelocity = myVelocity + (forces / (myDensity ) );// * ( 1.0 / myDensity );
 	
-	myPosition += myVelocity * dT;
+	myPosition += myVelocity;
 
 	float myPressure = getPressure(myDensity);
 

@@ -5,14 +5,14 @@ const float densityWeight = 1.0;
 
 
 
-uniform float h;
+
 uniform sampler2D u_positions;
 // uniform float u_invTextureLength; 
 
 varying vec2 v_texCoord;
 varying float h2;
 varying float kDensity;
-
+varying float h;
 
 
 float getDensity( vec3 position ) {
@@ -29,9 +29,9 @@ float getDensity( vec3 position ) {
  			
 			vec3 neighborPos = texture2D( u_positions, vec2( u, v ) ).xyz;
 			float dist = length(  position - neighborPos );
-			if (dist < 0.05 ) {
+			if (dist < h ) {
 				float dist2 = dist * dist;
-				density += kDensity * pow((h2 - dist2), 3.0);
+				density += kDensity * pow((h2 - dist2), h);
 				// density += pow(((1.0 - dist) / 0.05), 2.0);
 			}
 

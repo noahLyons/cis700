@@ -5,15 +5,17 @@ const float PI = 3.14159265;
 attribute vec3 a_pos;
 attribute vec2 a_texCoord;
 
-uniform float h; // effective radius
+uniform float u_h; // effective radius
 varying float h2;
 varying float kDensity;
 varying float kPressure;
 varying float kVis;
 varying vec2 v_texCoord;
+varying float h;
 
 void main(void) {
 	// scale vertex attribute to [0-1] range
+	h = u_h;
 	h2 = h * h;
 	kDensity = 315.0 / ( 64.0 * PI * h * h * h * h * h * h * h * h * h );
 	kPressure = 45.0 / (PI * h * h * h * h * h * h);
