@@ -1,11 +1,17 @@
 precision highp float;
 
 varying vec3 worldPosition;
-
+varying vec3 testColor;
+varying vec3 normal;
 void main(void) {
-	
-	float softenEdge = max(1.0 - length(2.0 * gl_PointCoord - 1.0), 0.0);
-	gl_FragData[0] = vec4(0.0, 0.0, 1.0, sqrt(softenEdge));
+	vec3 u_lPos = vec3( 0.0, 5.0, 0.0);
+	vec3 toLight = (u_lPos - worldPosition); 
+	float falloff = 5.0 / (length(toLight));
+	toLight = normalize(toLight);
+	float lambertTerm = max(dot(normalize(normal), toLight), 0.0);
+	// lambertTerm *= falloff;
+	// float softenEdge = max(1.0 - length(2.0 * gl_PointCoord - 1.0), 0.0);
+	gl_FragData[0] = vec4(lambertTerm * vec3( testColor.r, 0.0, 0.0), 1.0);
 
  } 
 
