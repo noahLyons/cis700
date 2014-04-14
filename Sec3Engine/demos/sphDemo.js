@@ -1,7 +1,10 @@
+
+
 //--------------------------------------------GLOBALS:
 var gl;
 var scene;
 var sph;
+var stats;
 
 var model_vertexVBOs = [];   //buffer object for loaded model (vertex)
 var model_indexVBOs = [];    //buffer object for loaded model (index)
@@ -11,21 +14,16 @@ var model_texcoordVBOs = []; //buffer object for loaded model (texture)
 //--------------------------------------------FUNCTIONS:
 var myRenderLoop = function() {
 	window.requestAnimationFrame( myRenderLoop );
+    stats.begin();
     myRender();
+    stats.end();
 };
 
 var myRender = function() {
-	
-	/*
-		sph.move();
-		sph.relax();
-		sph.updateVelocities();
-	*/
 
-	// sph.move();
-	sph.updateDensity();
-	sph.updateVelocities();
-	sph.draw( scene, null );	
+    	sph.updateDensity();
+    	sph.updateVelocities();
+    	sph.draw( scene, null );
 };
 
 var main = function( canvasId, messageId ){
@@ -82,16 +80,18 @@ var initCamera = function() {
 var initParticleSystem = function() {
 
 	var specs = {
-		numParticles : 4096,
+		numParticles : 16384,
 
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
 		particleSize : 1.0,
 
+        stepsPerFrame : 2,
 		gravity : 10,
-		restDensity : 10,
-		pressureK : 10,
-		nearPressureK : 10,
-		h : 0.02     
+		pressureK : 100,
+        restDensity : 2000.0,
+        restPressure : -100.0,
+        viscosityK : 2.44,
+		h : 0.05    
 	}
 
 	sph = new SEC3.SPH(specs);
@@ -99,20 +99,24 @@ var initParticleSystem = function() {
 }
 
 var initUI = function() {
+    stats = new Stats();
+    stats.setMode(0); // 0: fps, 1: ms
 
-	SEC3.ui = SEC3.ui || new UI("uiWrapper");
-    var setEffectiveRadius = function(e) {
+    // Align top-left
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.left = '0px';
+    stats.domElement.style.top = '0px';
+    document.body.appendChild( stats.domElement );
 
-        var newSliderVal = e.target.value;
-        sph.h = newSliderVal;
-        return newSliderVal + " :effective radius";
-    };
 
-    SEC3.ui.addSlider( sph.h + " :effective radius" ,
-                 setEffectiveRadius,
-                 sph.h,
-                 0.001, 0.099,
-                 0.001);
+    var gui = new dat.GUI();
+    gui.add(sph, 'stepsPerFrame', 1, 12);
+	gui.add(sph, 'h', 0.01, 0.11);
+    gui.add(sph, 'pressureK', 1, 600 );
+    gui.add(sph, 'viscosityK', 0.1, 10);
+    gui.add(sph, 'restDensity', 100, 99999.0);
+    gui.add(sph, 'restPressure', -1000, 10000);
+    gui.add(sph, 'initFBOs' );
 }
 
 /*
@@ -126,7 +130,7 @@ var loadObjects = function() {
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere.obj', 'Sec3Engine/models/sphere/sphere.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/cubeworld/cubeworld.obj', 'Sec3Engine/models/cubeworld/cubeworld.mtl');
     
-       
+        
     //Register a callback function that extracts vertex and normal 
     //and put it in our VBO
     objLoader.addCallback( function(){

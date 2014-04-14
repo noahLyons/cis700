@@ -1,46 +1,3 @@
-/*
-	moveParticles()	
-		-applyGravity()
-		-applyViscosity()
-		-save old pos
-		-advance to new, predicted pos 
-	relaxParticles() 
-		-apply positional constraints:
-			-adjustSprings
-				-add/remove
-				-change rest lengths
-			-applySprings()
-			-doubleDensityRelaxation()
-				-collisions?
-			-incompressibilityRelaxation()
-		recomputeVelocities() 
-
-
-
-
-
-		doubleDensityRelaxation() {
-			//4.1
-			-count number of particles within distance h to calc density
-				-density = foreach neighbor { (1 - dist/h)^2 }
-				-near-density = foreach neighbor { (1 - dist/h)^3 } //4.3
-				-pressure = k(density - restDensity)
-				-near-pressure = k-near * near-density //4.3
-			-compare to rest density
-				//4.2
-				-if larger, push neighbors away
-				-else, pull closer
-		}
-		incompressibilityRelaxation() {
-			//4.3
-			foreach neighbor {
-				pressureDisplacement
-				nearPressureDisplacement
-				//something else
-			}
-	}
-*/
-
 var SEC3 = SEC3 || {};
 
 SEC3.SPH = function(specs) {
@@ -65,13 +22,16 @@ SEC3.SPH = function(specs) {
 	this.RGBA = specs.RGBA;	
 	this.particleSize = specs.particleSize;
 
+	this.stepsPerFrame = specs.stepsPerFrame;
 	this.h = specs.h;
 	this.gravity = specs.gravity;
 	this.pressureK = specs.pressureK;
-	this.nearPressureK = specs.nearPressureK;
+	this.restDensity = specs.restDensity;
+	this.viscosityK = specs.viscosityK;
+	this.restPressure = specs.restPressure;
+
 
 	this.ext = gl.getExtension("ANGLE_instanced_arrays"); // Vendor prefixes may apply!
-
 	this.initFBOs();
 	this.initShaders();
 
@@ -98,7 +58,7 @@ SEC3.SPH.prototype = {
 	    // gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 		gl.useProgram(this.renderProgram.ref());
 	    gl.activeTexture(gl.TEXTURE0);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(0));
 	    gl.uniform1i( this.renderProgram.uPositionsLoc, 0);
 
 	    gl.activeTexture(gl.TEXTURE1);
@@ -137,32 +97,8 @@ SEC3.SPH.prototype = {
 
 		// gl.drawArrays( gl.POINTS, 0, this.numParticles );
 		
-		gl.flush();
-		this.swapSrcDestIndices();
-	},
-
-	move : function( scene, framebuffer ) {
-
-	    gl.useProgram( this.moveProgram.ref() );
-	    SEC3.renderer.bindQuadBuffers( this.moveProgram );
-	   	this.movementFBOs[this.destIndex].bind(gl);
-	   	// gl.bindFramebuffer( gl.FRAMEBUFFER, null );
-	    gl.viewport(0, 0, this.textureSideLength, this.textureSideLength);
-	    gl.disable(gl.DEPTH_TEST);
-	    gl.disable(gl.BLEND);
-	    
-	    gl.activeTexture(gl.TEXTURE0);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(0));
-	    gl.uniform1i(this.moveProgram.uPositionsLoc, 0);
-
-	    gl.activeTexture(gl.TEXTURE1);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(1));
-	    gl.uniform1i(this.moveProgram.uVelocityLoc, 1);
-	   	
-	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
-	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
-    	gl.bindBuffer( gl.ARRAY_BUFFER, null );
-	    // this.swapSrcDestIndices();
+		
+		
 	},
 
 	updateDensity : function () {
@@ -196,9 +132,13 @@ SEC3.SPH.prototype = {
 		gl.viewport(0, 0, this.textureSideLength, this.textureSideLength);
 	    gl.disable(gl.DEPTH_TEST);
 	    gl.disable(gl.BLEND);
-	    
+	    	
+	    gl.uniform1f( this.velocityProgram.uRestDensityLoc, this.restDensity);
+	    gl.uniform1f( this.velocityProgram.uViscosityKLoc, this.viscosityK);
+	    gl.uniform1f( this.velocityProgram.uRestPressureLoc, this.restPressure);
 	    gl.uniform1f( this.velocityProgram.uHLoc, this.h );
-
+	    gl.uniform1f( this.velocityProgram.uKLoc, this.pressureK );
+	    gl.uniform1f( this.velocityProgram.uStepsLoc, this.stepsPerFrame );
 	    gl.activeTexture(gl.TEXTURE0);
 	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
 	    gl.uniform1i(this.velocityProgram.uPositionsLoc, 0);
@@ -214,7 +154,7 @@ SEC3.SPH.prototype = {
 	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     	gl.bindBuffer( gl.ARRAY_BUFFER, null );
-
+    	this.swapSrcDestIndices();
 	},
 
 //----------------------------------------------------------------------------SETUP:
@@ -237,9 +177,9 @@ SEC3.SPH.prototype = {
 
     genCubeStartPositions : function () {
 
-    	var scale = 1/ 60; //TODO slider
+    	var scale = 1/ 40; //TODO slider
     	var width = 16;
-    	var height = 16;
+    	var height = 64;
     	var depth = 16;
 
 		var startPositions = [];
@@ -261,7 +201,7 @@ SEC3.SPH.prototype = {
     	var startVelocities = [];
     	for( var i = 0; i < this.numParticles; i++ ) {
     		startVelocities.push( 0.0 );
-    		startVelocities.push( 0.0 );
+    		startVelocities.push( -0.0 );
     		startVelocities.push( 0.0 );
     		startVelocities.push( 1.0 );
     	}
@@ -309,15 +249,15 @@ SEC3.SPH.prototype = {
 													this.textureSideLength,
 													startPositions);
 		var positionTextureB = SEC3.generateTexture(this.textureSideLength,
-													this.textureSideLength
-													);
+													this.textureSideLength,
+													startPositions);
 
 		var velocityTextureA = SEC3.generateTexture(this.textureSideLength,
 													this.textureSideLength,
 													startVelocities);
 		var velocityTextureB = SEC3.generateTexture(this.textureSideLength,
-													this.textureSideLength
-													);
+													this.textureSideLength,
+													startVelocities);
 		this.movementFBOs = [];
 
 		var movementFBOa = SEC3.createFBO();
@@ -350,26 +290,8 @@ SEC3.SPH.prototype = {
 	initShaders : function() {
 		var indices = this.genParticleIndices();
 		var self = this;
-		// -------------------------------------------------MOVE:
-		var moveProgram = SEC3.createShaderProgram();
-		moveProgram.loadShader(gl,
-							   "Sec3Engine/shader/moveSPH.vert",
-							   "Sec3Engine/shader/moveSPH.frag");
-		moveProgram.addCallback( function() {
-			moveProgram.aVertexPosLoc = gl.getAttribLocation( moveProgram.ref(), "a_pos" );
-	        moveProgram.aVertexTexcoordLoc = gl.getAttribLocation( moveProgram.ref(), "a_texCoord" );
-	        moveProgram.uPositionsLoc = gl.getUniformLocation( moveProgram.ref(), "u_positions" );
-	        moveProgram.uVelocityLoc = gl.getUniformLocation( moveProgram.ref(), "u_velocity" );
-	        moveProgram.uGravityLoc = gl.getUniformLocation( moveProgram.ref(), "u_gravity" );
-	        moveProgram.uHLoc = gl.getUniformLocation( moveProgram.ref(), "h" );
-	        gl.useProgram( moveProgram.ref() );
-	        gl.uniform1f( moveProgram.uGravityLoc, self.gravity );
-
-		} );
-		SEC3.registerAsyncObj( gl, moveProgram );
-		this.moveProgram = moveProgram;
-
-		// //-------------------------------------------------UPDATE DENSITIES:
+		
+		//-------------------------------------------------UPDATE DENSITIES:
 		var densityProgram = SEC3.createShaderProgram();
 		densityProgram.loadShader(gl, 
 								"Sec3Engine/shader/densitySPH.vert",
@@ -387,19 +309,23 @@ SEC3.SPH.prototype = {
 		SEC3.registerAsyncObj( gl, densityProgram );
 		this.densityProgram = densityProgram;
 
-		// //-------------------------------------RECOMPUTE VELOCITY:
+		//-------------------------------------RECOMPUTE VELOCITY:
 		var velocityProgram = SEC3.createShaderProgram();
 		velocityProgram.loadShader(gl, 
 										   "Sec3Engine/shader/densitySPH.vert",
 								   		   "Sec3Engine/shader/velocitySPH.frag");
-
 		velocityProgram.addCallback( function() {
 			velocityProgram.aVertexPosLoc = gl.getAttribLocation( velocityProgram.ref(), "a_pos" );
 	        velocityProgram.aVertexTexcoordLoc = gl.getAttribLocation( velocityProgram.ref(), "a_texCoord" );
 	        velocityProgram.uPositionsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_positions" );
 	        velocityProgram.uVelocityLoc = gl.getUniformLocation( velocityProgram.ref(), "u_velocity" );
 	        velocityProgram.uDensitiesLoc = gl.getUniformLocation( velocityProgram.ref(), "u_densities" );
-	        velocityProgram.uHLoc = gl.getUniformLocation( velocityProgram.ref(), "u_h");
+			velocityProgram.uHLoc = gl.getUniformLocation( velocityProgram.ref(), "u_h" );
+			velocityProgram.uKLoc = gl.getUniformLocation( velocityProgram.ref(), "u_k");
+			velocityProgram.uRestDensityLoc = gl.getUniformLocation( velocityProgram.ref(), "u_restDensity");			
+			velocityProgram.uRestPressureLoc = gl.getUniformLocation( velocityProgram.ref(), "u_restPressure");			
+			velocityProgram.uStepsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_steps" );
+			velocityProgram.uViscosityKLoc = gl.getUniformLocation( velocityProgram.ref(), "u_kViscosity");
 	        // densityProgram.uInvTextureLengthLoc = gl.getUniformLocation( densityProgram.ref(), "u_invTextureLength" );	        
 	        // gl.useProgram( densityProgram.ref() );
 	        // gl.uniform1f( densityProgram.uInvTextureLengthLoc, self.textureSideLength );
