@@ -52,7 +52,7 @@ var setupScene = function(canvasId, messageId){
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.viewportWidth = canvas.width;
     gl.viewportHeight = canvas.height;
-    gl.clearColor( 0.3, 0.3, 0.3, 1.0);
+    gl.clearColor( 0.4, 0.4, 0.4, 1.0);
     gl.depthFunc(gl.LESS);
 
     scene = new SEC3.Scene();
@@ -69,9 +69,9 @@ var initCamera = function() {
 
 	var canvas = SEC3.canvas;
 	var camera = new SEC3.Camera();
-    camera.goHome( [0.1, 0.3, 1.0] ); //initial camera posiiton
-    camera.setAzimuth( 0.0 );
-    camera.setElevation( 0.0 );
+    camera.goHome( [-1.1, 2.0, 3.0] ); //initial camera posiiton
+    camera.setAzimuth( -30.0 );
+    camera.setElevation( -30.0 );
     interactor = SEC3.CameraInteractor( camera, canvas );
     camera.setPerspective( 60, canvas.width / canvas.height, 0.1, 30.0 );
     scene.setCamera(camera);
@@ -85,13 +85,13 @@ var initParticleSystem = function() {
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
 		particleSize : 1.0,
 
-        stepsPerFrame : 2,
+        stepsPerFrame : 5,
 		gravity : 10,
-		pressureK : 100,
-        restDensity : 2000.0,
-        restPressure : -100.0,
-        viscosityK : 2.44,
-		h : 0.05    
+		pressureK : 1300,
+        restDensity : 56000.0,
+        restPressure : 1000.0,
+        viscosityK : 1.44,
+		h : 0.07   
 	}
 
 	sph = new SEC3.SPH(specs);
@@ -112,8 +112,8 @@ var initUI = function() {
     var gui = new dat.GUI();
     gui.add(sph, 'stepsPerFrame', 1, 12);
 	gui.add(sph, 'h', 0.01, 0.11);
-    gui.add(sph, 'pressureK', 1, 600 );
-    gui.add(sph, 'viscosityK', 0.1, 10);
+    gui.add(sph, 'pressureK', 100, 2000 );
+    gui.add(sph, 'viscosityK', 0.1, 14);
     gui.add(sph, 'restDensity', 100, 99999.0);
     gui.add(sph, 'restPressure', -1000, 10000);
     gui.add(sph, 'initFBOs' );

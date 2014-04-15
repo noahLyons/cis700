@@ -1,7 +1,5 @@
 precision highp float;
 
-const float PI = 3.14159265;
-
 attribute vec3 a_pos;
 attribute vec2 a_texCoord;
 

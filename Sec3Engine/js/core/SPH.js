@@ -62,7 +62,7 @@ SEC3.SPH.prototype = {
 	    gl.uniform1i( this.renderProgram.uPositionsLoc, 0);
 
 	    gl.activeTexture(gl.TEXTURE1);
-	    gl.bindTexture(gl.TEXTURE_2D, this.densityFBO.texture(0));
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(1));
 	    gl.uniform1i( this.renderProgram.uTestTexLoc, 1 );
 	   	   
 	    gl.uniformMatrix4fv(this.renderProgram.uMVPLoc, false, scene.getCamera().getMVP());

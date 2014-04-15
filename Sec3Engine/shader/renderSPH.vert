@@ -12,11 +12,6 @@ varying vec3 worldPosition;
 varying vec3 testColor;
 varying vec3 normal;
 
-float linearize( float exp_depth ) {
-	
-	return ( 2.0 * 0.1 ) / ( 30.0 + 0.1 - exp_depth * ( 30.0 - 0.1 ) );
-}
-
 void main(void) {
 	vec4 pos =  texture2D(u_positions, a_index).rgba;
 	worldPosition = a_GeometryVerts;
