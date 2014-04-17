@@ -84,12 +84,11 @@ var initParticleSystem = function() {
 
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
 		particleSize : 1.0,
-
         stepsPerFrame : 5,
 		gravity : 10,
 		pressureK : 1300,
         restDensity : 56000.0,
-        restPressure : 1000.0,
+        restPressure : 10000.0,
         viscosityK : 1.44,
 		h : 0.07   
 	}

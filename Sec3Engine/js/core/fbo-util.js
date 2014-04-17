@@ -31,7 +31,7 @@
 
     SEC3.createFBO = function() {
     "use strict"
-
+    var stencilTex = null;
     var textures = [];
     var depthTex = null;
     var fbo = null;
@@ -95,6 +95,23 @@
     }
 
     return {
+
+        addStencil: function( gl ) {
+            gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );
+            var renderbuffer = gl.createRenderbuffer();
+            gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+            gl.renderbufferStorage(gl.RENDERBUFFER, gl.STENCIL_INDEX8, resolution[0], resolution[1]);
+            gl.framebufferRenderbuffer( gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+            // stencilTex = gl.createTexture();
+            // gl.bindTexture( gl.TEXTURE_2D, stencilTex );
+            // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            // gl.texImage2D(gl.TEXTURE_2D, 0, gl.STENCIL_COMPONENT, resolution[0], resolution[1], 0, gl.STENCIL_COMPONENT, gl.UNSIGNED_SHORT, null);
+            // gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.TEXTURE_2D, stencilTex, 0 );
+        },
+
         swapBuffers: function(a, b, gl){
             gl.bindFramebuffer( gl.FRAMEBUFFER, fbo );
             var tempTex = textures[a];

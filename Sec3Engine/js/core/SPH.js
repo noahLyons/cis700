@@ -18,6 +18,9 @@ SEC3.SPH = function(specs) {
 	this.textureResolution = SEC3.math.roundUpToPower( specs.numParticles, 2);
 	this.textureSideLength = Math.sqrt( this.textureResolution );
 	this.numParticles = specs.numParticles;
+	this.gridTextureWidth = specs.gridTextureWidth;
+	this.gridTextureHeight = specs.gridTextureHeight;
+
 
 	this.RGBA = specs.RGBA;	
 	this.particleSize = specs.particleSize;
@@ -29,7 +32,7 @@ SEC3.SPH = function(specs) {
 	this.restDensity = specs.restDensity;
 	this.viscosityK = specs.viscosityK;
 	this.restPressure = specs.restPressure;
-
+	this.grid = {};
 
 	this.ext = gl.getExtension("ANGLE_instanced_arrays"); // Vendor prefixes may apply!
 	this.initFBOs();
@@ -99,6 +102,52 @@ SEC3.SPH.prototype = {
 		
 		
 		
+	},
+
+	updateBuckets : function () {
+
+		gl.useProgram( this.bucketProgram.ref() );
+		this.bucketFBO.bind(gl);
+		gl.viewport(0, 0, this.gridTextureWidth, this.gridTextureHeight );
+
+		gl.bindBuffer( gl.ARRAY_BUFFER, this.indexBuffer );
+
+		gl.activeTexture( gl.TEXTURE0 );
+		gl.bindTexture( gl.TEXTURE_2D, this.indexFBO.texture(0) );
+		gl.uniform1i( this.bucketProgram.uPositionsLoc, 0 );
+
+		gl.uniform1f( this.bucketProgram.uTextureLengthLoc, this.textureSideLength );
+		gl.uniform2f( this.bucketProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
+		gl.uniform3f( this.bucketProgram.uGridDimsLoc, this.grid.xSpan, this.grid.ySpan, this.grid.zSpan );
+
+		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+		//Pass 1
+		gl.disable( gl.BLEND );
+		gl.enable( gl.DEPTH_TEST );
+		gl.depthFunc( gl.LESS );
+		gl.colorMask( false, true, true, true );
+		gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+		//Pass 2
+		gl.depthFunc( gl.GREATER );
+		gl.colorMask( true, false, true, true );
+		gl.enable( gl.STENCIL_TEST );
+		gl.stencilFunc( gl.INCREMENT, gl.GREATER, 1 );
+		gl.clear( gl.STENCIL_BUFFER_BIT );
+		gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+		//Pass 3
+		gl.colorMask( true, true, false, true );
+		gl.clear( gl.STENCIL_BUFFER_BIT );
+		gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+		//Pass 4
+		gl.colorMask( true, true, true, false );
+		gl.clear( gl.STENCIL_BUFFER_BIT );
+		gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+		gl.bucketFBO.unbind(gl);
+
 	},
 
 	updateDensity : function () {
@@ -222,6 +271,25 @@ SEC3.SPH.prototype = {
     	return indices;
     },
 
+    genGridTexture : function() {
+
+    	var xSpan = 128;
+    	var ySpan = 512;
+    	var zSpan = 64;
+    	var sqrtZ = Math.sqrt(zSpan);
+    	this.grid.xSpan = xSpan;
+    	this.grid.ySpan = ySpan;
+    	this.grid.zSpan = zSpan;
+
+    	this.gridTextureWidth = xSpan * sqrtZ;
+    	this.gridTextureHeight = ySpan * sqrtZ;
+
+    	
+    	
+    	var gridTexture = SEC3.generateTexture(this.gridTextureWidth, this.gridTextureHeight);
+    	return gridTexture;
+    }, 
+
 	getUniformPointInSphere : function(radius) {
 
 		var radiusSquared = radius * radius;
@@ -285,12 +353,34 @@ SEC3.SPH.prototype = {
 		this.densityFBO.initialize( gl, this.textureSideLength,
 								  this.textureSideLength,
 								  1 );
+
+		var gridTex = this.genGridTexture();
+		this.bucketFBO = SEC3.createFBO();
+		this.bucketFBO.initialize( gl, this.gridTextureWidth,
+								this.gridTextureHeight,
+								1 );
+		this.bucketFBO.addStencil(gl);
+
 	},
 
 	initShaders : function() {
 		var indices = this.genParticleIndices();
 		var self = this;
 		
+		//--------------------------------------------------BUILD BUCKETS:)
+		var bucketProgram = SEC3.createShaderProgram();
+		bucketProgram.loadShader(gl,
+								 "Sec3Engine/shader/bucketBuilderSPH.vert",
+								 "Sec3Engine/shader/bucketBuilderSPH.frag");
+		bucketProgram.addCallback( function() {
+			bucketProgram.aIndexLoc = gl.getAttribLocation( bucketProgram.ref(), "a_index");
+			bucketProgram.uPositionsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_positions");
+			bucketProgram.uTextureLengthLoc = gl.getUniformLocation( bucketProgram.ref(), "u_textureLength");
+			bucketProgram.uGridDimsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_gridDims");
+			bucketProgram.uGridTexDimsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_gridTexDims");
+
+		})
+
 		//-------------------------------------------------UPDATE DENSITIES:
 		var densityProgram = SEC3.createShaderProgram();
 		densityProgram.loadShader(gl, 
