@@ -21,6 +21,7 @@ var myRenderLoop = function() {
 
 var myRender = function() {
 
+        // sph.updateBuckets();
     	sph.updateDensity();
     	sph.updateVelocities();
     	sph.draw( scene, null );

@@ -65,7 +65,7 @@ SEC3.SPH.prototype = {
 	    gl.uniform1i( this.renderProgram.uPositionsLoc, 0);
 
 	    gl.activeTexture(gl.TEXTURE1);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(1));
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(2));
 	    gl.uniform1i( this.renderProgram.uTestTexLoc, 1 );
 	   	   
 	    gl.uniformMatrix4fv(this.renderProgram.uMVPLoc, false, scene.getCamera().getMVP());
@@ -110,7 +110,9 @@ SEC3.SPH.prototype = {
 		this.bucketFBO.bind(gl);
 		gl.viewport(0, 0, this.gridTextureWidth, this.gridTextureHeight );
 
-		gl.bindBuffer( gl.ARRAY_BUFFER, this.indexBuffer );
+		gl.bindBuffer( gl.ARRAY_BUFFER, this.renderProgram.indexBuffer );
+		gl.vertexAttribPointer(this.bucketProgram.aIndexLoc, 2, gl.FLOAT, false, 0, 0); 
+	    gl.enableVertexAttribArray(this.bucketProgram.aIndexLoc);
 
 		gl.activeTexture( gl.TEXTURE0 );
 		gl.bindTexture( gl.TEXTURE_2D, this.indexFBO.texture(0) );
@@ -119,8 +121,8 @@ SEC3.SPH.prototype = {
 		gl.uniform1f( this.bucketProgram.uTextureLengthLoc, this.textureSideLength );
 		gl.uniform2f( this.bucketProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
 		gl.uniform3f( this.bucketProgram.uGridDimsLoc, this.grid.xSpan, this.grid.ySpan, this.grid.zSpan );
-
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+
 		//Pass 1
 		gl.disable( gl.BLEND );
 		gl.enable( gl.DEPTH_TEST );
@@ -132,21 +134,23 @@ SEC3.SPH.prototype = {
 		gl.depthFunc( gl.GREATER );
 		gl.colorMask( true, false, true, true );
 		gl.enable( gl.STENCIL_TEST );
-		gl.stencilFunc( gl.INCREMENT, gl.GREATER, 1 );
-		gl.clear( gl.STENCIL_BUFFER_BIT );
+		gl.stencilFunc(gl.GREATER, 1, 0x00 );
+		gl.stencilOp( gl.INCR, gl.INCR, gl.INCR );
+		gl.clearStencil( 1 );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
 		//Pass 3
 		gl.colorMask( true, true, false, true );
-		gl.clear( gl.STENCIL_BUFFER_BIT );
+		gl.clearStencil( 1 );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
 		//Pass 4
 		gl.colorMask( true, true, true, false );
-		gl.clear( gl.STENCIL_BUFFER_BIT );
+		gl.clearStencil( 1 );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
-		gl.bucketFBO.unbind(gl);
+		gl.disable(gl.STENCIL_TEST);
+		this.bucketFBO.unbind(gl);
 
 	},
 
@@ -181,7 +185,9 @@ SEC3.SPH.prototype = {
 		gl.viewport(0, 0, this.textureSideLength, this.textureSideLength);
 	    gl.disable(gl.DEPTH_TEST);
 	    gl.disable(gl.BLEND);
-	    	
+	    
+	   	gl.uniform2f( this.velocityProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
+		gl.uniform3f( this.velocityProgram.uGridDimsLoc, this.grid.xSpan, this.grid.ySpan, this.grid.zSpan );
 	    gl.uniform1f( this.velocityProgram.uRestDensityLoc, this.restDensity);
 	    gl.uniform1f( this.velocityProgram.uViscosityKLoc, this.viscosityK);
 	    gl.uniform1f( this.velocityProgram.uRestPressureLoc, this.restPressure);
@@ -331,17 +337,17 @@ SEC3.SPH.prototype = {
 		var movementFBOa = SEC3.createFBO();
 		movementFBOa.initialize( gl, this.textureSideLength,
 								this.textureSideLength,
-								2,
+								3,
 								[ positionTextureA, 
-								velocityTextureA ]		);	
+								velocityTextureA, velocityTextureA ]		);	
 		this.movementFBOs.push(movementFBOa)
 
 		var movementFBOb = SEC3.createFBO();
 		movementFBOb.initialize( gl, this.textureSideLength,
 								this.textureSideLength,
-								2,
+								3,
 								[ positionTextureB, 
-								velocityTextureB ]);	
+								velocityTextureB, velocityTextureB ]);	
 		this.movementFBOs.push(movementFBOb)
 
 		this.indexFBO = SEC3.createFBO();
@@ -359,7 +365,7 @@ SEC3.SPH.prototype = {
 		this.bucketFBO.initialize( gl, this.gridTextureWidth,
 								this.gridTextureHeight,
 								1 );
-		this.bucketFBO.addStencil(gl);
+		// this.bucketFBO.addStencil(gl);
 
 	},
 
@@ -380,7 +386,8 @@ SEC3.SPH.prototype = {
 			bucketProgram.uGridTexDimsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_gridTexDims");
 
 		})
-
+		SEC3.registerAsyncObj( gl, bucketProgram );
+		this.bucketProgram = bucketProgram;
 		//-------------------------------------------------UPDATE DENSITIES:
 		var densityProgram = SEC3.createShaderProgram();
 		densityProgram.loadShader(gl, 
@@ -416,6 +423,9 @@ SEC3.SPH.prototype = {
 			velocityProgram.uRestPressureLoc = gl.getUniformLocation( velocityProgram.ref(), "u_restPressure");			
 			velocityProgram.uStepsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_steps" );
 			velocityProgram.uViscosityKLoc = gl.getUniformLocation( velocityProgram.ref(), "u_kViscosity");
+			velocityProgram.uGridDimsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_gridDims");
+			velocityProgram.uGridTexDimsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_gridTexDims");
+
 	        // densityProgram.uInvTextureLengthLoc = gl.getUniformLocation( densityProgram.ref(), "u_invTextureLength" );	        
 	        // gl.useProgram( densityProgram.ref() );
 	        // gl.uniform1f( densityProgram.uInvTextureLengthLoc, self.textureSideLength );

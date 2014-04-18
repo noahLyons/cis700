@@ -28,7 +28,7 @@ int getIndex( vec2 mapMe ) {
 
 //-----------------------------------------------------MAIN:
 void main() {
-
+	gl_PointSize = 1.0;
 	int absoluteIndex = getIndex(a_index);
 	vec3 worldPosition = texture2D(u_positions, a_index ).rgb;
 	vec2 uv = worldToUV( worldPosition );

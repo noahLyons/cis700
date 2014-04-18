@@ -9,7 +9,7 @@ uniform sampler2D u_positions;
 uniform mat4 u_MVP;
 
 varying vec3 worldPosition;
-varying vec3 testColor;
+varying vec4 testColor;
 varying vec3 normal;
 
 void main(void) {
@@ -17,6 +17,6 @@ void main(void) {
 	worldPosition = a_GeometryVerts;
 	worldPosition += pos.xyz;
 	normal = a_GeometryNormals;
-	testColor = texture2D(u_testTex, a_index).rgb;
+	testColor = texture2D(u_testTex, a_index).rgba;
    	gl_Position = u_MVP * vec4(worldPosition, 1.0);
 }

@@ -5,6 +5,8 @@ precision highp float;
 
 const float PI = 3.14159265;
 
+uniform vec3 u_gridDims;
+uniform vec2 u_gridTexDims;
 uniform float u_restPressure;
 uniform float u_restDensity;
 uniform float u_steps;
@@ -27,6 +29,15 @@ float dT2 = dT * dT;
 //--------------------------------------------------------HELPERS:
 float getPressure( float density ) {
 	return u_restPressure + ( u_k * (density - u_restDensity));
+}
+
+vec2 getVoxel( vec3 pos ) {
+	float zCompU = mod(pos.x, u_gridDims.x) / u_gridTexDims.x;
+	float zCompV = (pos.z / u_gridDims.x) / u_gridTexDims.x;
+	float xCompU = (pos.x / u_gridDims.x) / u_gridTexDims.x;
+	float yCompV = (pos.y / u_gridDims.y) / u_gridTexDims.y;
+
+	return vec2( zCompU + xCompU, zCompV + yCompV );
 }
 
 vec3 assembleForces( vec3 position, vec3 myVelocity, float myDensity  ) {
@@ -103,7 +114,7 @@ void main() {
 	vec3 myPosition = texture2D(u_positions, v_texCoord).rgb;
 	vec3 myVelocity = texture2D( u_velocity, v_texCoord ).rgb;
 	float myDensity = texture2D(u_densities, v_texCoord).r; //TODO will be alpha of velocity
-
+	vec2 uv = getVoxel( myPosition );
 	vec3 forces = vec3(0.0, 0.0, 0.0);
 	//Get pressure and viscosity forces
 	forces += assembleForces( myPosition, myVelocity, myDensity );
@@ -121,4 +132,6 @@ void main() {
 
 	gl_FragData[0] = vec4( myPosition, myPressure );
 	gl_FragData[1] = vec4( myVelocity, 1.0 );
+	gl_FragData[2] = vec4 ( uv, 1.0, 1.0 );
+
 }
