@@ -531,7 +531,7 @@ var setupScene = function(canvasId, messageId ) {
     nextLight.setAzimuth( 90.0 );    
     nextLight.setElevation( -40.0 );
     nextLight.setPerspective( 30, 1, demo.zNear, demo.zFar );
-    nextLight.setupCascades( 1, 512, gl, scene );
+    nextLight.setupCascades( 1, 1024, gl, scene );
     scene.addLight(nextLight);
     demo.cascadeToDisplay = 0.0;
     lightAngle = 0.0;
@@ -540,14 +540,14 @@ var setupScene = function(canvasId, messageId ) {
     loadObjects();
 
     var particleSpecs = {
-        maxParticles : 10000,
+        maxParticles : 100000,
         emitters : [],
         gravityModifier : -800.0,
         RGBA : [0.0, 0.2, 0.9, 0.311],
-        damping : 1.01,
+        damping : 1.015,
         type : "nBody",
         activeBodies : 2,
-        particleSize : 1.0,
+        particleSize : 0.6,
         luminence : 40.0,
         scatterMultiply : 2.0,
         shadowMultiply : 0.1,
