@@ -241,9 +241,9 @@ SEC3.SPH.prototype = {
     	for ( var i = 0; i < width; i++) {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
-    				startPositions.push(i * scale);
-    				startPositions.push(j * scale);
-    				startPositions.push(k * scale);
+    				startPositions.push(i * scale + 0.1);
+    				startPositions.push(j * scale + 0.1);
+    				startPositions.push(k * scale + 0.1);
     				startPositions.push( 1.0 );
     			}
     		}
@@ -279,16 +279,16 @@ SEC3.SPH.prototype = {
 
     genGridTexture : function() {
 
-    	var xSpan = 128;
-    	var ySpan = 512;
-    	var zSpan = 64;
-    	var sqrtZ = Math.sqrt(zSpan);
+    	var xSpan = 16;
+    	var ySpan = 16;
+    	var zSpan = 16;
+    	var sqrtY = Math.sqrt(ySpan);
     	this.grid.xSpan = xSpan;
     	this.grid.ySpan = ySpan;
     	this.grid.zSpan = zSpan;
 
-    	this.gridTextureWidth = xSpan * sqrtZ;
-    	this.gridTextureHeight = ySpan * sqrtZ;
+    	this.gridTextureWidth = xSpan * sqrtY;
+    	this.gridTextureHeight = zSpan * sqrtY;
 
     	
     	
@@ -332,6 +332,8 @@ SEC3.SPH.prototype = {
 		var velocityTextureB = SEC3.generateTexture(this.textureSideLength,
 													this.textureSideLength,
 													startVelocities);
+
+
 		this.movementFBOs = [];
 
 		var movementFBOa = SEC3.createFBO();
@@ -339,7 +341,7 @@ SEC3.SPH.prototype = {
 								this.textureSideLength,
 								3,
 								[ positionTextureA, 
-								velocityTextureA, velocityTextureA ]		);	
+								velocityTextureA]		);	
 		this.movementFBOs.push(movementFBOa)
 
 		var movementFBOb = SEC3.createFBO();
@@ -347,7 +349,7 @@ SEC3.SPH.prototype = {
 								this.textureSideLength,
 								3,
 								[ positionTextureB, 
-								velocityTextureB, velocityTextureB ]);	
+								velocityTextureB]);	
 		this.movementFBOs.push(movementFBOb)
 
 		this.indexFBO = SEC3.createFBO();

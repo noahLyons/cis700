@@ -12,7 +12,7 @@ void main(void) {
 	lambertTerm *= falloff;
 	lambertTerm = clamp( lambertTerm, 0.1, 1.0);
 	// float softenEdge = max(1.0 - length(2.0 * gl_PointCoord - 1.0), 0.0);
-	gl_FragData[0] = vec4(testColor.r * 100.0, testColor.g, 0.0, 1.0);
+	gl_FragData[0] = vec4(testColor.r, testColor.g, 0.0, 1.0);
 	// gl_FragData[0] = sqrt(vec4( lambertTerm * 0.004 * (length(testColor)) * normalize(testColor), 1.0));
 
  } 

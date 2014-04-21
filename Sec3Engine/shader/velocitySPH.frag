@@ -32,12 +32,16 @@ float getPressure( float density ) {
 }
 
 vec2 getVoxel( vec3 pos ) {
-	float zCompU = mod(pos.x, u_gridDims.x) / u_gridTexDims.x;
-	float zCompV = (pos.z / u_gridDims.x) / u_gridTexDims.x;
-	float xCompU = (pos.x / u_gridDims.x) / u_gridTexDims.x;
-	float yCompV = (pos.y / u_gridDims.y) / u_gridTexDims.y;
+	
+	pos /= u_h;
+	float numColumns =  sqrt(u_gridDims.y);
+	float yCompU = floor(mod(pos.y, numColumns)) / numColumns;//u_gridTexDims.x;
+	float yCompV = floor(pos.y / numColumns) / numColumns;//u_gridTexDims.y;
+	float xCompU = (pos.x / u_gridDims.x) / numColumns;
+	float zCompV = (pos.z / u_gridDims.z) / numColumns;
 
-	return vec2( zCompU + xCompU, zCompV + yCompV );
+	return vec2( yCompU + xCompU, yCompV + zCompV );
+	
 }
 
 vec3 assembleForces( vec3 position, vec3 myVelocity, float myDensity  ) {
@@ -82,27 +86,27 @@ vec3 assembleForces( vec3 position, vec3 myVelocity, float myDensity  ) {
 
 vec3 getWallForces( vec3 myPosition) {
 	vec3 wallForce = vec3(0.0);
-	float floorDistance = myPosition.y + 0.6;
+	float floorDistance = myPosition.y + 0.0;
 	if ( floorDistance < u_h ) {
 		wallForce +=  (u_h - floorDistance ) * vec3( 0.0, 1.0, 0.0 ) / dT2;
 	}
 
-	float wallDist = myPosition.x + 0.1;
+	float wallDist = myPosition.x;
 	if ( wallDist < u_h ) {
 		wallForce +=  (u_h - wallDist ) * vec3( 1.0, 0.0, 0.0 ) / dT2;
 	}
 
-	wallDist = 1.1 - myPosition.x;
+	wallDist = (u_gridDims.x * u_h) - myPosition.x;
 	if ( wallDist < u_h ) {
 		wallForce +=  (u_h - wallDist ) * vec3( -1.0, 0.0, 0.0 ) / dT2;
 	}
 
-	wallDist = myPosition.z + 0.1;
+	wallDist = myPosition.z;
 	if ( wallDist < u_h ) {
 		wallForce +=  (u_h - wallDist ) * vec3( 0.0, 0.0, 1.0 ) / dT2;
 	}
 
-	wallDist = 1.1 - myPosition.z;
+	wallDist = ((u_gridDims.z * u_h)) - myPosition.z;
 	if ( wallDist < u_h ) {
 		wallForce +=  (u_h - wallDist ) * vec3( 0.0, 0.0, -1.0 ) / dT2;
 	}

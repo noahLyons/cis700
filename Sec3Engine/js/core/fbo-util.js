@@ -64,7 +64,13 @@
 
         //Create textures for FBO attachment
         for( var i = 0; i < numAttatchments; ++i ){
-        	textures[i] = inputTextures ? inputTextures[i] : SEC3.generateTexture(width, height);
+
+            if( inputTextures && inputTextures[i] ) {
+        	      textures[i] = inputTextures[i];
+            }   
+            else {
+                textures[i] = SEC3.generateTexture( width, height );
+            }
         }
 
         //Create FBO
