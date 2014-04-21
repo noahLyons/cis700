@@ -24,6 +24,14 @@ float wViscosity = wPressure;
 float h2 = u_h * u_h;
 float dT = (1.0 / (60.0 * u_steps));
 float dT2 = dT * dT;
+//--------------------------------------------------------STRUCTS:
+struct Particle {
+
+	vec3 position;
+	vec3 velocity;
+	float density;
+	float pressure;
+};
 
 //density += kDensity * pow((h2 - dist2), 3.0);
 //--------------------------------------------------------HELPERS:
@@ -31,8 +39,8 @@ float getPressure( float density ) {
 	return u_restPressure + ( u_k * (density - u_restDensity));
 }
 
-vec2 getVoxel( vec3 pos ) {
-	
+vec2 getVoxelUV( vec3 pos ) {
+
 	pos /= u_h;
 	float numColumns =  sqrt(u_gridDims.y);
 	float yCompU = floor(mod(pos.y, numColumns)) / numColumns;//u_gridTexDims.x;
@@ -44,41 +52,49 @@ vec2 getVoxel( vec3 pos ) {
 	
 }
 
-vec3 assembleForces( vec3 position, vec3 myVelocity, float myDensity  ) {
+Particle lookupParticle( vec2 index ) {
+	float density = texture2D( u_densities, index ).r;
+	float pressure = getPressure( density );
+	vec3 position = texture2D( u_positions, index ).rgb;
+	vec3 velocity = texture2D( u_velocity, index ).rgb;
+
+	
+	return Particle( position, velocity, density, pressure);
+}
+
+vec3 calcNeighborForces( Particle me, Particle neighbor ) {
+
+	vec3 forces = vec3(0.0);
+	vec3 toNeighbor = neighbor.position - me.position;
+	float dist = length( toNeighbor );
+	float dist2 = dist * dist;
+	if( dist < u_h ) {
+		// add pressure force from neighbor
+		if( dist > 0.00000001) {
+			vec3 fPressure = wPressure * pow(( u_h - dist), 3.0) * (toNeighbor / dist);
+			fPressure *= ( me.pressure + neighbor.pressure ) / ( 2.0 * neighbor.density);
+			forces -= fPressure * ( 1.0 / me.density );
+		}
+		// add viscosity force from neighbor
+		vec3 fVis = ( neighbor.velocity - me.velocity ) / neighbor.density;
+		fVis *= wViscosity * (  u_h - dist );
+		forces += u_kViscosity * fVis  * ( 1.0 / me.density );
+	}	
+	return forces;
+}
+
+vec3 assembleForces( Particle particle  ) {
 
 	// x = density // y = pressure // z = viscosity
 	vec3 forces = vec3(0.0);
-
-	float myPressure = getPressure(myDensity);
 
 	vec2 uv = vec2( 0.0 );
 	for (int i = 0; i < 128; i++) {
 		uv.x = float(i) / 128.0;
 		for (int j = 0; j < 128; j++){
 			uv.y = float(j) / 128.0;
-
-			vec3 neighborPos = texture2D( u_positions, uv ).xyz;
-			 // TODO: pack density into position texture
-			vec3 toNeighbor = neighborPos - position;
-			float dist = length( toNeighbor );
-			float dist2 = dist * dist;
-			if( dist < u_h ) {
-				// add pressure force from neighbor
-				float neighborDensity = texture2D( u_densities, uv ).r;
-				float neighborPressure = getPressure( neighborDensity );
-				if( dist > 0.00000001) {
-					vec3 fPressure = wPressure * pow(( u_h - dist), 3.0) * (toNeighbor / dist);
-					fPressure *= ( myPressure + neighborPressure ) / ( 2.0 * neighborDensity);
-					forces -= fPressure * ( 1.0 / myDensity );
-				}
-				// add viscosity force from neighbor
-				vec3 neighborVelocity = texture2D( u_velocity, uv ).rgb;
-				vec3 fVis = ( neighborVelocity - myVelocity ) / neighborDensity;
-				fVis *= wViscosity * (  u_h - dist );
-				forces += u_kViscosity * fVis  * ( 1.0 / myDensity );
-				// forces -= toNeighbor * neighborPressure;//normalize(toNeighbor);	
-			}	
-
+			Particle neighbor = lookupParticle ( uv );
+			forces += calcNeighborForces( particle, neighbor );
 		}
 	}
 	return forces;
@@ -115,27 +131,22 @@ vec3 getWallForces( vec3 myPosition) {
 //---------------------------------------------------------------MAIN:
 void main() {
 
-	vec3 myPosition = texture2D(u_positions, v_texCoord).rgb;
-	vec3 myVelocity = texture2D( u_velocity, v_texCoord ).rgb;
-	float myDensity = texture2D(u_densities, v_texCoord).r; //TODO will be alpha of velocity
-	vec2 uv = getVoxel( myPosition );
+	Particle particle = lookupParticle( v_texCoord );
 	vec3 forces = vec3(0.0, 0.0, 0.0);
 	//Get pressure and viscosity forces
-	forces += assembleForces( myPosition, myVelocity, myDensity );
-		// forces = myDensity * forces;
+	forces += assembleForces( particle );
 	// Apply gravity
 	forces += vec3(0.0, -9.8, 0.0) ;
 	//Collide with floor/walls
-	forces +=  getWallForces(myPosition);
+	forces +=  getWallForces( particle.position );
 
-	myVelocity = myVelocity + (forces);// * ( 1.0 / myDensity );
+	vec3 newVelocity = particle.velocity + forces;
 	
-	myPosition += myVelocity * dT2;
+	vec3 newPosition = particle.position + newVelocity * dT2; 
 
-	float myPressure = getPressure(myDensity);
-
-	gl_FragData[0] = vec4( myPosition, myPressure );
-	gl_FragData[1] = vec4( myVelocity, 1.0 );
+	vec2 uv = getVoxelUV( particle.position );//TEMP
+	gl_FragData[0] = vec4( newPosition, 1.0 );
+	gl_FragData[1] = vec4( newVelocity, 1.0 );
 	gl_FragData[2] = vec4 ( uv, 1.0, 1.0 );
 
 }
