@@ -21,7 +21,7 @@ var myRenderLoop = function() {
 
 var myRender = function() {
 
-        // sph.updateBuckets();
+        sph.updateBuckets();
     	sph.updateDensity();
     	sph.updateVelocities();
     	sph.draw( scene, null );
@@ -85,13 +85,13 @@ var initParticleSystem = function() {
 
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
 		particleSize : 1.0,
-        stepsPerFrame : 5,
+        stepsPerFrame : 30,
 		gravity : 10,
-		pressureK : 1300,
+		pressureK : 6300,
         restDensity : 56000.0,
         restPressure : 10000.0,
         viscosityK : 1.44,
-		h : 0.07   
+		h : 0.026   
 	}
 
 	sph = new SEC3.SPH(specs);
@@ -110,9 +110,9 @@ var initUI = function() {
 
 
     var gui = new dat.GUI();
-    gui.add(sph, 'stepsPerFrame', 1, 12);
-	gui.add(sph, 'h', 0.01, 0.11);
-    gui.add(sph, 'pressureK', 100, 2000 );
+    gui.add(sph, 'stepsPerFrame', 1, 60);
+	gui.add(sph, 'h', 0.02, 0.06);
+    gui.add(sph, 'pressureK', 100, 8000 );
     gui.add(sph, 'viscosityK', 0.1, 14);
     gui.add(sph, 'restDensity', 100, 99999.0);
     gui.add(sph, 'restPressure', -1000, 10000);

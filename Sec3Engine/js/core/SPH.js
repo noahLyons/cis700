@@ -65,7 +65,7 @@ SEC3.SPH.prototype = {
 	    gl.uniform1i( this.renderProgram.uPositionsLoc, 0);
 
 	    gl.activeTexture(gl.TEXTURE1);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(2));
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(1));
 	    gl.uniform1i( this.renderProgram.uTestTexLoc, 1 );
 	   	   
 	    gl.uniformMatrix4fv(this.renderProgram.uMVPLoc, false, scene.getCamera().getMVP());
@@ -108,49 +108,62 @@ SEC3.SPH.prototype = {
 
 		gl.useProgram( this.bucketProgram.ref() );
 		this.bucketFBO.bind(gl);
+		// gl.bindFramebuffer(gl.FRAMEBUFFER, null); //TEMP
+
 		gl.viewport(0, 0, this.gridTextureWidth, this.gridTextureHeight );
 
-		gl.bindBuffer( gl.ARRAY_BUFFER, this.renderProgram.indexBuffer );
+		gl.bindBuffer( gl.ARRAY_BUFFER, this.bucketProgram.indexBuffer );
 		gl.vertexAttribPointer(this.bucketProgram.aIndexLoc, 2, gl.FLOAT, false, 0, 0); 
 	    gl.enableVertexAttribArray(this.bucketProgram.aIndexLoc);
 
 		gl.activeTexture( gl.TEXTURE0 );
-		gl.bindTexture( gl.TEXTURE_2D, this.indexFBO.texture(0) );
+		gl.bindTexture( gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0) );
 		gl.uniform1i( this.bucketProgram.uPositionsLoc, 0 );
 
+		gl.uniform1f( this.bucketProgram.uHLoc, this.h);
 		gl.uniform1f( this.bucketProgram.uTextureLengthLoc, this.textureSideLength );
-		gl.uniform2f( this.bucketProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
+		// gl.uniform2f( this.bucketProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
 		gl.uniform3f( this.bucketProgram.uGridDimsLoc, this.grid.xSpan, this.grid.ySpan, this.grid.zSpan );
+		gl.clearColor( -1.0, -1.0, -1.0, -1.0 );
+
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
+		
 		//Pass 1
 		gl.disable( gl.BLEND );
+		gl.disable( gl.STENCIL_TEST );
 		gl.enable( gl.DEPTH_TEST );
 		gl.depthFunc( gl.LESS );
-		gl.colorMask( false, true, true, true );
+		gl.colorMask( true, false, false, false );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
 		//Pass 2
 		gl.depthFunc( gl.GREATER );
-		gl.colorMask( true, false, true, true );
+		gl.colorMask( false, true, false, false );
 		gl.enable( gl.STENCIL_TEST );
-		gl.stencilFunc(gl.GREATER, 1, 0x00 );
-		gl.stencilOp( gl.INCR, gl.INCR, gl.INCR );
-		gl.clearStencil( 1 );
+		gl.stencilFunc(gl.GREATER, 1, 0xff );
+		//set actions: Fail stencil // Fail Depth // Pass Depth
+		gl.stencilOp( gl.KEEP, gl.KEEP, gl.INCR );
+		gl.clear( gl.STENCIL_BUFFER_BIT );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
-		//Pass 3
-		gl.colorMask( true, true, false, true );
-		gl.clearStencil( 1 );
+		// // //Pass 3
+		gl.colorMask( false, false, true, false );
+		gl.clear( gl.STENCIL_BUFFER_BIT );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
-		//Pass 4
-		gl.colorMask( true, true, true, false );
-		gl.clearStencil( 1 );
+		// // //Pass 4
+		gl.colorMask( false, false, false, true );
+		gl.clear( gl.STENCIL_BUFFER_BIT );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
-		gl.disable(gl.STENCIL_TEST);
+
 		this.bucketFBO.unbind(gl);
+		gl.depthFunc( gl.LESS );
+		gl.colorMask( true, true, true, true );
+		gl.disable(gl.STENCIL_TEST);
+		gl.bindBuffer( gl.ARRAY_BUFFER, null );
+		gl.clearColor( 0.2, 0.2, 0.2, 1.0 );
 
 	},
 
@@ -165,10 +178,16 @@ SEC3.SPH.prototype = {
 	    gl.disable(gl.BLEND);
 	    
 	    gl.uniform1f( this.densityProgram.uHLoc, this.h );
+	    gl.uniform3f( this.densityProgram.uGridDimsLoc, this.grid.xSpan, this.grid.ySpan, this.grid.zSpan );
+
 
 	    gl.activeTexture(gl.TEXTURE0);
 	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
 	    gl.uniform1i(this.densityProgram.uPositionsLoc, 0);
+
+	    gl.activeTexture(gl.TEXTURE1);
+	    gl.bindTexture(gl.TEXTURE_2D, this.bucketFBO.texture(0));
+	    gl.uniform1i(this.densityProgram.uVoxelGridLoc, 1);
 
 	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
@@ -186,7 +205,7 @@ SEC3.SPH.prototype = {
 	    gl.disable(gl.DEPTH_TEST);
 	    gl.disable(gl.BLEND);
 	    
-	   	gl.uniform2f( this.velocityProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
+	   	// gl.uniform2f( this.velocityProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
 		gl.uniform3f( this.velocityProgram.uGridDimsLoc, this.grid.xSpan, this.grid.ySpan, this.grid.zSpan );
 	    gl.uniform1f( this.velocityProgram.uRestDensityLoc, this.restDensity);
 	    gl.uniform1f( this.velocityProgram.uViscosityKLoc, this.viscosityK);
@@ -205,6 +224,10 @@ SEC3.SPH.prototype = {
 	    gl.activeTexture(gl.TEXTURE2);
 	    gl.bindTexture(gl.TEXTURE_2D, this.densityFBO.texture(0));
 	    gl.uniform1i(this.velocityProgram.uDensitiesLoc, 2);
+
+	    gl.activeTexture(gl.TEXTURE3);
+	    gl.bindTexture(gl.TEXTURE_2D, this.bucketFBO.texture(0));
+	    gl.uniform1i(this.velocityProgram.uVoxelGridLoc, 3);
 
 	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
@@ -232,7 +255,8 @@ SEC3.SPH.prototype = {
 
     genCubeStartPositions : function () {
 
-    	var scale = 1/ 40; //TODO slider
+    	var scale = 1 / 40; //TODO slider
+    	var jitter = 0.001;
     	var width = 16;
     	var height = 64;
     	var depth = 16;
@@ -241,9 +265,9 @@ SEC3.SPH.prototype = {
     	for ( var i = 0; i < width; i++) {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
-    				startPositions.push(i * scale + 0.1);
-    				startPositions.push(j * scale + 0.1);
-    				startPositions.push(k * scale + 0.1);
+    				startPositions.push(i * scale + 0.1 + Math.random() * jitter);
+    				startPositions.push(j * scale + 0.1 + Math.random() * jitter);
+    				startPositions.push(k * scale + 0.1 + Math.random() * jitter);
     				startPositions.push( 1.0 );
     			}
     		}
@@ -256,7 +280,7 @@ SEC3.SPH.prototype = {
     	var startVelocities = [];
     	for( var i = 0; i < this.numParticles; i++ ) {
     		startVelocities.push( 0.0 );
-    		startVelocities.push( -0.0 );
+    		startVelocities.push( 0.0 );
     		startVelocities.push( 0.0 );
     		startVelocities.push( 1.0 );
     	}
@@ -270,7 +294,7 @@ SEC3.SPH.prototype = {
     	for (var i = 0; i < this.numParticles; i++) {
 
        		var xIndex = Math.floor(i % textureLength) / textureLength;
-	        var yIndex = i / this.numParticles; 
+	        var yIndex = Math.floor(i / textureLength) / textureLength; 
        		indices.push(xIndex);
        		indices.push(yIndex);
     	}
@@ -279,9 +303,9 @@ SEC3.SPH.prototype = {
 
     genGridTexture : function() {
 
-    	var xSpan = 16;
-    	var ySpan = 16;
-    	var zSpan = 16;
+    	var xSpan = 64;
+    	var ySpan = 256;
+    	var zSpan = 64;
     	var sqrtY = Math.sqrt(ySpan);
     	this.grid.xSpan = xSpan;
     	this.grid.ySpan = ySpan;
@@ -334,6 +358,7 @@ SEC3.SPH.prototype = {
 													startVelocities);
 
 
+
 		this.movementFBOs = [];
 
 		var movementFBOa = SEC3.createFBO();
@@ -341,7 +366,7 @@ SEC3.SPH.prototype = {
 								this.textureSideLength,
 								3,
 								[ positionTextureA, 
-								velocityTextureA]		);	
+								velocityTextureA]);	
 		this.movementFBOs.push(movementFBOa)
 
 		var movementFBOb = SEC3.createFBO();
@@ -366,7 +391,7 @@ SEC3.SPH.prototype = {
 		this.bucketFBO = SEC3.createFBO();
 		this.bucketFBO.initialize( gl, this.gridTextureWidth,
 								this.gridTextureHeight,
-								1 );
+								1 , [gridTex]);
 		// this.bucketFBO.addStencil(gl);
 
 	},
@@ -385,8 +410,12 @@ SEC3.SPH.prototype = {
 			bucketProgram.uPositionsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_positions");
 			bucketProgram.uTextureLengthLoc = gl.getUniformLocation( bucketProgram.ref(), "u_textureLength");
 			bucketProgram.uGridDimsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_gridDims");
-			bucketProgram.uGridTexDimsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_gridTexDims");
-
+			// bucketProgram.uGridTexDimsLoc = gl.getUniformLocation( bucketProgram.ref(), "u_gridTexDims");
+			bucketProgram.uHLoc = gl.getUniformLocation( bucketProgram.ref(), "u_h");
+			bucketProgram.indexBuffer = SEC3.createBuffer(2, //item size
+	                          self.numParticles, //num items
+	                          indices, //data
+	                          bucketProgram.aIndexLoc); //location
 		})
 		SEC3.registerAsyncObj( gl, bucketProgram );
 		this.bucketProgram = bucketProgram;
@@ -400,6 +429,8 @@ SEC3.SPH.prototype = {
 	        densityProgram.aVertexTexcoordLoc = gl.getAttribLocation( densityProgram.ref(), "a_texCoord" );
 	        densityProgram.uPositionsLoc = gl.getUniformLocation( densityProgram.ref(), "u_positions" );
 	        densityProgram.uHLoc = gl.getUniformLocation( densityProgram.ref(), "u_h" );
+	        densityProgram.uGridDimsLoc = gl.getUniformLocation( densityProgram.ref(), "u_gridDims" );
+	        densityProgram.uVoxelGridLoc = gl.getUniformLocation( densityProgram.ref(), "u_voxelGrid" );
 	        // densityProgram.uInvTextureLengthLoc = gl.getUniformLocation( densityProgram.ref(), "u_invTextureLength" );	        
 	        // gl.useProgram( densityProgram.ref() );
 	        // gl.uniform1f( densityProgram.uInvTextureLengthLoc, self.textureSideLength );
@@ -417,6 +448,7 @@ SEC3.SPH.prototype = {
 			velocityProgram.aVertexPosLoc = gl.getAttribLocation( velocityProgram.ref(), "a_pos" );
 	        velocityProgram.aVertexTexcoordLoc = gl.getAttribLocation( velocityProgram.ref(), "a_texCoord" );
 	        velocityProgram.uPositionsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_positions" );
+	        velocityProgram.uVoxelGridLoc = gl.getUniformLocation( velocityProgram.ref(), "u_voxelGrid" );
 	        velocityProgram.uVelocityLoc = gl.getUniformLocation( velocityProgram.ref(), "u_velocity" );
 	        velocityProgram.uDensitiesLoc = gl.getUniformLocation( velocityProgram.ref(), "u_densities" );
 			velocityProgram.uHLoc = gl.getUniformLocation( velocityProgram.ref(), "u_h" );
@@ -426,7 +458,7 @@ SEC3.SPH.prototype = {
 			velocityProgram.uStepsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_steps" );
 			velocityProgram.uViscosityKLoc = gl.getUniformLocation( velocityProgram.ref(), "u_kViscosity");
 			velocityProgram.uGridDimsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_gridDims");
-			velocityProgram.uGridTexDimsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_gridTexDims");
+			// velocityProgram.uGridTexDimsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_gridTexDims");
 
 	        // densityProgram.uInvTextureLengthLoc = gl.getUniformLocation( densityProgram.ref(), "u_invTextureLength" );	        
 	        // gl.useProgram( densityProgram.ref() );
