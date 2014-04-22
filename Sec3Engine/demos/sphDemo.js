@@ -112,7 +112,7 @@ var initUI = function() {
     var gui = new dat.GUI();
     gui.add(sph, 'stepsPerFrame', 1, 60);
 	gui.add(sph, 'h', 0.02, 0.06);
-    gui.add(sph, 'pressureK', 100, 8000 );
+    gui.add(sph, 'pressureK', 100, 20000 );
     gui.add(sph, 'viscosityK', 0.1, 14);
     gui.add(sph, 'restDensity', 100, 99999.0);
     gui.add(sph, 'restPressure', -1000, 10000);
