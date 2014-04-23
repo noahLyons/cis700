@@ -15,6 +15,7 @@ SEC3.SPH = function(specs) {
 	this.indexFBO = {};
 	this.densityFBO = {};
 
+	this.viewGrid = false;
 	this.textureResolution = SEC3.math.roundUpToPower( specs.numParticles, 2);
 	this.textureSideLength = Math.sqrt( this.textureResolution );
 	this.numParticles = specs.numParticles;
@@ -61,11 +62,12 @@ SEC3.SPH.prototype = {
 	    // gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 		gl.useProgram(this.renderProgram.ref());
 	    gl.activeTexture(gl.TEXTURE0);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(0));
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
 	    gl.uniform1i( this.renderProgram.uPositionsLoc, 0);
 
 	    gl.activeTexture(gl.TEXTURE1);
-	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.destIndex].texture(1));
+	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(1));
+	    // gl.bindTexture(gl.TEXTURE_2D, this.densityFBO.texture(0));
 	    gl.uniform1i( this.renderProgram.uTestTexLoc, 1 );
 	   	   
 	    gl.uniformMatrix4fv(this.renderProgram.uMVPLoc, false, scene.getCamera().getMVP());
@@ -111,6 +113,7 @@ SEC3.SPH.prototype = {
 		// gl.bindFramebuffer(gl.FRAMEBUFFER, null); //TEMP
 
 		gl.viewport(0, 0, this.gridTextureWidth, this.gridTextureHeight );
+		// gl.viewport(0, 0, 1000, 700 ); //TEMP
 
 		gl.bindBuffer( gl.ARRAY_BUFFER, this.bucketProgram.indexBuffer );
 		gl.vertexAttribPointer(this.bucketProgram.aIndexLoc, 2, gl.FLOAT, false, 0, 0); 
@@ -125,38 +128,82 @@ SEC3.SPH.prototype = {
 		// gl.uniform2f( this.bucketProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
 		gl.uniform3f( this.bucketProgram.uGridDimsLoc, this.grid.xSpan, this.grid.ySpan, this.grid.zSpan );
 		gl.clearColor( -1.0, -1.0, -1.0, -1.0 );
+		if(this.viewGrid){
+			gl.clearColor( 0.0, 0.0, 0.0, 1.0 ); // TEMP
+		}
+		
 
 		gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 
-		
-		//Pass 1
+		/*
+			//Pass 1
+			gl.disable( gl.BLEND );
+			gl.disable( gl.STENCIL_TEST );
+			gl.enable( gl.DEPTH_TEST );
+			gl.depthFunc( gl.LESS );
+			gl.colorMask( true, false, false, false );
+			gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+			//Pass 2
+			gl.depthFunc( gl.GREATER );
+			gl.colorMask( false, true, false, false );
+			gl.enable( gl.STENCIL_TEST );
+			gl.stencilFunc(gl.GREATER, 0x1, 0xf );
+			//set actions: Fail stencil // Fail Depth // Pass Depth
+			gl.stencilOp( gl.KEEP, gl.KEEP, gl.INC );
+			gl.clear( gl.STENCIL_BUFFER_BIT );
+			gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+			// // //Pass 3
+			gl.colorMask( false, false, true, false );
+			gl.clear( gl.STENCIL_BUFFER_BIT );
+			gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+			// // //Pass 4
+			gl.colorMask( false, false, false, true );
+			gl.clear( gl.STENCIL_BUFFER_BIT );
+			gl.drawArrays( gl.POINTS, 0, this.numParticles );
+
+
+			this.bucketFBO.unbind(gl);
+			gl.depthFunc( gl.LESS );
+			gl.colorMask( true, true, true, true );
+			gl.disable(gl.STENCIL_TEST);
+			gl.bindBuffer( gl.ARRAY_BUFFER, null );
+			gl.clearColor( 0.2, 0.2, 0.2, 1.0 );
+		*/
+
 		gl.disable( gl.BLEND );
-		gl.disable( gl.STENCIL_TEST );
 		gl.enable( gl.DEPTH_TEST );
-		gl.depthFunc( gl.LESS );
+		gl.depthFunc(gl.ALWAYS);
+		gl.enable( gl.STENCIL_TEST );
+
+		//Pass 1
+		gl.stencilFunc(gl.EQUAL, 0, 0xff );
+		//set actions: Fail stencil // Fail Depth // Pass Depth
+		gl.stencilOp( gl.INCR, gl.INCR, gl.INCR );
+		gl.clear( gl.STENCIL_BUFFER_BIT );
 		gl.colorMask( true, false, false, false );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
 		//Pass 2
-		gl.depthFunc( gl.GREATER );
+
+		gl.stencilFunc(gl.EQUAL, 1, 0xff );
 		gl.colorMask( false, true, false, false );
-		gl.enable( gl.STENCIL_TEST );
-		gl.stencilFunc(gl.GREATER, 1, 0xff );
-		//set actions: Fail stencil // Fail Depth // Pass Depth
-		gl.stencilOp( gl.KEEP, gl.KEEP, gl.INCR );
 		gl.clear( gl.STENCIL_BUFFER_BIT );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
-		// // //Pass 3
+		//Pass 3
+		gl.stencilFunc(gl.EQUAL, 2, 0xff );
 		gl.colorMask( false, false, true, false );
 		gl.clear( gl.STENCIL_BUFFER_BIT );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
 
-		// // //Pass 4
+		//Pass 4
+		gl.stencilFunc(gl.EQUAL, 3, 0xff );
 		gl.colorMask( false, false, false, true );
 		gl.clear( gl.STENCIL_BUFFER_BIT );
 		gl.drawArrays( gl.POINTS, 0, this.numParticles );
-
 
 		this.bucketFBO.unbind(gl);
 		gl.depthFunc( gl.LESS );
@@ -164,7 +211,6 @@ SEC3.SPH.prototype = {
 		gl.disable(gl.STENCIL_TEST);
 		gl.bindBuffer( gl.ARRAY_BUFFER, null );
 		gl.clearColor( 0.2, 0.2, 0.2, 1.0 );
-
 	},
 
 	updateDensity : function () {
@@ -255,7 +301,7 @@ SEC3.SPH.prototype = {
 
     genCubeStartPositions : function () {
 
-    	var scale = 1 / 40; //TODO slider
+    	var scale = 1 / 30; //TODO slider
     	var jitter = 0.001;
     	var width = 16;
     	var height = 64;

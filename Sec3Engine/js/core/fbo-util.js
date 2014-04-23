@@ -60,7 +60,8 @@
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT, width, height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_SHORT, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_STENCIL, width, height, 0, 
+                      gl.DEPTH_STENCIL, extDepthTex.UNSIGNED_INT_24_8_WEBGL, null);
 
         //Create textures for FBO attachment
         for( var i = 0; i < numAttatchments; ++i ){
@@ -86,7 +87,7 @@
         extDrawBuffers.drawBuffersWEBGL( drawbuffers );
 
         //Attach textures to FBO
-        gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0 );
+        gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, depthTex, 0 );
         for( var i = 0; i < numAttatchments; ++i ) {
             gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[i], gl.TEXTURE_2D, textures[i], 0 );
         }

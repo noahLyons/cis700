@@ -2,6 +2,9 @@ SEC3 = SEC3 || {};
 
 SEC3.postFx = {};
 
+var demo = {};
+demo.zNear = 0.1;
+demo.zFar = 30.0;
 /*
  *	create postFx shaders and register them as async objects.
  *	must be called before SEC3.postFx can be used

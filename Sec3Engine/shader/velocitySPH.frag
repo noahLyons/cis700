@@ -100,7 +100,11 @@ bool isValidUV( vec2 uv ) {
 		   uv.y >= 0.0 && uv.y <= 1.0;
 
 }
-
+bool isInsideGrid( vec3 pos ) {
+	return pos.x >= 0.0 && pos.x < u_gridDims.x * u_h &&
+		   pos.z >= 0.0 && pos.z < u_gridDims.z * u_h &&
+		   pos.y >= 0.0 && pos.y < u_gridDims.y * u_h;
+}
 vec3 assembleForces( Particle particle  ) {
 
 	// x = density // y = pressure // z = viscosity
@@ -111,25 +115,33 @@ vec3 assembleForces( Particle particle  ) {
 		for (int y = -1; y < 2; y++ ) {
 			for (int z = -1; z < 2; z++ ) {
 				vec3 offset = u_h * vec3( float(x), float(y), float(z) );
-				vec2 voxelUV = getVoxelUV( particle.position + offset );
-				if ( ! isValidUV( voxelUV ) ) continue;
-				vec4 particleIndices = texture2D( u_voxelGrid, voxelUV);
+				vec3 queryPosition = particle.position + offset;
+				// if ( isInsideGrid( queryPosition )) {
+				
+					vec2 voxelUV = getVoxelUV( particle.position + offset );
+				if (isValidUV (voxelUV)) {
+					vec4 particleIndices = texture2D( u_voxelGrid, voxelUV);
 
-				if( particleIndices.r < 0.0 )	continue;
-				Particle r = lookupParticle( unpackIndex( particleIndices.r ));
-				forces += calcNeighborForces( particle, r );
-				
-				if( particleIndices.g < 0.0 ) 	continue;
-				Particle g = lookupParticle( unpackIndex( particleIndices.g ));
-				forces += calcNeighborForces( particle, g );
-				
-				if( particleIndices.b < 0.0 ) 	continue;	
-				Particle b = lookupParticle( unpackIndex( particleIndices.b ));
-				forces += calcNeighborForces( particle, b );
-				
-				if( particleIndices.a < 0.0 ) 	continue;
-				Particle a = lookupParticle( unpackIndex( particleIndices.a ));
-				forces += calcNeighborForces( particle, a );
+					if( particleIndices.r >= 0.0 ) {
+						Particle r = lookupParticle( unpackIndex( particleIndices.r ));
+						forces += calcNeighborForces( particle, r );
+					}
+					
+					if( particleIndices.g >= 0.0 ) {
+						Particle g = lookupParticle( unpackIndex( particleIndices.g ));
+						forces += calcNeighborForces( particle, g );
+					}
+					if( particleIndices.b >= 0.0 ) { 
+						Particle b = lookupParticle( unpackIndex( particleIndices.b ));
+						forces += calcNeighborForces( particle, b );
+					}
+					
+					if( particleIndices.a >= 0.0 ) {
+						Particle a = lookupParticle( unpackIndex( particleIndices.a ));
+						forces += calcNeighborForces( particle, a );
+					}
+				}
+				// }
 				
 			}
 		}
@@ -167,6 +179,11 @@ vec3 getWallForces( vec3 myPosition) {
 	return wallForce;
 }
 
+vec4 getVoxel( vec3 position ) {
+	vec2 voxelUV = getVoxelUV( position );
+	return texture2D( u_voxelGrid, voxelUV);
+}
+
 //---------------------------------------------------------------MAIN:
 
 void main() {
@@ -180,13 +197,19 @@ void main() {
 		forces += vec3(0.0, -9.8, 0.0) ;
 	//Collide with floor/walls
 		forces +=  getWallForces( particle.position );
+	vec4 voxelData = getVoxel( particle.position);
+	// voxelData = clamp(voxelData, 0.0, 1.0);
+	// voxelData.r = 0.0;
+	// voxelData.g = 0.0;
+	// voxelData.b = 0.0;
+	// voxelData.a = 1.0;
 
 	vec3 newVelocity = particle.velocity + forces;
 	
 	vec3 newPosition = particle.position + newVelocity * dT2; 
-
 	gl_FragData[0] = vec4( newPosition, 1.0 );
 	gl_FragData[1] = vec4( newVelocity, 1.0 );
-	gl_FragData[2] = vec4 ( particle.density, 0.0, 0.2, 1.0 );
+	gl_FragData[2] = vec4(particle.density, 0.0, 0.0, 1.0);
+	// gl_FragData[2] = voxelData;
 
 }

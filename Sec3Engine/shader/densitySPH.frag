@@ -47,6 +47,7 @@ float calcNeighborDensity( vec3 position, vec3 neighborPos ) {
 	return density;
 }	
 
+
 float getDensity( vec3 position ) {
 
 	float density = 0.0;

@@ -9,14 +9,15 @@ uniform vec3 u_gridDims;
 //uniform vec2 u_gridTexDims;
 
 varying float index;
-float MAX_INDEX = (u_textureLength ) + u_textureLength * (u_textureLength);
+float MAX_INDEX =  u_textureLength * (u_textureLength);
 //---------------------------------------------------HELPERS:
 vec2 worldToUV( vec3 pos ) {
 
 	pos /= u_h;
+	pos = abs(pos); //TODO
 	float numColumns =  sqrt(u_gridDims.y);
-	float yCompU = floor(mod(pos.y, numColumns)) / numColumns;//u_gridTexDims.x;
-	float yCompV = floor(pos.y / numColumns) / numColumns;//u_gridTexDims.y;
+	float yCompU = floor(mod(pos.y, numColumns)) / numColumns;
+	float yCompV = floor(pos.y / numColumns) / numColumns;
 	float xCompU = (pos.x / u_gridDims.x) / numColumns;
 	float zCompV = (pos.z / u_gridDims.z) / numColumns;
 
@@ -26,7 +27,8 @@ vec2 worldToUV( vec3 pos ) {
 
 float getID( vec2 particleIndex ) {
 
-  	return (particleIndex.x * u_textureLength) + (particleIndex.y * u_textureLength * (u_textureLength));
+  	return (particleIndex.x * u_textureLength) + 
+  		   (particleIndex.y * u_textureLength * (u_textureLength ));
 }
 
 //-----------------------------------------------------MAIN:

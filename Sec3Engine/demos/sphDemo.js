@@ -21,16 +21,22 @@ var myRenderLoop = function() {
 
 var myRender = function() {
 
-        sph.updateBuckets();
-    	sph.updateDensity();
-    	sph.updateVelocities();
-    	sph.draw( scene, null );
+    sph.updateBuckets();
+	sph.updateDensity();
+	sph.updateVelocities();
+    if( sph.viewGrid ) {
+        SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); // TEMP
+    }
+    else {
+        sph.draw( scene, null );
+    }
 };
 
 var main = function( canvasId, messageId ){
 	setupScene(canvasId, messageId);
 
-	// SEC3.renderer.init();
+	SEC3.renderer.init(); // TEMP
+    SEC3.postFx.init(); // TEMP
 	SEC3.render = myRender;
 	SEC3.renderLoop = myRenderLoop;
 	SEC3.run(gl);	
@@ -85,13 +91,13 @@ var initParticleSystem = function() {
 
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
 		particleSize : 1.0,
-        stepsPerFrame : 30,
+        stepsPerFrame : 12,
 		gravity : 10,
-		pressureK : 6300,
-        restDensity : 56000.0,
-        restPressure : 10000.0,
-        viscosityK : 1.44,
-		h : 0.026   
+		pressureK : 4000,
+        restDensity : 20000.0,
+        restPressure : 1000.0,
+        viscosityK : 3.44,
+		h : 0.03   
 	}
 
 	sph = new SEC3.SPH(specs);
@@ -111,12 +117,13 @@ var initUI = function() {
 
     var gui = new dat.GUI();
     gui.add(sph, 'stepsPerFrame', 1, 60);
-	gui.add(sph, 'h', 0.02, 0.06);
+	gui.add(sph, 'h', 0.01, 0.04);
     gui.add(sph, 'pressureK', 100, 20000 );
     gui.add(sph, 'viscosityK', 0.1, 14);
     gui.add(sph, 'restDensity', 100, 99999.0);
     gui.add(sph, 'restPressure', -1000, 10000);
     gui.add(sph, 'initFBOs' );
+    gui.add(sph, 'viewGrid' )
 }
 
 /*
