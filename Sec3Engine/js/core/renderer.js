@@ -107,7 +107,8 @@ SEC3.renderer.init = function () {
 /*
  *  fills the gBuffer 
  */
-SEC3.renderer.fillGPass = function( framebuffer ) {
+SEC3.renderer.fillGPass = function( framebuffer, camera ) {
+
 
     gl.useProgram( SEC3.renderer.fillGProg.ref() );
     framebuffer.bind(gl);
@@ -120,7 +121,7 @@ SEC3.renderer.fillGPass = function( framebuffer ) {
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uModelViewLoc, false, camera.getViewTransform());
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uMVPLoc, false, mvpMat ); 
 
-    SEC3.renderer.drawModel( SEC3.renderer.fillGProg );
+    SEC3.renderer.drawModel( SEC3.renderer.fillGProg, 0, camera );
     framebuffer.unbind(gl);
     gl.useProgram( null );
 };
@@ -196,7 +197,7 @@ SEC3.renderer.drawShadowMap = function(light, index){
 /*
  *  binds scene geometry vbos and draws into currently bound FBO
  */
-SEC3.renderer.drawModel = function (program, textureOffset) {
+SEC3.renderer.drawModel = function (program, textureOffset, camera) {
 
     textureOffset = textureOffset || 0;
 

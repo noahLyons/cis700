@@ -15,7 +15,7 @@ SEC3.DiLight = function(){
 
 SEC3.DiLight.prototype = Object.create( SEC3.OrthoProjector.prototype );
 
-SEC3.DiLight.prototype.addCascade = function(resolution, near, far, scene) {
+SEC3.DiLight.prototype.addCascade = function(resolution, near, far) {
 
     var fbo = SEC3.createFBO();
     if (! fbo.initialize( gl, resolution, resolution, 1 )) {
@@ -24,7 +24,6 @@ SEC3.DiLight.prototype.addCascade = function(resolution, near, far, scene) {
     }
     else {
 
-        var radius = scene.getCamera().getBoundingRadius();
         this.numCascades = this.cascadeFramebuffers.push(fbo);
         var orth = mat4.create();
         // Generates a orthogonal projection matrix with the given bounds
@@ -37,7 +36,7 @@ SEC3.DiLight.prototype.addCascade = function(resolution, near, far, scene) {
 
 };
 
-SEC3.DiLight.prototype.setupCascades = function( number, nearResolution, gl, scene) {
+SEC3.DiLight.prototype.setupCascades = function( number, nearResolution, gl) {
 
     this.disposeBuffers(gl);
     this.cascadeMatrices = [];
@@ -49,7 +48,7 @@ SEC3.DiLight.prototype.setupCascades = function( number, nearResolution, gl, sce
     var near = 0.0;
 
     for( var i = 0; i < number; i++ ) {
-        this.addCascade(nearResolution, near, near + clipLength, scene );
+        this.addCascade(nearResolution, near, near + clipLength );
         near += clipLength;
         nearResolution /= 2.0;
     }

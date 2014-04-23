@@ -1,6 +1,8 @@
 
 
 //--------------------------------------------GLOBALS:
+var demo;
+
 var gl;
 var scene;
 var sph;
@@ -21,6 +23,9 @@ var myRenderLoop = function() {
 
 var myRender = function() {
 
+    SEC3.renderer.fillGPass( demo.gBuffer, sph.projectors[0].getCamera() );
+    SEC3.postFx.finalPass( demo.gBuffer.texture(0));
+    /*
     sph.updateBuckets();
 	sph.updateDensity();
 	sph.updateVelocities();
@@ -30,6 +35,7 @@ var myRender = function() {
     else {
         sph.draw( scene, null );
     }
+    */
 };
 
 var main = function( canvasId, messageId ){
@@ -69,8 +75,19 @@ var setupScene = function(canvasId, messageId){
     initParticleSystem();
 
     initUI();
-
+    initFrameBuffers();
 };
+
+var initFrameBuffers = function() {
+
+    var canvas = SEC3.canvas;  
+    demo.gBuffer = SEC3.createFBO();
+    if ( ! demo.gBuffer.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "FBO initialization failed.");
+        return;
+    }
+};
+
 
 var initCamera = function() {
 
@@ -82,6 +99,7 @@ var initCamera = function() {
     interactor = SEC3.CameraInteractor( camera, canvas );
     camera.setPerspective( 60, canvas.width / canvas.height, 0.1, 30.0 );
     scene.setCamera(camera);
+
 }
 
 var initParticleSystem = function() {
@@ -101,6 +119,7 @@ var initParticleSystem = function() {
 	}
 
 	sph = new SEC3.SPH(specs);
+    sph.addProjector( [0.5, 6.0, 0.5], 0.0, -90.0, 1024, 10.0 );
 	// TODO:
 }
 
@@ -132,10 +151,11 @@ var initUI = function() {
 var loadObjects = function() {
     //Load a OBJ model from file
     var objLoader = SEC3.createOBJLoader(scene);
-    // objLoader.loadFromFile( gl, 'models/coke/coke.obj', 'models/coke/coke.mtl');
-    // objLoader.loadFromFile( gl, 'Sec3Engine/models/buddha_new/buddha_scaled_.obj', 'Sec3Engine/models/buddha_new/buddha_scaled_.mtl');
+    
+    
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-    // objLoader.loadFromFile( gl, 'Sec3Engine/models/cubeworld/cubeworld.obj', 'Sec3Engine/models/cubeworld/cubeworld.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/bucketBurg/bucketBurg.obj', 'Sec3Engine/models/bucketBurg/bucketBurg.mtl');
+    
     
         
     //Register a callback function that extracts vertex and normal 

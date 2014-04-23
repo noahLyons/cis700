@@ -22,6 +22,7 @@ SEC3.SPH = function(specs) {
 	this.gridTextureWidth = specs.gridTextureWidth;
 	this.gridTextureHeight = specs.gridTextureHeight;
 
+	this.projectors = [];
 
 	this.RGBA = specs.RGBA;	
 	this.particleSize = specs.particleSize;
@@ -282,6 +283,16 @@ SEC3.SPH.prototype = {
 	},
 
 //----------------------------------------------------------------------------SETUP:
+	addDetectorProjector : function( pos, azimuth, elevation, resolution, farClip ) {
+		farClip = farClip || 10.0;
+		var projector = new SEC3.DiLight();
+		projector.goHome ( pos ); 
+	    projector.setAzimuth( azimuth );    
+	    projector.setElevation( elevation);
+	    projector.setOrtho( 10, 10, 0.001, farClip );
+	    projector.setupCascades( 1, resolution, gl );
+	    this.projectors.push(projector);
+	},
 
 	genStartPositions : function() {
 
