@@ -28,7 +28,7 @@ var myRender = function() {
         demo.gBufferFilled = true;
     }
     // SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(3));
-    sph.updatePositions();
+    // sph.updatePositions();
     sph.updateBuckets();
 	sph.updateDensity();
 	sph.updateVelocities();
@@ -105,11 +105,11 @@ var initParticleSystem = function() {
 		particleSize : 1.0,
         stepsPerFrame : 12,
 		gravity : 10,
-		pressureK : 3,
-        restDensity : 1000.0,
+		pressureK : 2000,
+        restDensity : 15000.0,
         restPressure : 1000.0,
         viscosityK : 3.44,
-		h : 0.04,   
+		h : 0.033,   
         mass : 0.02
 	}
 

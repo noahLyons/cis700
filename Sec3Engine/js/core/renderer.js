@@ -109,7 +109,6 @@ SEC3.renderer.init = function () {
  */
 SEC3.renderer.fillGPass = function( framebuffer, camera ) {
 
-
     gl.useProgram( SEC3.renderer.fillGProg.ref() );
     framebuffer.bind(gl);
     gl.viewport( 0, 0, framebuffer.getWidth(), framebuffer.getHeight() );
@@ -121,7 +120,7 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uModelViewLoc, false, camera.getViewTransform());
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uMVPLoc, false, mvpMat ); 
 
-    SEC3.renderer.drawModel( SEC3.renderer.fillGProg, 0, camera );
+    SEC3.renderer.drawModel( SEC3.renderer.fillGProg,0, camera );
     framebuffer.unbind(gl);
     gl.useProgram( null );
 };

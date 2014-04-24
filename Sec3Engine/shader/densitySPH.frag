@@ -43,7 +43,7 @@ float calcNeighborDensity( vec3 position, vec3 neighborPos ) {
 	float dist = length(  position - neighborPos );
 	if (dist < u_h ) {
 		float dist2 = dist * dist;
-		density += kDensity * u_mass * pow((h2 - dist2), 3.0);
+		density += kDensity * pow((h2 - dist2), 3.0);
 	}
 
 	return density;

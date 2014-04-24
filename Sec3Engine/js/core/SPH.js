@@ -335,7 +335,7 @@ SEC3.SPH.prototype = {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
     				startPositions.push(i * scale + 1.2 + Math.random() * jitter);
-    				startPositions.push(j * scale + 2.2 + Math.random() * jitter);
+    				startPositions.push(j * scale + 1.2 + Math.random() * jitter);
     				startPositions.push(k * scale + 1.2 + Math.random() * jitter);
     				startPositions.push( 1.0 );
     			}
