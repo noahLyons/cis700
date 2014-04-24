@@ -22,10 +22,13 @@ var myRenderLoop = function() {
 };
 
 var myRender = function() {
-
-    SEC3.renderer.fillGPass( demo.gBuffer, sph.projectors[0].getCamera() );
-    SEC3.postFx.finalPass( demo.gBuffer.texture(0));
-    /*
+    //TODO getter / only call once
+    if( ! demo.gBufferFilled ) {
+        SEC3.renderer.fillGPass( sph.projectors[0].gBuffer, sph.projectors[0] ); 
+        demo.gBufferFilled = true;
+    }
+    // SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(3));
+    sph.updatePositions();
     sph.updateBuckets();
 	sph.updateDensity();
 	sph.updateVelocities();
@@ -35,38 +38,24 @@ var myRender = function() {
     else {
         sph.draw( scene, null );
     }
-    */
+    
 };
 
 var main = function( canvasId, messageId ){
-	setupScene(canvasId, messageId);
-
-	SEC3.renderer.init(); // TEMP
+    initGL( canvasId, messageId );
+    SEC3.renderer.init(); // TEMP
     SEC3.postFx.init(); // TEMP
+	setupScene();
 	SEC3.render = myRender;
 	SEC3.renderLoop = myRenderLoop;
-	SEC3.run(gl);	
+	SEC3.run(gl);
+
 };
 
 /*
  * Sets up basics of scene; camera, viewport, projection matrix, fbo
  */
-var setupScene = function(canvasId, messageId){
-    //get WebGL context
-    var canvas = document.getElementById( canvasId );
-    SEC3.canvas = canvas;
-    var msg = document.getElementById( messageId );
-    gl = SEC3.getWebGLContext( canvas, msg );
-    if (! gl) {
-        console.log("Bad GL Context!");
-        return;
-    }
-    
-    gl.viewport( 0, 0, canvas.width, canvas.height );
-    gl.viewportWidth = canvas.width;
-    gl.viewportHeight = canvas.height;
-    gl.clearColor( 0.4, 0.4, 0.4, 1.0);
-    gl.depthFunc(gl.LESS);
+var setupScene = function(){
 
     scene = new SEC3.Scene();
 
@@ -75,17 +64,6 @@ var setupScene = function(canvasId, messageId){
     initParticleSystem();
 
     initUI();
-    initFrameBuffers();
-};
-
-var initFrameBuffers = function() {
-
-    var canvas = SEC3.canvas;  
-    demo.gBuffer = SEC3.createFBO();
-    if ( ! demo.gBuffer.initialize( gl, canvas.width, canvas.height )) {
-        console.log( "FBO initialization failed.");
-        return;
-    }
 };
 
 
@@ -101,26 +79,43 @@ var initCamera = function() {
     scene.setCamera(camera);
 
 }
-
+var initGL = function(canvasId, messageId) {
+    //get WebGL context
+    var canvas = document.getElementById( canvasId );
+    SEC3.canvas = canvas;
+    var msg = document.getElementById( messageId );
+    gl = SEC3.getWebGLContext( canvas, msg );
+    if (! gl) {
+        console.log("Bad GL Context!");
+        return;
+    }
+    
+    gl.viewport( 0, 0, canvas.width, canvas.height );
+    gl.viewportWidth = canvas.width;
+    gl.viewportHeight = canvas.height;
+    gl.clearColor( 0.4, 0.4, 0.4, 1.0);
+    gl.depthFunc(gl.LESS);
+}
 var initParticleSystem = function() {
 
 	var specs = {
-		numParticles : 16384,
-
+		// numParticles : 16384,
+        numParticles : 65536,
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
 		particleSize : 1.0,
         stepsPerFrame : 12,
 		gravity : 10,
-		pressureK : 4000,
-        restDensity : 20000.0,
+		pressureK : 3,
+        restDensity : 1000.0,
         restPressure : 1000.0,
         viscosityK : 3.44,
-		h : 0.03   
+		h : 0.04,   
+        mass : 0.02
 	}
 
 	sph = new SEC3.SPH(specs);
-    sph.addProjector( [0.5, 6.0, 0.5], 0.0, -90.0, 1024, 10.0 );
-	// TODO:
+    sph.addDetectorProjector( [1.0, 20.0, 1.0], 0.0, -90.0, 2048, 20.0 );
+    // TODO:
 }
 
 var initUI = function() {
@@ -136,13 +131,14 @@ var initUI = function() {
 
     var gui = new dat.GUI();
     gui.add(sph, 'stepsPerFrame', 1, 60);
-	gui.add(sph, 'h', 0.01, 0.04);
-    gui.add(sph, 'pressureK', 100, 20000 );
+	gui.add(sph, 'h', 0.03, 0.08);
+    gui.add(sph, 'mass', 0.001, 1.0);
+    gui.add(sph, 'pressureK', 1, 8000 );
     gui.add(sph, 'viscosityK', 0.1, 14);
     gui.add(sph, 'restDensity', 100, 99999.0);
     gui.add(sph, 'restPressure', -1000, 10000);
     gui.add(sph, 'initFBOs' );
-    gui.add(sph, 'viewGrid' )
+    gui.add(sph, 'viewGrid' );
 }
 
 /*
@@ -154,7 +150,7 @@ var loadObjects = function() {
     
     
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/bucketBurg/bucketBurg.obj', 'Sec3Engine/models/bucketBurg/bucketBurg.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/bucketBurg/bucketBurg2.obj', 'Sec3Engine/models/bucketBurg/bucketBurg.mtl');
     
     
         

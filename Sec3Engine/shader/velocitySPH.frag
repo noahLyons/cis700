@@ -9,13 +9,21 @@ uniform vec3 u_gridDims;
 uniform float u_restPressure;
 uniform float u_restDensity;
 uniform float u_steps;
+uniform float u_textureSize;
 uniform float u_k;
 uniform float u_h; // effective radius
+uniform float u_mass;
 uniform float u_kViscosity;
+uniform mat4 u_projectorViewMat;
+uniform mat4 u_projectorProjectionMat;
+uniform vec3 u_projectorPos;
 uniform sampler2D u_positions;
 uniform sampler2D u_velocity;
 uniform sampler2D u_densities;
 uniform sampler2D u_voxelGrid;
+uniform sampler2D u_sceneDepth;
+uniform sampler2D u_sceneNormals;
+
 varying vec2 v_texCoord;
 
 float wPressure = 45.0 / (PI * pow(u_h, 6.0));
@@ -69,30 +77,31 @@ vec3 calcNeighborForces( Particle me, Particle neighbor ) {
 
 	vec3 forces = vec3(0.0);
 	vec3 toNeighbor = neighbor.position - me.position;
+	vec3 fromNeighbor = me.position - neighbor.position;
 	float dist = length( toNeighbor );
 	float dist2 = dist * dist;
 	if( dist < u_h ) {
-		// add pressure force from neighbor
 		if( dist > 0.00000001) {
-			vec3 fPressure = wPressure * pow(( u_h - dist), 3.0) * (toNeighbor / dist);
-			fPressure *= ( me.pressure + neighbor.pressure ) / ( 2.0 * neighbor.density);
-			forces -= fPressure * ( 1.0 / me.density );
+			// add pressure force from neighbor
+			vec3 fPressure = wPressure * pow(( u_h - dist), 2.0) * (fromNeighbor / dist);
+			fPressure *=  (me.pressure / pow(me.density, 2.0) + neighbor.pressure / pow(neighbor.density, 2.0)) * u_mass;
+			forces -= fPressure * me.density;// * ( 1.0 / me.density );
+			// add viscosity force from neighbor
+			vec3 fVis = ( neighbor.velocity - me.velocity ) * ( u_mass / neighbor.density );
+			fVis *= wViscosity * (  u_h - dist );
+			forces += u_kViscosity * fVis;//  * ( 1.0 / me.density );
 		}
-		// add viscosity force from neighbor
-		vec3 fVis = ( neighbor.velocity - me.velocity ) / neighbor.density;
-		fVis *= wViscosity * (  u_h - dist );
-		forces += u_kViscosity * fVis  * ( 1.0 / me.density );
 	}	
 	return forces;
 }
 
 vec2 unpackIndex ( float packedIndex ) {
 
-	float u = floor(mod(packedIndex, 128.0));
-	float v = floor( packedIndex / 128.0 );
+	float u = floor(mod(packedIndex, u_textureSize));
+	float v = floor( packedIndex / u_textureSize );
 
 
-	return vec2( u, v ) / 128.0;
+	return vec2( u, v ) / u_textureSize;
 }
 
 bool isValidUV( vec2 uv ) {
@@ -116,7 +125,7 @@ vec3 assembleForces( Particle particle  ) {
 			for (int z = -1; z < 2; z++ ) {
 				vec3 offset = u_h * vec3( float(x), float(y), float(z) );
 				vec3 queryPosition = particle.position + offset;
-				// if ( isInsideGrid( queryPosition )) {
+				if ( isInsideGrid( queryPosition )) {
 				
 					vec2 voxelUV = getVoxelUV( particle.position + offset );
 				if (isValidUV (voxelUV)) {
@@ -141,7 +150,7 @@ vec3 assembleForces( Particle particle  ) {
 						forces += calcNeighborForces( particle, a );
 					}
 				}
-				// }
+				}
 				
 			}
 		}
@@ -150,7 +159,7 @@ vec3 assembleForces( Particle particle  ) {
 	return forces;
 }
 
-vec3 getWallForces( vec3 myPosition) {
+vec3 getBoundaryForces( vec3 myPosition) {
 	vec3 wallForce = vec3(0.0);
 	float floorDistance = myPosition.y + 0.0;
 	if ( floorDistance < u_h ) {
@@ -179,6 +188,34 @@ vec3 getWallForces( vec3 myPosition) {
 	return wallForce;
 }
 
+Particle applyCollisions( Particle p ) {
+	vec4 posProjectorSpace = u_projectorViewMat * vec4(p.position, 1.0);
+
+	// coordinate of gBuffer covered by particle 
+	vec4 posClipSpace = u_projectorProjectionMat * posProjectorSpace;
+	posClipSpace = posClipSpace / posClipSpace.w;
+	vec2 uv = posClipSpace.xy * 0.5 + 0.5;
+
+	// distance from projector to covered pixel in gBuffer
+	float sceneDist = texture2D( u_sceneDepth, uv ).r;
+	vec3 particleToProjector = p.position - u_projectorPos;
+	float particleDepth = length(particleToProjector);
+	float wallDist = (sceneDist - particleDepth);
+
+	// return vec3(particleDepth );
+	// if particle is within support radius of the pixel it covers:
+	if ( wallDist < 0.0 ) { 
+		vec3 sceneNormal = texture2D( u_sceneNormals, uv ).rgb;
+		sceneNormal = normalize(sceneNormal);
+		p.position = p.position + (wallDist) * normalize(particleToProjector);
+		// p.velocity = reflect(p.velocity, sceneNormal);
+		// p.velocity -= 2.0 * dot( p.velocity, sceneNormal ) * sceneNormal;
+		p.velocity -= (1.0 + (1.0 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
+	}
+	return p;
+
+}
+
 vec4 getVoxel( vec3 position ) {
 	vec2 voxelUV = getVoxelUV( position );
 	return texture2D( u_voxelGrid, voxelUV);
@@ -192,24 +229,18 @@ void main() {
 	vec2 uv = getVoxelUV( particle.position );//TEMP
 	vec3 forces = vec3(0.0, 0.0, 0.0);
 	//Get pressure and viscosity forces
-		forces += assembleForces( particle );
+		forces += assembleForces( particle ) * (u_mass / particle.density);
 	// Apply gravity
-		forces += vec3(0.0, -9.8, 0.0) ;
+		forces += vec3(0.0, -9.8, 0.0);
 	//Collide with floor/walls
-		forces +=  getWallForces( particle.position );
-	vec4 voxelData = getVoxel( particle.position);
-	// voxelData = clamp(voxelData, 0.0, 1.0);
-	// voxelData.r = 0.0;
-	// voxelData.g = 0.0;
-	// voxelData.b = 0.0;
-	// voxelData.a = 1.0;
+		// forces +=  getBoundaryForces( particle.position );
+	particle.velocity = particle.velocity + forces * dT;
+	particle.position = particle.position + particle.velocity * dT * 0.5;
+	particle = applyCollisions( particle );
 
-	vec3 newVelocity = particle.velocity + forces;
-	
-	vec3 newPosition = particle.position + newVelocity * dT2; 
-	gl_FragData[0] = vec4( newPosition, 1.0 );
-	gl_FragData[1] = vec4( newVelocity, 1.0 );
-	gl_FragData[2] = vec4(particle.density, 0.0, 0.0, 1.0);
+	gl_FragData[0] = vec4( particle.position, 1.0 );
+	gl_FragData[1] = vec4( particle.velocity, 1.0 );
+	gl_FragData[2] = vec4( particle.density, 0.0, 0.0, 1.0);
 	// gl_FragData[2] = voxelData;
 
 }

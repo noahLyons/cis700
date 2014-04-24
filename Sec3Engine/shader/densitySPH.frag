@@ -5,6 +5,8 @@ const float PI = 3.14159265;
 
 uniform vec3 u_gridDims;
 uniform float u_h;
+uniform float u_mass;
+uniform float u_textureSize;
 uniform sampler2D u_positions;
 uniform sampler2D u_voxelGrid;
 
@@ -29,11 +31,11 @@ vec2 getVoxelUV( vec3 pos ) {
 }
 
 vec2 unpackIndex ( float packedIndex ) {
-	float u = floor(mod(packedIndex, 128.0));
-	float v = floor( packedIndex / 128.0 );
+	float u = floor(mod(packedIndex, u_textureSize));
+	float v = floor( packedIndex / u_textureSize );
 
 
-	return vec2( u, v ) / 128.0;
+	return vec2( u, v ) / u_textureSize;
 }
 
 float calcNeighborDensity( vec3 position, vec3 neighborPos ) {
@@ -41,7 +43,7 @@ float calcNeighborDensity( vec3 position, vec3 neighborPos ) {
 	float dist = length(  position - neighborPos );
 	if (dist < u_h ) {
 		float dist2 = dist * dist;
-		density += kDensity * pow((h2 - dist2), 3.0);
+		density += kDensity * u_mass * pow((h2 - dist2), 3.0);
 	}
 
 	return density;
