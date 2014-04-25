@@ -47,7 +47,7 @@ struct Particle {
 //--------------------------------------------------------HELPERS:
 
 float getPressure( float density ) {
-	return u_restPressure + ( u_k * (density - u_restDensity));
+	return  u_k * (density - u_restDensity);
 }
 
 vec2 getVoxelUV( vec3 pos ) {
@@ -203,10 +203,10 @@ Particle applyCollisions( Particle p ) {
 
 	// return vec3(particleDepth );
 	// if particle is within support radius of the pixel it covers:
-	if ( wallDist < 0.0 ) { 
+	if ( wallDist < -0.5 * u_h ) { 
 		vec3 sceneNormal = texture2D( u_sceneNormals, uv ).rgb;
-		sceneNormal = normalize(sceneNormal);
-		p.position = p.position + (wallDist) * normalize(particleToProjector);
+		sceneNormal = -normalize(sceneNormal);
+		p.position = p.position + (wallDist) * sceneNormal;
 		p.velocity -= (1.0 + (0.3 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
 	}
 	// if (wallDist < u_h ) {
@@ -229,14 +229,14 @@ vec3 getCollisionForce( Particle p ) {
 	vec3 particleToProjector = p.position - u_projectorPos;
 	float particleDepth = length(particleToProjector);
 	float wallDist = (sceneDist - particleDepth);
-	wallDist = max(wallDist, 0.0);
+	wallDist = max(wallDist, -u_h);
 
 	// return vec3(particleDepth );
 	// if particle is within support radius of the pixel it covers:
 	if ( wallDist < u_h ) { 
 		vec3 sceneNormal = texture2D( u_sceneNormals, uv ).rgb;
 		sceneNormal = normalize(sceneNormal);
-		return  0.4 * (u_h - wallDist ) * sceneNormal / dT2;
+		return  0.2 * (u_h - wallDist ) * sceneNormal / dT2;
 	}
 
 	return vec3(0.0);
@@ -262,8 +262,9 @@ void main() {
 	//Collide with floor/walls
 		// forces +=  getBoundaryForces( particle.position );
 	particle.velocity = particle.velocity + forces;
+	// if( length(particle.velocity) > )
 	particle.position = particle.position + particle.velocity * dT2;
-	// particle = applyCollisions( particle );
+	particle = applyCollisions( particle );
 
 	gl_FragData[0] = vec4( particle.position, 1.0 );
 	gl_FragData[1] = vec4( particle.velocity, 1.0 );

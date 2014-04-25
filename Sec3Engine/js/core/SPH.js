@@ -326,16 +326,16 @@ SEC3.SPH.prototype = {
 
     	var scale = 1 / 30; //TODO slider
     	var jitter = 0.001;
-    	var width = 32;
+    	var width = 16;
     	var height = 64;
-    	var depth = 32;
+    	var depth = 16;
 
 		var startPositions = [];
     	for ( var i = 0; i < width; i++) {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
     				startPositions.push(i * scale + 1.2 + Math.random() * jitter);
-    				startPositions.push(j * scale + 1.2 + Math.random() * jitter);
+    				startPositions.push(j * scale + 0.8 + Math.random() * jitter);
     				startPositions.push(k * scale + 1.2 + Math.random() * jitter);
     				startPositions.push( 1.0 );
     			}

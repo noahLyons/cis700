@@ -99,15 +99,15 @@ var initGL = function(canvasId, messageId) {
 var initParticleSystem = function() {
 
 	var specs = {
-		// numParticles : 16384,
-        numParticles : 65536,
+		numParticles : 16384,
+        // numParticles : 65536,
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
 		particleSize : 1.0,
-        stepsPerFrame : 12,
-		gravity : 10,
-		pressureK : 2000,
-        restDensity : 15000.0,
-        restPressure : 1000.0,
+        stepsPerFrame : 5,
+		gravity : 5,
+		pressureK : 400,
+        restDensity : 1000.0,
+        restPressure : 100.0,
         viscosityK : 3.44,
 		h : 0.033,   
         mass : 0.02
