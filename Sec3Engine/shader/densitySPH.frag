@@ -38,21 +38,26 @@ vec2 unpackIndex ( float packedIndex ) {
 	return vec2( u, v ) / u_textureSize;
 }
 
-float calcNeighborDensity( vec3 position, vec3 neighborPos ) {
+vec2 calcNeighborDensity( vec3 position, vec3 neighborPos ) {
 	float density = 0.0;
+	float nearDensity = 0.0;
 	float dist = length(  position - neighborPos );
 	if (dist < u_h ) {
 		float dist2 = dist * dist;
 		density += kDensity * pow((h2 - dist2), 3.0);
+		// nearDensity += kDensity * pow((h2 - dist2), 4.0);
+		// density += pow( 1.0 - (dist / u_h), 3.0);
+		nearDensity += pow( 1.0 - (dist / u_h), 4.0);
+
 	}
 
-	return density;
+	return vec2(density, nearDensity);
 }	
 
 
-float getDensity( vec3 position ) {
+vec2 getDensity( vec3 position ) {
 
-	float density = 0.0;
+	vec2 density = vec2(0.0);
 
 	vec3 offset = vec3(0.0);
 	for (int x = -1; x < 2; x++ ) {
@@ -88,7 +93,7 @@ void main() {
 // Saves the new position and accelleration to location determined in vertex shader
 
 	vec3 myPosition = texture2D(u_positions, v_texCoord).rgb;
-	float density = getDensity( myPosition );
+	vec2 density = getDensity( myPosition );
 
-	gl_FragColor = vec4( density );
+	gl_FragColor = vec4( density, 0.0, 0.0 );
 }

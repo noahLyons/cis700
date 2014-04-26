@@ -15,9 +15,10 @@ SEC3.SPH = function(specs) {
 	this.indexFBO = {};
 	this.densityFBO = {};
 
+	this.viewNormals = false;
 	this.viewGrid = false;
-	this.textureResolution = SEC3.math.roundUpToPower( specs.numParticles, 2);
-	this.textureSideLength = Math.sqrt( this.textureResolution );
+	// this.textureResolution = SEC3.math.roundUpToPower( specs.numParticles, 2);
+	this.textureSideLength = Math.sqrt( specs.numParticles );
 	this.numParticles = specs.numParticles;
 	this.gridTextureWidth = specs.gridTextureWidth;
 	this.gridTextureHeight = specs.gridTextureHeight;
@@ -32,9 +33,11 @@ SEC3.SPH = function(specs) {
 	this.mass = specs.mass;
 	this.gravity = specs.gravity;
 	this.pressureK = specs.pressureK;
+	this.nearPressureK = specs.nearPressureK;
 	this.restDensity = specs.restDensity;
 	this.viscosityK = specs.viscosityK;
 	this.restPressure = specs.restPressure;
+	this.surfaceTension = specs.surfaceTension;
 	this.grid = {};
 
 	this.ext = gl.getExtension("ANGLE_instanced_arrays"); // Vendor prefixes may apply!
@@ -246,6 +249,7 @@ SEC3.SPH.prototype = {
 	    gl.disable(gl.BLEND);
 	    
 	   	// gl.uniform2f( this.velocityProgram.uGridTexDimsLoc, this.gridTextureWidth, this.gridTextureHeight);
+	   	gl.uniform1f( this.velocityProgram.uSurfaceTensionLoc, this.surfaceTension );
 	    gl.uniform1f( this.velocityProgram.uMassLoc, this.mass );	   	
 	   	gl.uniform1f( this.velocityProgram.uTextureSizeLoc, this.textureSideLength );
 		gl.uniform3f( this.velocityProgram.uGridDimsLoc, this.grid.xSpan, this.grid.ySpan, this.grid.zSpan );
@@ -254,6 +258,7 @@ SEC3.SPH.prototype = {
 	    gl.uniform1f( this.velocityProgram.uRestPressureLoc, this.restPressure);
 	    gl.uniform1f( this.velocityProgram.uHLoc, this.h );
 	    gl.uniform1f( this.velocityProgram.uKLoc, this.pressureK );
+	    gl.uniform1f( this.velocityProgram.uKNearLoc, this.nearPressureK );
 	    gl.uniform1f( this.velocityProgram.uStepsLoc, this.stepsPerFrame );
 	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorViewMatLoc, 0, this.projectors[0].getViewTransform());
 	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorProjectionMatLoc, 0, this.projectors[0].getProjectionMat());
@@ -296,7 +301,7 @@ SEC3.SPH.prototype = {
 		projector.goHome ( pos ); 
 	    projector.setAzimuth( azimuth );    
 	    projector.setElevation( elevation);
-	    projector.setOrtho( 6, 6, 0.001, farClip );
+	    projector.setOrtho( 3, 3, 0.001, farClip );
 
 	    projector.gBuffer = SEC3.createFBO();
 	    if ( ! projector.gBuffer.initialize( gl, SEC3.canvas.width, SEC3.canvas.height )) {
@@ -324,18 +329,18 @@ SEC3.SPH.prototype = {
 
     genCubeStartPositions : function () {
 
-    	var scale = 1 / 30; //TODO slider
-    	var jitter = 0.001;
-    	var width = 16;
+    	var scale = 1 / 36; //TODO slider
+    	var jitter = 0.0001;
+    	var width = 32;
     	var height = 64;
-    	var depth = 16;
+    	var depth = 32;
 
 		var startPositions = [];
     	for ( var i = 0; i < width; i++) {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
-    				startPositions.push(i * scale + 1.2 + Math.random() * jitter);
-    				startPositions.push(j * scale + 0.8 + Math.random() * jitter);
+    				startPositions.push(i * scale + 0.5 + Math.random() * jitter);
+    				startPositions.push(j * scale + 1.8 + Math.random() * jitter);
     				startPositions.push(k * scale + 1.2 + Math.random() * jitter);
     				startPositions.push( 1.0 );
     			}
@@ -373,7 +378,7 @@ SEC3.SPH.prototype = {
     genGridTexture : function() {
 
     	var xSpan = 128;
-    	var ySpan = 144;
+    	var ySpan = 169;
     	var zSpan = 128;
     	var sqrtY = Math.sqrt(ySpan);
     	this.grid.xSpan = xSpan;
@@ -541,6 +546,7 @@ SEC3.SPH.prototype = {
 	        velocityProgram.uDensitiesLoc = gl.getUniformLocation( velocityProgram.ref(), "u_densities" );
 			velocityProgram.uHLoc = gl.getUniformLocation( velocityProgram.ref(), "u_h" );
 			velocityProgram.uKLoc = gl.getUniformLocation( velocityProgram.ref(), "u_k");
+			velocityProgram.uKNearLoc = gl.getUniformLocation( velocityProgram.ref(), "u_kNear" );
 			velocityProgram.uRestDensityLoc = gl.getUniformLocation( velocityProgram.ref(), "u_restDensity");			
 			velocityProgram.uRestPressureLoc = gl.getUniformLocation( velocityProgram.ref(), "u_restPressure");			
 			velocityProgram.uStepsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_steps" );
@@ -552,6 +558,7 @@ SEC3.SPH.prototype = {
 			velocityProgram.uProjectorProjectionMatLoc = gl.getUniformLocation( velocityProgram.ref(), "u_projectorProjectionMat");			
 			velocityProgram.uProjectorPosLoc = gl.getUniformLocation( velocityProgram.ref(), "u_projectorPos");						
 			velocityProgram.uMassLoc = gl.getUniformLocation( velocityProgram.ref(), "u_mass");
+			velocityProgram.uSurfaceTensionLoc = gl.getUniformLocation( velocityProgram.ref(), "u_surfaceTension");
 
 
 			// velocityProgram.uGridTexDimsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_gridTexDims");

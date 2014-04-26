@@ -24,16 +24,23 @@ var myRenderLoop = function() {
 var myRender = function() {
     //TODO getter / only call once
     if( ! demo.gBufferFilled ) {
-        SEC3.renderer.fillGPass( sph.projectors[0].gBuffer, sph.projectors[0] ); 
+        SEC3.renderer.fillGPass( sph.projectors[0].gBuffer, sph.projectors[0] );
         demo.gBufferFilled = true;
+
+        // SEC3.postFx.blurGaussian( sph.projectors[0].gBuffer.texture(1),  demo.blurFBO, 4.0 );
+        // sph.projectors[0].gBuffer.setTexture( 1, demo.blurFBO.texture(0), gl);
     }
-    // SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(3));
+    
     // sph.updatePositions();
     sph.updateBuckets();
 	sph.updateDensity();
 	sph.updateVelocities();
     if( sph.viewGrid ) {
         SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); // TEMP
+    }
+    else if( sph.viewNormals ) {
+        SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(1));
+         // SEC3.postFx.finalPass( demo.blurFBO.texture(0) );
     }
     else {
         sph.draw( scene, null );
@@ -62,7 +69,7 @@ var setupScene = function(){
     initCamera();
     loadObjects();
     initParticleSystem();
-
+    initFBOs();
     initUI();
 };
 
@@ -79,6 +86,14 @@ var initCamera = function() {
     scene.setCamera(camera);
 
 }
+
+var initFBOs = function() {
+
+    var blurFBO = SEC3.createFBO();
+    blurFBO.initialize( gl, 2048, 2048 );
+    demo.blurFBO = blurFBO;
+}
+
 var initGL = function(canvasId, messageId) {
     //get WebGL context
     var canvas = document.getElementById( canvasId );
@@ -99,22 +114,25 @@ var initGL = function(canvasId, messageId) {
 var initParticleSystem = function() {
 
 	var specs = {
-		numParticles : 16384,
-        // numParticles : 65536,
+		// numParticles : 16384,
+        numParticles : 65536,
+        // numParticles : 25600,
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
 		particleSize : 1.0,
-        stepsPerFrame : 5,
-		gravity : 5,
-		pressureK : 400,
+        stepsPerFrame : 4,
+		gravity : 9.8,
+		pressureK : 12,
+        nearPressureK : 0.004,
         restDensity : 1000.0,
         restPressure : 100.0,
-        viscosityK : 3.44,
+        viscosityK : 3.4,
 		h : 0.033,   
-        mass : 0.02
+        mass : 0.02,
+        surfaceTension : 0.3
 	}
 
 	sph = new SEC3.SPH(specs);
-    sph.addDetectorProjector( [1.0, 20.0, 1.0], 0.0, -90.0, 2048, 20.0 );
+    sph.addDetectorProjector( [2.5, 20.0, 2.5], 0.0, -90.0, 2048, 20.0 );
     // TODO:
 }
 
@@ -130,15 +148,18 @@ var initUI = function() {
 
 
     var gui = new dat.GUI();
-    gui.add(sph, 'stepsPerFrame', 1, 60);
-	gui.add(sph, 'h', 0.03, 0.08);
+    gui.add(sph, 'stepsPerFrame', 1, 30);
+	gui.add(sph, 'h', 0.02, 0.06);
     gui.add(sph, 'mass', 0.001, 1.0);
-    gui.add(sph, 'pressureK', 1, 8000 );
+    gui.add(sph, 'pressureK', 1, 100 );
+    gui.add(sph, 'nearPressureK', 0.0001, 1 );
     gui.add(sph, 'viscosityK', 0.1, 14);
-    gui.add(sph, 'restDensity', 100, 99999.0);
+    gui.add(sph, 'surfaceTension', 0.0, 10);
+    gui.add(sph, 'restDensity', 100, 10000.0);
     gui.add(sph, 'restPressure', -1000, 10000);
     gui.add(sph, 'initFBOs' );
     gui.add(sph, 'viewGrid' );
+    gui.add(sph, 'viewNormals' );
 }
 
 /*
@@ -150,7 +171,7 @@ var loadObjects = function() {
     
     
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/bucketBurg/bucketBurg2.obj', 'Sec3Engine/models/bucketBurg/bucketBurg.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/bucketBurg/bucketBurg3.obj', 'Sec3Engine/models/bucketBurg/bucketBurg.mtl');
     
     
         

@@ -155,6 +155,13 @@
         unbind: function(gl){
             gl.bindFramebuffer( gl.FRAMEBUFFER, null );
         },
+        setTexture: function(i, texture, gl){
+            this.bind(gl);
+            gl.deleteTexture(textures[i]);
+            gl.framebufferTexture2D( gl.FRAMEBUFFER, drawbuffers[i], gl.TEXTURE_2D, texture, 0 );
+            textures[i] = texture;
+            this.unbind(gl);
+        },
         texture: function(i){
             return textures[i];
         },
