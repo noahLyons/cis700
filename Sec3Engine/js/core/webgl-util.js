@@ -25,7 +25,7 @@ SEC3.getWebGLContext = function( canvas, message ){
     }
     for (var ii = 0; ii < names.length; ++ii) {
         try {
-            ctx = canvas.getContext(names[ii], { stencil : true });
+            ctx = canvas.getContext(names[ii], { stencil : true, antialias : true });
         } 
         catch(e) {}
         if (ctx) {

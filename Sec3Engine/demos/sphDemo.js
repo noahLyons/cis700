@@ -26,12 +26,13 @@ var myRender = function() {
     if( ! demo.gBufferFilled ) {
         SEC3.renderer.fillGPass( sph.projectors[0].gBuffer, sph.projectors[0] );
         demo.gBufferFilled = true;
-
+        // sph.updateBuckets();
         // SEC3.postFx.blurGaussian( sph.projectors[0].gBuffer.texture(1),  demo.blurFBO, 4.0 );
         // sph.projectors[0].gBuffer.setTexture( 1, demo.blurFBO.texture(0), gl);
     }
     
-    // sph.updatePositions();
+    sph.updateBuckets();
+    sph.updatePositions();
     sph.updateBuckets();
 	sph.updateDensity();
 	sph.updateVelocities();
@@ -116,24 +117,41 @@ var initParticleSystem = function() {
 	var specs = {
 		// numParticles : 16384,
         numParticles : 65536,
-        // numParticles : 25600,
+        // numParticles : 30276,
+        // numParticles : 262144,
+        // numParticles : 102144,
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
-		particleSize : 1.0,
-        stepsPerFrame : 4,
+		particleSize : 0.3,
+        stepsPerFrame : 2.4,
 		gravity : 9.8,
-		pressureK : 12,
-        nearPressureK : 0.004,
-        restDensity : 1000.0,
+		pressureK : 477,
+        nearPressureK : 813,
+        restDensity : 1.3,
         restPressure : 100.0,
-        viscosityK : 3.4,
-		h : 0.033,   
-        mass : 0.02,
-        surfaceTension : 0.3
+        viscosityK : 12,
+        viscosityLinearK : 0.5,
+		h : 0.12,   
+        mass : 0.001,
+        surfaceTension : 0.0,
+        maxVelocity : 10.0
 	}
 
 	sph = new SEC3.SPH(specs);
-    sph.addDetectorProjector( [2.5, 20.0, 2.5], 0.0, -90.0, 2048, 20.0 );
+    sph.addDetectorProjector( [5.0, 20.0, 5.0], 0.0, -90.0, 2048, 20.0 );
     // TODO:
+    // particleSize : 0.7,
+    // stepsPerFrame : 4,
+    // gravity : 9.8,
+    // pressureK : 1000,
+    // nearPressureK : 228,
+    // restDensity : 0.8,
+    // restPressure : 100.0,
+    // viscosityK : 12,
+    // viscosityLinearK : 2,
+    // h : 0.12,   
+    // mass : 0.001,
+    // surfaceTension : 0.0,
+    // maxVelocity : 50.0
 }
 
 var initUI = function() {
@@ -148,18 +166,21 @@ var initUI = function() {
 
 
     var gui = new dat.GUI();
-    gui.add(sph, 'stepsPerFrame', 1, 30);
-	gui.add(sph, 'h', 0.02, 0.06);
-    gui.add(sph, 'mass', 0.001, 1.0);
-    gui.add(sph, 'pressureK', 1, 100 );
-    gui.add(sph, 'nearPressureK', 0.0001, 1 );
-    gui.add(sph, 'viscosityK', 0.1, 14);
-    gui.add(sph, 'surfaceTension', 0.0, 10);
-    gui.add(sph, 'restDensity', 100, 10000.0);
-    gui.add(sph, 'restPressure', -1000, 10000);
+    gui.add(sph, 'stepsPerFrame', 1, 60);
+    gui.add(sph, 'maxVelocity', 0.01, 100);
+	gui.add(sph, 'h', 0.01, 1.0);
+    gui.add(sph, 'mass', 0.0001, 1.0);
+    gui.add(sph, 'pressureK', 0.0, 1000.0 );
+    gui.add(sph, 'nearPressureK', 0.0, 1000.0 );
+    gui.add(sph, 'viscosityK', 0.0, 12.0);
+    gui.add(sph, 'viscosityLinearK', 0.0, 2.0);
+    gui.add(sph, 'surfaceTension', 0.0, 1.0);
+    gui.add(sph, 'restDensity', 0.01, 1000.0);
+    // gui.add(sph, 'restPressure', -1000, 10000);
     gui.add(sph, 'initFBOs' );
     gui.add(sph, 'viewGrid' );
     gui.add(sph, 'viewNormals' );
+    gui.add(sph, 'particleSize', 0.1, 2.0 );
 }
 
 /*
@@ -170,8 +191,8 @@ var loadObjects = function() {
     var objLoader = SEC3.createOBJLoader(scene);
     
     
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/bucketBurg/bucketBurg3.obj', 'Sec3Engine/models/bucketBurg/bucketBurg.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/bucketBurg/bucketBurg5.obj', 'Sec3Engine/models/bucketBurg/bucketBurg.mtl');
     
     
         

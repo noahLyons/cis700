@@ -3,17 +3,20 @@ precision highp float;
 //--------------------------------------------------------GLOBALS:
 const float PI = 3.14159265;
 
+
+
 uniform vec3 u_gridDims;
 uniform float u_h;
 uniform float u_mass;
+uniform float u_restDensity;
 uniform float u_textureSize;
 uniform sampler2D u_positions;
-uniform sampler2D u_voxelGrid;
-
-varying vec2 v_texCoord;
+uniform sampler2D u_voxelGrid;varying vec2 v_texCoord;
 float h2 = u_h * u_h;
 float kDensity = 315.0 / ( 64.0 * PI * pow( u_h, 9.0));
-
+float kNearNorm = 15.0 / ( PI * u_h * u_h * u_h);
+float kNorm = 15.0 / ( 2.0 * PI * u_h * u_h * u_h );
+float mass = pow(u_h, 3.0) * u_restDensity;
 
 
 //-------------------------------------------------------HELPERS:
@@ -41,13 +44,15 @@ vec2 unpackIndex ( float packedIndex ) {
 vec2 calcNeighborDensity( vec3 position, vec3 neighborPos ) {
 	float density = 0.0;
 	float nearDensity = 0.0;
-	float dist = length(  position - neighborPos );
+	vec3 fromNeighbor = position - neighborPos;
+	float dist = length( fromNeighbor );
+
 	if (dist < u_h ) {
-		float dist2 = dist * dist;
-		density += kDensity * pow((h2 - dist2), 3.0);
-		// nearDensity += kDensity * pow((h2 - dist2), 4.0);
+		float sqrtDensity = ( 1.0 - (dist / u_h) );
+		density += sqrtDensity * sqrtDensity;
+		nearDensity += density * sqrtDensity;
 		// density += pow( 1.0 - (dist / u_h), 3.0);
-		nearDensity += pow( 1.0 - (dist / u_h), 4.0);
+		// nearDensity += pow( 1.0 - (dist / u_h), 4.0);
 
 	}
 

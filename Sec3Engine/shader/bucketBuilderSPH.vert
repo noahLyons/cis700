@@ -7,6 +7,7 @@ uniform sampler2D u_positions;
 uniform float u_textureLength;
 uniform vec3 u_gridDims;
 //uniform vec2 u_gridTexDims;
+float numColumns =  sqrt(u_gridDims.y);
 
 varying float index;
 float MAX_INDEX =  u_textureLength * (u_textureLength);
@@ -15,7 +16,6 @@ vec2 worldToUV( vec3 pos ) {
 
 	pos /= u_h;
 	pos = abs(pos); //TODO
-	float numColumns =  sqrt(u_gridDims.y);
 	float yCompU = floor(mod(pos.y, numColumns)) / numColumns;
 	float yCompV = floor(pos.y / numColumns) / numColumns;
 	float xCompU = (pos.x / u_gridDims.x) / numColumns;
@@ -38,6 +38,7 @@ void main() {
 	vec3 worldPosition = texture2D(u_positions, a_index ).rgb;
 	vec2 uv = worldToUV( worldPosition );
 	uv = uv * 2.0 - 1.0;
+
 	index = particleID;
 	gl_Position = vec4( uv, particleID / MAX_INDEX, 1.0 );
 	// gl_Position = vec4( worldPosition.x, worldPosition.y, worldPosition.z, 1.0 ); //TEMP
