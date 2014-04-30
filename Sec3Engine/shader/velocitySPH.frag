@@ -201,31 +201,33 @@ vec3 assembleForces( Particle particle  ) {
 	return displacement;
 }
 
+
+
 vec3 getBoundaryForces( vec3 myPosition) {
 	vec3 wallForce = vec3(0.0);
 	float floorDistance = myPosition.y + 0.0;
 	if ( floorDistance < u_h ) {
-		wallForce += u_mass * (u_h - floorDistance ) * vec3( 0.0, 1.0, 0.0 ) / dT2;
+		wallForce += (u_h - floorDistance ) * vec3( 0.0, 1.0, 0.0 );
 	}
 
 	float wallDist = myPosition.x;
 	if ( wallDist < u_h ) {
-		wallForce += u_mass * (u_h - wallDist ) * vec3( 1.0, 0.0, 0.0 ) / dT2;
+		wallForce += (u_h - wallDist ) * vec3( 1.0, 0.0, 0.0 );
 	}
 
 	wallDist = (u_gridDims.x * u_h ) - myPosition.x;
 	if ( wallDist < u_h ) {
-		wallForce += u_mass * (u_h - wallDist ) * vec3( -1.0, 0.0, 0.0 ) / dT2;
+		wallForce += (u_h - wallDist ) * vec3( -1.0, 0.0, 0.0 );
 	}
 
 	wallDist = myPosition.z;
 	if ( wallDist < u_h ) {
-		wallForce += u_mass * (u_h - wallDist ) * vec3( 0.0, 0.0, 1.0 ) / dT2;
+		wallForce += (u_h - wallDist ) * vec3( 0.0, 0.0, 1.0 );
 	}
 
 	wallDist = ((u_gridDims.z * u_h)) - myPosition.z;
 	if ( wallDist < u_h ) {
-		wallForce += u_mass * (u_h - wallDist ) * vec3( 0.0, 0.0, -1.0 ) / dT2;
+		wallForce += (u_h - wallDist ) * vec3( 0.0, 0.0, -1.0 );
 	}
 	return wallForce;
 }
@@ -311,7 +313,7 @@ void main() {
 	// Apply gravity
 		// forces += vec3(0.0, -9.8, 0.0) * u_mass;
 	//Collide with floor/walls
-		// forces +=  getBoundaryForces( particle.position );
+		displacement +=  getBoundaryForces( particle.position );
 
 	// float speed = length(forces);
 	// if( speed > u_maxVelocity ) {

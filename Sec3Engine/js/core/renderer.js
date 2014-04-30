@@ -113,6 +113,7 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
     framebuffer.bind(gl);
     gl.viewport( 0, 0, framebuffer.getWidth(), framebuffer.getHeight() );
     gl.enable( gl.DEPTH_TEST );
+    gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
      //update the model-view matrix
     var mvpMat = mat4.create();
@@ -120,7 +121,7 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uModelViewLoc, false, camera.getViewTransform());
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uMVPLoc, false, mvpMat ); 
 
-    SEC3.renderer.drawModel( SEC3.renderer.fillGProg,0, camera );
+    SEC3.renderer.drawModel( SEC3.renderer.fillGProg, 0, camera );
     framebuffer.unbind(gl);
     gl.useProgram( null );
 };
@@ -283,7 +284,7 @@ SEC3.renderer.deferredRender = function(scene, gBuffer) {
 
     for( var i = 0; i < scene.getNumLights(); i++ ){
 
-        SEC3.renderer.deferredRenderSpotLight( scene.getLight(i), 4 );
+        // SEC3.renderer.deferredRenderSpotLight( scene.getLight(i), 4 );
     }
     gl.disable( gl.BLEND );
   

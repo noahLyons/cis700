@@ -15,6 +15,7 @@ SEC3.SPH = function(specs) {
 	this.indexFBO = {};
 	this.densityFBO = {};
 
+	this.viewDepth = false;
 	this.viewNormals = false;
 	this.viewGrid = false;
 	// this.textureResolution = SEC3.math.roundUpToPower( specs.numParticles, 2);
@@ -63,7 +64,7 @@ SEC3.SPH.prototype = {
 		var height = framebuffer != null ? framebuffer.getWidth() : SEC3.canvas.height;
 	    gl.viewport(0, 0, width, height );
 	   
-	   	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+	   	// gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 	    gl.enable(gl.DEPTH_TEST);
 	    gl.disable(gl.BLEND);
 	    // gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
@@ -76,7 +77,13 @@ SEC3.SPH.prototype = {
 	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(1));
 	    // gl.bindTexture(gl.TEXTURE_2D, this.densityFBO.texture(0));
 	    gl.uniform1i( this.renderProgram.uTestTexLoc, 1 );
+
+	    gl.activeTexture(gl.TEXTURE2);
+	    gl.bindTexture(gl.TEXTURE_2D, scene.gBuffer.texture(3));
+	    gl.uniform1i( this.renderProgram.uDepthLoc, 2 );
 	   
+	   	gl.uniform2f( this.renderProgram.uScreenDimsLoc, SEC3.canvas.width, SEC3.canvas.height );
+	   	gl.uniform3fv( this.renderProgram.uCamPosLoc, scene.getCamera().getPosition() );
 	   	gl.uniform1f( this.renderProgram.uParticleSizeLoc, this.particleSize);
 	    gl.uniformMatrix4fv(this.renderProgram.uMVPLoc, false, scene.getCamera().getMVP());
 
@@ -319,10 +326,10 @@ SEC3.SPH.prototype = {
 		projector.goHome ( pos ); 
 	    projector.setAzimuth( azimuth );    
 	    projector.setElevation( elevation);
-	    projector.setOrtho( 6, 6, 0.001, farClip );
+	    projector.setOrtho( this.grid.xSpan * this.h * 0.5, this.grid.zSpan * this.h * 0.5, 0.001, farClip );
 
 	    projector.gBuffer = SEC3.createFBO();
-	    if ( ! projector.gBuffer.initialize( gl, SEC3.canvas.width, SEC3.canvas.height )) {
+	    if ( ! projector.gBuffer.initialize( gl, resolution, resolution )) {
 	        console.log( "FBO initialization failed.");
 	        return;
     	}
@@ -358,7 +365,7 @@ SEC3.SPH.prototype = {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
     				startPositions.push(i * scale + 4 + Math.random() * jitter);
-    				startPositions.push(j * scale + 2 + Math.random() * jitter);
+    				startPositions.push(j * scale + 3 + Math.random() * jitter);
     				startPositions.push(k * scale + 4 + Math.random() * jitter);
     				startPositions.push( 1.0 );
     			}
@@ -408,9 +415,9 @@ SEC3.SPH.prototype = {
 
     genGridTexture : function() {
 
-    	var xSpan = 144.0;
-    	var ySpan = 144.0;
-    	var zSpan = 144.0;
+    	var xSpan = 121.0;
+    	var ySpan = 81.0;
+    	var zSpan = 121.0;
     	var sqrtY = Math.sqrt(ySpan);
     	this.grid.xSpan = xSpan;
     	this.grid.ySpan = ySpan;
@@ -631,6 +638,10 @@ SEC3.SPH.prototype = {
 	        renderProgram.aGeometryVertsLoc = gl.getAttribLocation(renderProgram.ref(), "a_GeometryVerts");
 	        renderProgram.aGeometryNormalsLoc = gl.getAttribLocation(renderProgram.ref(), "a_GeometryNormals");
 
+	        renderProgram.uCamPosLoc = gl.getUniformLocation(renderProgram.ref(), "u_camPos");
+	        renderProgram.uDepthLoc = gl.getUniformLocation(renderProgram.ref(), "u_depth");
+
+	        renderProgram.uScreenDimsLoc = gl.getUniformLocation( renderProgram.ref(), "u_screenDims");
 	        renderProgram.uParticleSizeLoc = gl.getUniformLocation(renderProgram.ref(), "u_particleSize");
 	        renderProgram.uMVPLoc = gl.getUniformLocation(renderProgram.ref(), "u_MVP");
 	        renderProgram.uPositionsLoc = gl.getUniformLocation(renderProgram.ref(), "u_positions");

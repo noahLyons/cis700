@@ -1,4 +1,34 @@
+var demo = (function () {
 
+    var demo = [];
+    demo.zFar = 30.0;
+    demo.zNear = 0.6;
+    demo.selectedLight = 0;
+    demo.MAX_LIGHTS = 8;
+    demo.MAX_CASCADES = 6;
+    demo.AMBIENT_INTENSITY = 0.03;
+
+    demo.texToDisplay = 2;
+    demo.secondPass;
+
+    demo.nearSlope = -6.6;
+    demo.nearIntercept = 1.39;
+
+    demo.farSlope = 1.4;
+    demo.farIntercept = -0.28;
+
+    demo.blurSigma = 2.0;
+
+    demo.SMALL_BLUR = 1.8;
+    demo.MEDIUM_BLUR = 3.4;
+    demo.LARGE_BLUR = 11.6;
+
+    demo.SHADOWMAP_SIZE = 1024.0;
+    demo.FAR_CASCADE_SIZE = 256;
+    demo.NEAR_CASCADE_SIZE = 1024;
+    return demo;
+
+})();
 
 //--------------------------------------------GLOBALS:
 var demo;
@@ -30,15 +60,22 @@ var myRender = function() {
         // SEC3.postFx.blurGaussian( sph.projectors[0].gBuffer.texture(1),  demo.blurFBO, 4.0 );
         // sph.projectors[0].gBuffer.setTexture( 1, demo.blurFBO.texture(0), gl);
     }
-    
+    SEC3.renderer.fillGPass( scene.gBuffer, scene.getCamera() );
+    // SEC3.renderer.deferredRender( scene, scene.gBuffer );
+    SEC3.postFx.finalPass( scene.gBuffer.texture(2));
+
     sph.updateBuckets();
     sph.updatePositions();
     sph.updateBuckets();
-	sph.updateDensity();
-	sph.updateVelocities();
+    sph.updateDensity();
+    sph.updateVelocities();
     if( sph.viewGrid ) {
         SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); // TEMP
     }
+    else if( sph.viewDepth ) {
+        SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(0) );
+    }
+
     else if( sph.viewNormals ) {
         SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(1));
          // SEC3.postFx.finalPass( demo.blurFBO.texture(0) );
@@ -68,31 +105,89 @@ var setupScene = function(){
     scene = new SEC3.Scene();
 
     initCamera();
+    initLight();
     loadObjects();
     initParticleSystem();
     initFBOs();
     initUI();
 };
 
+var initLight = function() {
+    var nextLight = new SEC3.SpotLight();
+    nextLight.goHome ( [ 0, 6, 0] ); 
+    nextLight.setAzimuth( 90.0 );    
+    nextLight.setElevation( -60.0 );
+    nextLight.setPerspective( 30, 1, 0.2, 10.0 );
+    nextLight.setupCascades( 1, 512, gl, scene );
+    scene.addLight(nextLight);
+}
 
 var initCamera = function() {
 
 	var canvas = SEC3.canvas;
 	var camera = new SEC3.Camera();
-    camera.goHome( [-1.1, 2.0, 3.0] ); //initial camera posiiton
+    camera.goHome( [0.0, 6.0, 10.0] ); //initial camera posiiton
     camera.setAzimuth( -30.0 );
     camera.setElevation( -30.0 );
     interactor = SEC3.CameraInteractor( camera, canvas );
     camera.setPerspective( 60, canvas.width / canvas.height, 0.1, 30.0 );
     scene.setCamera(camera);
+    SEC3.canvas = canvas;
 
 }
 
 var initFBOs = function() {
 
+    var canvas = SEC3.canvas;
     var blurFBO = SEC3.createFBO();
     blurFBO.initialize( gl, 2048, 2048 );
     demo.blurFBO = blurFBO;
+    var gBuffer = SEC3.createFBO();
+    gBuffer.initialize( gl, SEC3.canvas.width, SEC3.canvas.height );
+    scene.gBuffer = gBuffer;
+
+     fbo = SEC3.createFBO();
+    if (! fbo.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "FBO initialization failed.");
+        return;
+    }
+
+    lowResFBO = SEC3.createFBO();
+    if (! lowResFBO.initialize( gl, 512.0, 512.0 )) {
+        console.log( "display FBO initialization failed.");
+        return;
+    }
+
+
+    workingFBO = SEC3.createFBO();
+    if (! workingFBO.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "workingFBO initialization failed.");
+        return;
+    }
+
+    finalFBO = SEC3.createFBO();
+    if (! finalFBO.initialize( gl, canvas.width, canvas.height )) {
+        console.log( "finalFBO initialization failed.");
+        return;
+    }
+
+    shadowFBO = SEC3.createFBO();
+    if (! shadowFBO.initialize( gl, 512, 512, 2 )) {
+        console.log( "shadowFBO initialization failed.");
+        return;
+    }
+
+    debugFBO = SEC3.createFBO(); //TODO hide this stuff
+    if (! debugFBO.initialize( gl, canvas.width, canvas.height, 4 )) {
+        console.log( "debugFBO initialization failed.");
+        return;
+    }
+
+    lightFBO = SEC3.createFBO(); //TODO hide this stuff
+    if (! lightFBO.initialize( gl, canvas.width, canvas.height, 4 )) {
+        console.log( "lightFBO initialization failed.");
+        return;
+    }
 }
 
 var initGL = function(canvasId, messageId) {
@@ -137,7 +232,7 @@ var initParticleSystem = function() {
 	}
 
 	sph = new SEC3.SPH(specs);
-    sph.addDetectorProjector( [5.0, 20.0, 5.0], 0.0, -90.0, 2048, 20.0 );
+    sph.addDetectorProjector( [8.0, 12.0, 8.0], 0.0, -90.0, 256, 12.0 );
     // TODO:
     // particleSize : 0.7,
     // stepsPerFrame : 4,
@@ -179,6 +274,7 @@ var initUI = function() {
     // gui.add(sph, 'restPressure', -1000, 10000);
     gui.add(sph, 'initFBOs' );
     gui.add(sph, 'viewGrid' );
+    gui.add(sph, 'viewDepth' );
     gui.add(sph, 'viewNormals' );
     gui.add(sph, 'particleSize', 0.1, 2.0 );
 }
@@ -192,7 +288,7 @@ var loadObjects = function() {
     
     
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/bucketBurg/bucketBurg5.obj', 'Sec3Engine/models/bucketBurg/bucketBurg.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
     
     
         
