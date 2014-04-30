@@ -56,7 +56,7 @@ var myRender = function() {
     if( ! demo.gBufferFilled ) {
         SEC3.renderer.fillGPass( sph.projectors[0].gBuffer, sph.projectors[0] );
         demo.gBufferFilled = true;
-        // sph.updateBuckets();
+        
         // SEC3.postFx.blurGaussian( sph.projectors[0].gBuffer.texture(1),  demo.blurFBO, 4.0 );
         // sph.projectors[0].gBuffer.setTexture( 1, demo.blurFBO.texture(0), gl);
     }
@@ -64,11 +64,27 @@ var myRender = function() {
     // SEC3.renderer.deferredRender( scene, scene.gBuffer );
     SEC3.postFx.finalPass( scene.gBuffer.texture(2));
 
-    sph.updateBuckets();
-    sph.updatePositions();
-    sph.updateBuckets();
-    sph.updateDensity();
-    sph.updateVelocities();
+    if( ! sph.paused ) {
+        bucketStats.begin();
+        sph.updateBuckets();
+        bucketStats.end();
+
+        positionStats.begin();
+        sph.updatePositions();
+        positionStats.end();
+
+
+        sph.updateBuckets();
+
+        densityStats.begin();
+        sph.updateDensity();
+        densityStats.end();
+
+        velocityStats.begin();
+        sph.updateVelocities();
+        velocityStats.end();
+    }
+
     if( sph.viewGrid ) {
         SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); // TEMP
     }
@@ -210,13 +226,14 @@ var initGL = function(canvasId, messageId) {
 var initParticleSystem = function() {
 
 	var specs = {
-		// numParticles : 16384,
-        numParticles : 65536,
+        // numParticles : 4096,
+		numParticles : 16384,
+        // numParticles : 65536,
         // numParticles : 30276,
         // numParticles : 262144,
         // numParticles : 102144,
 		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
-		particleSize : 0.3,
+		particleSize : 1.0,
         stepsPerFrame : 2.4,
 		gravity : 9.8,
 		pressureK : 477,
@@ -232,7 +249,7 @@ var initParticleSystem = function() {
 	}
 
 	sph = new SEC3.SPH(specs);
-    sph.addDetectorProjector( [8.0, 12.0, 8.0], 0.0, -90.0, 256, 12.0 );
+    sph.addDetectorProjector( [8.0, 12.0, 8.0], 0.0, -90.0, 512, 12.0 );
     // TODO:
     // particleSize : 0.7,
     // stepsPerFrame : 4,
@@ -250,32 +267,61 @@ var initParticleSystem = function() {
 }
 
 var initUI = function() {
+    
     stats = new Stats();
     stats.setMode(0); // 0: fps, 1: ms
-
     // Align top-left
     stats.domElement.style.position = 'absolute';
     stats.domElement.style.left = '0px';
     stats.domElement.style.top = '0px';
     document.body.appendChild( stats.domElement );
 
+    bucketStats = new Stats();
+    positionStats = new Stats();
+    densityStats = new Stats();
+    velocityStats = new Stats();
+
+    bucketStats.setMode(1);
+    positionStats.setMode(1);
+    densityStats.setMode(1);
+    velocityStats.setMode(1);
+
+    bucketStats.domElement.style.position = 'absolute';
+    bucketStats.domElement.style.left = '0px';
+    bucketStats.domElement.style.top = '100px';
+    document.body.appendChild( bucketStats.domElement );
+
+    positionStats.domElement.style.position = 'absolute';
+    positionStats.domElement.style.left = '0px';
+    positionStats.domElement.style.top = '200px';
+    document.body.appendChild( positionStats.domElement );
+
+    densityStats.domElement.style.position = 'absolute';
+    densityStats.domElement.style.left = '0px';
+    densityStats.domElement.style.top = '300px';
+    document.body.appendChild( densityStats.domElement );
+
+    velocityStats.domElement.style.position = 'absolute';
+    velocityStats.domElement.style.left = '0px';
+    velocityStats.domElement.style.top = '400px';
+    document.body.appendChild( velocityStats.domElement );
 
     var gui = new dat.GUI();
+    gui.add(sph, 'pause' );
     gui.add(sph, 'stepsPerFrame', 1, 60);
     gui.add(sph, 'maxVelocity', 0.01, 100);
 	gui.add(sph, 'h', 0.01, 1.0);
-    gui.add(sph, 'mass', 0.0001, 1.0);
     gui.add(sph, 'pressureK', 0.0, 1000.0 );
-    gui.add(sph, 'nearPressureK', 0.0, 1000.0 );
+    gui.add(sph, 'nearPressureK', 0.0, 1000.0 ); //TODO combine
     gui.add(sph, 'viscosityK', 0.0, 12.0);
     gui.add(sph, 'viscosityLinearK', 0.0, 2.0);
     gui.add(sph, 'surfaceTension', 0.0, 1.0);
     gui.add(sph, 'restDensity', 0.01, 1000.0);
-    // gui.add(sph, 'restPressure', -1000, 10000);
-    gui.add(sph, 'initFBOs' );
-    gui.add(sph, 'viewGrid' );
-    gui.add(sph, 'viewDepth' );
-    gui.add(sph, 'viewNormals' );
+    gui.add(sph, 'initFBOs' ).name('restart');
+    
+    gui.add(sph, 'showGrid' ).name('Show voxel grid');
+    gui.add(sph, 'showDepth' ).name('Show collision depth');
+    gui.add(sph, 'showNormal' ).name('Show collision normal');
     gui.add(sph, 'particleSize', 0.1, 2.0 );
 }
 

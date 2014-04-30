@@ -18,6 +18,9 @@ SEC3.SPH = function(specs) {
 	this.viewDepth = false;
 	this.viewNormals = false;
 	this.viewGrid = false;
+	this.naive = false;
+	this.paused = false;
+
 	// this.textureResolution = SEC3.math.roundUpToPower( specs.numParticles, 2);
 	this.textureSideLength = Math.sqrt( specs.numParticles );
 	this.numParticles = specs.numParticles;
@@ -47,6 +50,24 @@ SEC3.SPH = function(specs) {
 	this.initFBOs();
 	this.initShaders();
 
+	this.pause = function() {
+		this.paused = ! this.paused;
+	};
+	this.showDepth = function() {
+		this.viewDepth = ! this.viewDepth;
+		this.viewNormals = false;
+		this.viewGrid = false;
+	};
+	this.showNormals = function() {
+		this.viewNormals = ! this.viewNormals;
+		this.viewDepth = false;
+		this.viewGrid = false;
+	};
+	this.showGrid = function() {
+		this.viewGrid = ! this.viewGrid;
+		this.viewNormals = false;
+		this.viewDepth = false;
+	};
 
 };
 //--------------------------------------------------------------------------METHODS:
@@ -113,7 +134,7 @@ SEC3.SPH.prototype = {
 
         gl.bindBuffer( gl.ARRAY_BUFFER, null );
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
-    	
+    	gl.flush();
 
 		// gl.drawArrays( gl.POINTS, 0, this.numParticles );
 		
@@ -122,7 +143,7 @@ SEC3.SPH.prototype = {
 	},
 
 	updateBuckets : function () {
-
+		if( this.naive ) return;
 		gl.useProgram( this.bucketProgram.ref() );
 		this.bucketFBO.bind(gl);
 		// gl.bindFramebuffer(gl.FRAMEBUFFER, null); //TEMP
@@ -189,6 +210,7 @@ SEC3.SPH.prototype = {
 		gl.disable(gl.STENCIL_TEST);
 		gl.bindBuffer( gl.ARRAY_BUFFER, null );
 		gl.clearColor( 0.2, 0.2, 0.2, 1.0 );
+		gl.flush();
 	},
 
 	updatePositions : function () {
@@ -225,6 +247,7 @@ SEC3.SPH.prototype = {
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     	gl.bindBuffer( gl.ARRAY_BUFFER, null );
     	this.swapSrcDestIndices();
+    	gl.flush();
 	},
 
 
@@ -255,7 +278,7 @@ SEC3.SPH.prototype = {
 	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     	gl.bindBuffer( gl.ARRAY_BUFFER, null );
-    	
+    	gl.flush();
 	},
 
 	updateVelocities : function () {
@@ -316,6 +339,7 @@ SEC3.SPH.prototype = {
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     	gl.bindBuffer( gl.ARRAY_BUFFER, null );
     	this.swapSrcDestIndices();
+    	gl.flush();
 	},
 
 //----------------------------------------------------------------------------SETUP:
@@ -356,6 +380,9 @@ SEC3.SPH.prototype = {
 
     	var scale = 1 / 10; //TODO slider
     	var jitter = 0.0001;
+    	// var width = 32;
+    	// var height = 64;
+    	// var depth = 32;
     	var width = 32;
     	var height = 64;
     	var depth = 32;
@@ -675,6 +702,8 @@ SEC3.SPH.prototype = {
 	        this.destIndex = 0;
 	    }
 	}
+
+	
 };
 
 

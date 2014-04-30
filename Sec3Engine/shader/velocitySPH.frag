@@ -3,6 +3,8 @@ precision highp float;
 
 //--------------------------------------------------------GLOBALS:
 
+#define TEXTURE_SIZE_NAIVE 128
+
 const float PI = 3.14159265;
 
 uniform vec3 u_gridDims;
@@ -201,7 +203,22 @@ vec3 assembleForces( Particle particle  ) {
 	return displacement;
 }
 
+vec3 assembleForcesNaive( Particle particle  ) {
 
+	vec3 displacement = vec3(0.0);
+	vec2 uv = vec2( 0.5 / float(TEXTURE_SIZE_NAIVE) );
+
+	for (int u = 0; u < TEXTURE_SIZE_NAIVE; u++ ) {
+		uv.x = float(u) / float(TEXTURE_SIZE_NAIVE);
+		for ( int v = 0; v < TEXTURE_SIZE_NAIVE; v++ ) {
+			uv.y = float(v) / float(TEXTURE_SIZE_NAIVE);
+					Particle j = lookupParticle( uv );
+					displacement += calcNeighborForces( particle, j );
+		}
+	}
+
+	return displacement;
+}
 
 vec3 getBoundaryForces( vec3 myPosition) {
 	vec3 wallForce = vec3(0.0);
@@ -304,10 +321,9 @@ vec4 getVoxel( vec3 position ) {
 void main() {
 
 	Particle particle = lookupParticle( v_texCoord );
-	vec2 uv = getVoxelUV( particle.position );//TEMP
 	vec3 displacement = vec3(0.0, 0.0, 0.0);
 	//Get pressure and viscosity forces
-		displacement += assembleForces( particle );
+		displacement += assembleForcesNaive( particle );
 		// forces /= particle.density.x;
 		// forces += getCollisionForce( particle );
 	// Apply gravity

@@ -1,9 +1,11 @@
 precision highp float;
 
 //--------------------------------------------------------GLOBALS:
+
+
+#define TEXTURE_SIZE_NAIVE 128
+
 const float PI = 3.14159265;
-
-
 
 uniform vec3 u_gridDims;
 uniform float u_h;
@@ -11,7 +13,8 @@ uniform float u_mass;
 uniform float u_restDensity;
 uniform float u_textureSize;
 uniform sampler2D u_positions;
-uniform sampler2D u_voxelGrid;varying vec2 v_texCoord;
+uniform sampler2D u_voxelGrid;
+varying vec2 v_texCoord;
 float h2 = u_h * u_h;
 float kDensity = 315.0 / ( 64.0 * PI * pow( u_h, 9.0));
 float kNearNorm = 15.0 / ( PI * u_h * u_h * u_h);
@@ -93,12 +96,30 @@ vec2 getDensity( vec3 position ) {
 
 	return density;
 }
+
+vec2 getDensityNaive( vec3 position  ) {
+
+	vec2 density = vec2(0.0);
+	vec2 uv = vec2( 0.5 / float(TEXTURE_SIZE_NAIVE) );
+
+	for (int u = 0; u < TEXTURE_SIZE_NAIVE; u++ ) {
+		uv.x = float(u) / float(TEXTURE_SIZE_NAIVE);
+		for ( int v = 0; v < TEXTURE_SIZE_NAIVE; v++ ) {
+			uv.y = float(v) / float(TEXTURE_SIZE_NAIVE);
+			vec3 neighborPos = texture2D( u_positions, uv).rgb;
+			density += calcNeighborDensity( position, neighborPos );
+		}
+	}
+
+	return density;
+}
+
 //-------------------------------------------------------MAIN:
 void main() {
 // Saves the new position and accelleration to location determined in vertex shader
 
 	vec3 myPosition = texture2D(u_positions, v_texCoord).rgb;
-	vec2 density = getDensity( myPosition );
+	vec2 density = getDensityNaive( myPosition );
 
 	gl_FragColor = vec4( density, 0.0, 0.0 );
 }
