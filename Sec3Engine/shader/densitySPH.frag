@@ -3,7 +3,7 @@ precision highp float;
 //--------------------------------------------------------GLOBALS:
 
 
-#define TEXTURE_SIZE_NAIVE 128
+#define TEXTURE_SIZE_NAIVE 256
 
 const float PI = 3.14159265;
 
@@ -119,7 +119,7 @@ void main() {
 // Saves the new position and accelleration to location determined in vertex shader
 
 	vec3 myPosition = texture2D(u_positions, v_texCoord).rgb;
-	vec2 density = getDensityNaive( myPosition );
+	vec2 density = getDensity( myPosition );
 
 	gl_FragColor = vec4( density, 0.0, 0.0 );
 }

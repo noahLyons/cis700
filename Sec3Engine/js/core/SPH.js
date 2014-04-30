@@ -134,7 +134,7 @@ SEC3.SPH.prototype = {
 
         gl.bindBuffer( gl.ARRAY_BUFFER, null );
         gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );    
-    	gl.flush();
+
 
 		// gl.drawArrays( gl.POINTS, 0, this.numParticles );
 		
@@ -210,7 +210,7 @@ SEC3.SPH.prototype = {
 		gl.disable(gl.STENCIL_TEST);
 		gl.bindBuffer( gl.ARRAY_BUFFER, null );
 		gl.clearColor( 0.2, 0.2, 0.2, 1.0 );
-		gl.flush();
+
 	},
 
 	updatePositions : function () {
@@ -247,7 +247,7 @@ SEC3.SPH.prototype = {
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     	gl.bindBuffer( gl.ARRAY_BUFFER, null );
     	this.swapSrcDestIndices();
-    	gl.flush();
+
 	},
 
 
@@ -278,7 +278,7 @@ SEC3.SPH.prototype = {
 	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     	gl.bindBuffer( gl.ARRAY_BUFFER, null );
-    	gl.flush();
+
 	},
 
 	updateVelocities : function () {
@@ -339,7 +339,7 @@ SEC3.SPH.prototype = {
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
     	gl.bindBuffer( gl.ARRAY_BUFFER, null );
     	this.swapSrcDestIndices();
-    	gl.flush();
+
 	},
 
 //----------------------------------------------------------------------------SETUP:
@@ -380,12 +380,12 @@ SEC3.SPH.prototype = {
 
     	var scale = 1 / 10; //TODO slider
     	var jitter = 0.0001;
-    	// var width = 32;
-    	// var height = 64;
-    	// var depth = 32;
-    	var width = 32;
+    	var width = 16;
     	var height = 64;
-    	var depth = 32;
+    	var depth = 16;
+    	// var width = 64;
+    	// var height = 1024;
+    	// var depth = 64;
 
 		var startPositions = [];
     	for ( var i = 0; i < width; i++) {
@@ -443,7 +443,7 @@ SEC3.SPH.prototype = {
     genGridTexture : function() {
 
     	var xSpan = 121.0;
-    	var ySpan = 81.0;
+    	var ySpan = 121.0;
     	var zSpan = 121.0;
     	var sqrtY = Math.sqrt(ySpan);
     	this.grid.xSpan = xSpan;

@@ -1,7 +1,7 @@
 #extension GL_EXT_draw_buffers : require
 precision highp float;
 
-#define TEXTURE_SIZE_NAIVE 128
+#define TEXTURE_SIZE_NAIVE 256
 
 const float PI = 3.14159265;
 uniform sampler2D u_positions;
@@ -135,7 +135,7 @@ void main() {
 	// TODO collisions here?
 	Particle particle = lookupParticle( v_texCoord );
 	particle.velocity = particle.velocity + dT * vec3( 0.0, -9.8, 0.0 );
-	particle.velocity += getViscosityImpulsesNaive( particle );
+	particle.velocity += getViscosityImpulses( particle );
 	float speed = length(particle.velocity);
 	if(speed > u_maxVelocity) {
 		particle.velocity =  u_maxVelocity * particle.velocity / speed;
