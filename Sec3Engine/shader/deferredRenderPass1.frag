@@ -24,7 +24,7 @@ void main(void) {
 	vec4 normal = vec4( normalize(v_normal).rgb, 1.0);
     vec4 color = texture2D( u_sampler, v_texcoord );
     // color.rgb = (color.rgb * color.rgb); // gamma correct texture TODO uncomment
-    vec3 toLight = normalize( vec3( 7.0, 10.0, 7.0) - (u_cPos + v_pos.rgb) ); // TODO temp
+    vec3 toLight = normalize( vec3( 0.1, 10.0, 1.0) - (u_cPos + v_pos.rgb) ); // TODO temp
 	float lambertTerm = clamp(dot(normal.rgb, toLight), 0.2, 1.0); // TODO temp
 	// color = (normal + 1.0) * 0.5; // TODO temp
 	color = vec4( 0.3, 0.2, 0.1, 1.0 );
