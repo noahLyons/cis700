@@ -24,7 +24,7 @@ uniform mat4 u_projectorProjectionMat;
 uniform vec3 u_projectorPos;
 uniform sampler2D u_positions;
 uniform sampler2D u_velocity;
-uniform sampler2D u_vEval;
+uniform sampler2D u_prevPos;
 uniform sampler2D u_densities;
 uniform sampler2D u_voxelGrid;
 uniform sampler2D u_sceneDepth;
@@ -79,15 +79,17 @@ vec2 getVoxelUV( vec3 pos ) {
 }
 
 Particle lookupParticle( vec2 index ) {
-	vec2 density = texture2D( u_densities, index ).rg;
+	vec2 density = vec2(0.0);
+	vec4 position = texture2D( u_positions, index );
+	vec4 velocity = texture2D( u_velocity, index );
+	vec3 prevPos = texture2D( u_prevPos, index).rgb;
+	density.x = position.a;
+	density.y = velocity.a;
 	float pressure = getPressure( density.x );
 	float nearPressure = getNearPressure( density.y );
-	vec3 position = texture2D( u_positions, index ).rgb;
-	vec3 velocity = texture2D( u_velocity, index ).rgb;
-	vec3 prevPos = texture2D( u_vEval, index).rgb;
 
 	
-	return Particle( position, velocity, prevPos, density, pressure, nearPressure);
+	return Particle( position.rgb, velocity.rgb, prevPos, density, pressure, nearPressure);
 }
 
 vec3 calcNeighborForces( Particle me, Particle neighbor ) {
@@ -104,18 +106,6 @@ vec3 calcNeighborForces( Particle me, Particle neighbor ) {
 			float nearDensityDisp = (neighbor.nearPressure) * q * q;
 			displacement -= dT2 * (DensityDisp + nearDensityDisp) * (toNeighbor / dist);
 
-			// vec3 fPressure = pow(( 1.0 - (dist / u_h)), 2.0) * (toNeighbor / dist);
-			// fPressure *= ( me.pressure + neighbor.pressure ) / ( 2.0 * neighbor.density.x);
-			// forces -= fPressure * ( 1.0 / me.density.x ) ;
-			// add nearPressure from neighbor
-			// vec3 fNear = wPressure * pow((u_h - dist), 3.0) * (toNeighbor / dist);
-			// fNear *= ( me.nearPressure + neighbor.nearPressure ) / ( 2.0 * neighbor.density.y);
-			// forces -= fNear * mass;
-
-			// add viscosity force from neighbor
-			// vec3 fVis = ( u_mass / neighbor.density.x ) * ( neighbor.velocity - me.velocity );
-			// fVis *= wViscosity * (  u_h - dist );
-			// forces += u_kViscosity * fVis;// ( 1.0 / me.density.x );
 		}
 	}	
 	return displacement;
@@ -321,34 +311,23 @@ vec4 getVoxel( vec3 position ) {
 void main() {
 
 	Particle particle = lookupParticle( v_texCoord );
-	vec3 displacement = vec3(0.0, 0.0, 0.0);
-	//Get pressure and viscosity forces
-		displacement += assembleForces( particle );
-		// forces /= particle.density.x;
-		// forces += getCollisionForce( particle );
-	// Apply gravity
-		// forces += vec3(0.0, -9.8, 0.0) * u_mass;
-	//Collide with floor/walls
-		displacement +=  getBoundaryForces( particle.position );
 
-	// float speed = length(forces);
-	// if( speed > u_maxVelocity ) {
-		// particle.velocity *= u_maxVelocity / speed;
-	// }
-	
+	//Get pressure displacement
+	vec3 displacement = assembleForces( particle );
+	//Collide with floor/walls
+	displacement +=  getBoundaryForces( particle.position );
 	
 	particle.position = particle.position + displacement;
 	particle.velocity = (particle.position - particle.prevPos) / dT;
 	particle = applyCollisions( particle );
+
+	//clamp velocity
 	float speed = length(particle.velocity);
 	if(speed > u_maxVelocity) {
 		particle.velocity =  u_maxVelocity * particle.velocity / speed;
 	}
-	// vec3 vEval = (vLast + particle.velocity) * 0.5;
 
 	gl_FragData[0] = vec4( particle.position, 1.0 );
 	gl_FragData[1] = vec4( particle.velocity, 1.0 );
-	// gl_FragData[3] = vec4( vEval, 1.0);
-	// gl_FragData[2] = voxelData;
 
 }

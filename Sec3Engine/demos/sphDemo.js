@@ -252,8 +252,8 @@ var initParticleSystem = function() {
 	}
 
     var specsFast = {
-       
-        numParticles : 16384,
+        numParticles : 65536,
+        // numParticles : 16384,
         RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
         particleSize : 1.0,
         stepsPerFrame : 2.0,
