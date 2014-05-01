@@ -258,7 +258,7 @@ var initParticleSystem = function() {
         particleSize : 1.0,
         stepsPerFrame : 2.0,
         gravity : 9.8,
-        pressureK : 40,
+        pressureK : 444,
         nearPressureK : 80,
         restDensity : 1.48,
         restPressure : 100.0,

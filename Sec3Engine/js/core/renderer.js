@@ -27,6 +27,7 @@ SEC3.renderer.init = function () {
         fillGProg.uMVPLoc = gl.getUniformLocation( fillGProg.ref(), "u_mvp" );
         fillGProg.uNormalMatLoc = gl.getUniformLocation( fillGProg.ref(), "u_normalMat");
         fillGProg.uSamplerLoc = gl.getUniformLocation( fillGProg.ref(), "u_sampler");
+        fillGProg.uCPosLoc = gl.getUniformLocation( fillGProg.ref(), "u_cPos");
 
     } );
 
@@ -120,7 +121,7 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
     mat4.multiply( mvpMat, camera.getProjectionMat(), camera.getViewTransform() );
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uModelViewLoc, false, camera.getViewTransform());
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uMVPLoc, false, mvpMat ); 
-
+    gl.uniform3fv( SEC3.renderer.fillGProg.uCPosLoc, camera.getPosition() );
     SEC3.renderer.drawModel( SEC3.renderer.fillGProg, 0, camera );
     framebuffer.unbind(gl);
     gl.useProgram( null );

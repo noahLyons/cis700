@@ -271,7 +271,7 @@ Particle applyCollisions( Particle p ) {
 		sceneNormal = normalize(sceneNormal);
 		vec3 vNormal = dot(p.velocity, sceneNormal) * sceneNormal;
 		vec3 vTangent = p.velocity - vNormal;
-		vec3 impulse = (vNormal + (0.1 * vTangent)) * wallWeight * wallWeight;
+		vec3 impulse = (vNormal + (0.01 * vTangent)) * wallWeight * wallWeight;
 		p.velocity -= impulse;
 		// vec3 direction = normalize(p.prevPos - p.position);
 		// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;

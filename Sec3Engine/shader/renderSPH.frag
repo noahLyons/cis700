@@ -27,7 +27,7 @@ void main(void) {
 	// gl_FragData[0] = sqrt(vec4( lambertTerm * 0.2 * (length(testColor.rgb)) * normalize(testColor.rgb), 1.0));
 	// gl_FragData[0] = vec4(0.00001 * testColor.r, 0.0, 0.2, 1.0);
 	// gl_FragData[0] = vec4(testColor.r, 0.0, 0.2, 1.0);
-	gl_FragData[0] = vec4(lambertTerm * mix(vec3(0.1, 0.3, 0.4), vec3(1.0), length(testColor.rgb) / 14.0), 1.0);
+	gl_FragData[0] = vec4(lambertTerm * mix(vec3(0.1, 0.3, 0.4), vec3(1.0), length(testColor.rgb) * length(testColor.rgb) / 120.0), 1.0);
  } 
 
  
