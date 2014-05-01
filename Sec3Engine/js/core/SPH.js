@@ -20,7 +20,7 @@ SEC3.SPH = function(specs) {
 	this.viewGrid = false;
 	this.naive = false;
 	this.paused = false;
-
+	this.currentProjector = 1;
 	// this.textureResolution = SEC3.math.roundUpToPower( specs.numParticles, 2);
 	this.textureSideLength = Math.sqrt( specs.numParticles );
 	this.numParticles = specs.numParticles;
@@ -314,9 +314,12 @@ SEC3.SPH.prototype = {
 	    gl.uniform1f( this.velocityProgram.uKLoc, this.pressureK );
 	    gl.uniform1f( this.velocityProgram.uKNearLoc, this.nearPressureK );
 	    gl.uniform1f( this.velocityProgram.uStepsLoc, this.stepsPerFrame );
-	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorViewMatLoc, 0, this.projectors[0].getViewTransform());
-	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorProjectionMatLoc, 0, this.projectors[0].getProjectionMat());
-	    gl.uniform3fv( this.velocityProgram.uProjectorPosLoc, this.projectors[0].getPosition());
+	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorViewMatLoc0, 0, this.projectors[0].getViewTransform());
+	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorProjectionMatLoc0, 0, this.projectors[0].getProjectionMat());
+	    gl.uniform3fv( this.velocityProgram.uProjectorPosLoc0, this.projectors[0].getPosition());
+	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorViewMatLoc1, 0, this.projectors[1].getViewTransform());
+	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorProjectionMatLoc1, 0, this.projectors[1].getProjectionMat());
+	    gl.uniform3fv( this.velocityProgram.uProjectorPosLoc1, this.projectors[1].getPosition());
 	    gl.activeTexture(gl.TEXTURE0);
 	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
 	    gl.uniform1i(this.velocityProgram.uPositionsLoc, 0);
@@ -338,11 +341,19 @@ SEC3.SPH.prototype = {
 
 	    gl.activeTexture(gl.TEXTURE4); //scene normals
 	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[0].gBuffer.texture(1));
-	    gl.uniform1i(this.velocityProgram.uSceneNormalsLoc, 4);
+	    gl.uniform1i(this.velocityProgram.uSceneNormalsLoc0, 4);
 	    
 	    gl.activeTexture(gl.TEXTURE5); //scene depth
 	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[0].gBuffer.texture(3));
-	    gl.uniform1i(this.velocityProgram.uSceneDepthLoc, 5);
+	    gl.uniform1i(this.velocityProgram.uSceneDepthLoc0, 5);
+
+	     gl.activeTexture(gl.TEXTURE6); //scene normals
+	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[1].gBuffer.texture(1));
+	    gl.uniform1i(this.velocityProgram.uSceneNormalsLoc1, 6);
+	    
+	    gl.activeTexture(gl.TEXTURE7); //scene depth
+	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[1].gBuffer.texture(3));
+	    gl.uniform1i(this.velocityProgram.uSceneDepthLoc1, 7);
 
 
 	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
@@ -639,7 +650,6 @@ SEC3.SPH.prototype = {
 	        velocityProgram.uVoxelGridLoc = gl.getUniformLocation( velocityProgram.ref(), "u_voxelGrid" );
 	        velocityProgram.uVelocityLoc = gl.getUniformLocation( velocityProgram.ref(), "u_velocity" );
 	        velocityProgram.uVEvalLoc = gl.getUniformLocation( velocityProgram.ref(), "u_prevPos" );
-	        velocityProgram.uDensitiesLoc = gl.getUniformLocation( velocityProgram.ref(), "u_densities" );
 			velocityProgram.uHLoc = gl.getUniformLocation( velocityProgram.ref(), "u_h" );
 			velocityProgram.uKLoc = gl.getUniformLocation( velocityProgram.ref(), "u_k");
 			velocityProgram.uMaxVelocityLoc = gl.getUniformLocation( velocityProgram.ref(), "u_maxVelocity");
@@ -649,11 +659,16 @@ SEC3.SPH.prototype = {
 			velocityProgram.uStepsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_steps" );
 			velocityProgram.uViscosityKLoc = gl.getUniformLocation( velocityProgram.ref(), "u_kViscosity");
 			velocityProgram.uGridDimsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_gridDims");
-			velocityProgram.uSceneDepthLoc = gl.getUniformLocation( velocityProgram.ref(), "u_sceneDepth");
-			velocityProgram.uSceneNormalsLoc = gl.getUniformLocation( velocityProgram.ref(), "u_sceneNormals");
-			velocityProgram.uProjectorViewMatLoc = gl.getUniformLocation( velocityProgram.ref(), "u_projectorViewMat");
-			velocityProgram.uProjectorProjectionMatLoc = gl.getUniformLocation( velocityProgram.ref(), "u_projectorProjectionMat");			
-			velocityProgram.uProjectorPosLoc = gl.getUniformLocation( velocityProgram.ref(), "u_projectorPos");						
+			velocityProgram.uSceneDepthLoc0 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneDepth0");
+			velocityProgram.uSceneNormalsLoc0 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneNormals0");
+			velocityProgram.uProjectorViewMatLoc0 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorViewMat0");
+			velocityProgram.uProjectorProjectionMatLoc0 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorProjectionMat0");			
+			velocityProgram.uProjectorPosLoc0 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorPos0");						
+			velocityProgram.uSceneDepthLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneDepth1");
+			velocityProgram.uSceneNormalsLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneNormals1");
+			velocityProgram.uProjectorViewMatLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorViewMat1");
+			velocityProgram.uProjectorProjectionMatLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorProjectionMat1");			
+			velocityProgram.uProjectorPosLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorPos1");	
 			velocityProgram.uMassLoc = gl.getUniformLocation( velocityProgram.ref(), "u_mass");
 			velocityProgram.uSurfaceTensionLoc = gl.getUniformLocation( velocityProgram.ref(), "u_surfaceTension");
 

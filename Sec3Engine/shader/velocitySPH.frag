@@ -19,16 +19,21 @@ uniform float u_mass;
 uniform float u_kViscosity;
 uniform float u_surfaceTension;
 uniform float u_maxVelocity;
-uniform mat4 u_projectorViewMat;
-uniform mat4 u_projectorProjectionMat;
-uniform vec3 u_projectorPos;
+uniform mat4 u_projectorViewMat0;
+uniform mat4 u_projectorProjectionMat0;
+uniform vec3 u_projectorPos0;
+uniform mat4 u_projectorViewMat1;
+uniform mat4 u_projectorProjectionMat1;
+uniform vec3 u_projectorPos1;
 uniform sampler2D u_positions;
 uniform sampler2D u_velocity;
 uniform sampler2D u_prevPos;
-uniform sampler2D u_densities;
+// uniform sampler2D u_densities;
 uniform sampler2D u_voxelGrid;
-uniform sampler2D u_sceneDepth;
-uniform sampler2D u_sceneNormals;
+uniform sampler2D u_sceneDepth0;
+uniform sampler2D u_sceneNormals0;
+uniform sampler2D u_sceneDepth1;
+uniform sampler2D u_sceneNormals1;
 
 varying vec2 v_texCoord;
 
@@ -239,67 +244,80 @@ vec3 getBoundaryForces( vec3 myPosition) {
 	return wallForce;
 }
 
-Particle applyCollisions( Particle p ) {
-	vec4 posProjectorSpace = u_projectorViewMat * vec4(p.position, 1.0);
+Particle applyCollisions0( Particle p ) {
+	vec4 posProjectorSpace = u_projectorViewMat0 * vec4(p.position, 1.0);
 
 	// coordinate of gBuffer covered by particle 
-	vec4 posClipSpace = u_projectorProjectionMat * posProjectorSpace;
+	vec4 posClipSpace = u_projectorProjectionMat0 * posProjectorSpace;
 	posClipSpace = posClipSpace / posClipSpace.w;
 	vec2 uv = posClipSpace.xy * 0.5 + 0.5;
 
 	// distance from projector to covered pixel in gBuffer
-	float sceneDist = texture2D( u_sceneDepth, uv ).r;
-	vec3 particleToProjector = p.position - u_projectorPos;
-	float particleDepth = length(particleToProjector);
-	float wallDist = (sceneDist - particleDepth);
+	float sceneDist = texture2D( u_sceneDepth0, uv ).r;
+	if( sceneDist != 0.0 ) {
+		vec3 particleToProjector = p.position - u_projectorPos0;
+		float particleDepth = length(particleToProjector);
+		float wallDist = abs(sceneDist - particleDepth);
 
-	// return vec3(particleDepth );
-	// if particle is within support radius of the pixel it covers:
-	if ( wallDist < u_h ) { 
-		float wallWeight = 1.0 - wallDist / u_h;
-		vec3 sceneNormal = texture2D( u_sceneNormals, uv ).rgb;
-		sceneNormal = normalize(sceneNormal);
-		vec3 vNormal = dot(p.velocity, sceneNormal) * sceneNormal;
-		vec3 vTangent = p.velocity - vNormal;
-		vec3 impulse = (vNormal + (0.1 * vTangent)) * wallWeight * wallWeight;
-		p.velocity -= impulse;
-		// vec3 direction = normalize(p.prevPos - p.position);
-		// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
-		if ( wallDist < 0.0 ) {
-			p.position = p.position - (wallDist) * sceneNormal;
+		// return vec3(particleDepth );
+		// if particle is within support radius of the pixel it covers:
+		if ( wallDist < u_h ) { 
+			float wallWeight = 1.0 - wallDist / u_h;
+			vec3 sceneNormal = texture2D( u_sceneNormals0, uv ).rgb;
+			sceneNormal = normalize(sceneNormal);
+			vec3 vNormal = dot(p.velocity, sceneNormal) * sceneNormal;
+			vec3 vTangent = p.velocity - vNormal;
+			vec3 impulse = (vNormal + (0.01 * vTangent)) * wallWeight * wallWeight;
+			p.velocity -= impulse;
+			// vec3 direction = normalize(p.prevPos - p.position);
+			// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
+			if ( wallDist < 0.0 ) {
+				p.position = p.position - (wallDist) * sceneNormal;
+			}
+		
 		}
-	
-	}
-
+	}	
 	return p;
 
 }
 
-vec3 getCollisionForce( Particle p ) {
-	vec4 posProjectorSpace = u_projectorViewMat * vec4(p.position, 1.0);
+Particle applyCollisions1( Particle p ) {
+	vec4 posProjectorSpace = u_projectorViewMat1 * vec4(p.position, 1.0);
 
 	// coordinate of gBuffer covered by particle 
-	vec4 posClipSpace = u_projectorProjectionMat * posProjectorSpace;
+	vec4 posClipSpace = u_projectorProjectionMat1 * posProjectorSpace;
 	posClipSpace = posClipSpace / posClipSpace.w;
 	vec2 uv = posClipSpace.xy * 0.5 + 0.5;
 
 	// distance from projector to covered pixel in gBuffer
-	float sceneDist = texture2D( u_sceneDepth, uv ).r;
-	vec3 particleToProjector = p.position - u_projectorPos;
-	float particleDepth = length(particleToProjector);
-	float wallDist = (sceneDist - particleDepth);
-	wallDist = abs(wallDist);
+	float sceneDist = texture2D( u_sceneDepth1, uv ).r;
+	if( sceneDist != 0.0 ) {
+		vec3 particleToProjector = p.position - u_projectorPos1;
+		float particleDepth = length(particleToProjector);
+		float wallDist = abs(sceneDist - particleDepth);
 
-	// return vec3(particleDepth );
-	// if particle is within support radius of the pixel it covers:
-	if ( wallDist < u_h ) { //TODO fuks wit me
-		vec3 sceneNormal = texture2D( u_sceneNormals, uv ).rgb;
-		sceneNormal = normalize(sceneNormal);
-		return  1.0 * ( u_h - wallDist) * sceneNormal / dT2;
-	}
+		// return vec3(particleDepth );
+		// if particle is within support radius of the pixel it covers:
+		if ( wallDist < u_h ) { 
+			float wallWeight = 1.0 - wallDist / u_h;
+			vec3 sceneNormal = texture2D( u_sceneNormals1, uv ).rgb;
+			sceneNormal = normalize(sceneNormal);
+			vec3 vNormal = dot(p.velocity, sceneNormal) * sceneNormal;
+			vec3 vTangent = p.velocity - vNormal;
+			vec3 impulse = (vNormal + (0.01 * vTangent)) * wallWeight * wallWeight;
+			p.velocity -= impulse;
+			// vec3 direction = normalize(p.prevPos - p.position);
+			// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
+			if ( wallDist < 0.0 ) {
+				p.position = p.position - (wallDist) * sceneNormal;
+			}
+		
+		}
+	}	
+	return p;
 
-	return vec3(0.0);
 }
+
 
 vec4 getVoxel( vec3 position ) {
 	vec2 voxelUV = getVoxelUV( position );
@@ -319,8 +337,8 @@ void main() {
 	
 	particle.position = particle.position + displacement;
 	particle.velocity = (particle.position - particle.prevPos) / dT;
-	particle = applyCollisions( particle );
-
+	particle = applyCollisions0( particle );
+	particle = applyCollisions1( particle );
 	//clamp velocity
 	float speed = length(particle.velocity);
 	if(speed > u_maxVelocity) {

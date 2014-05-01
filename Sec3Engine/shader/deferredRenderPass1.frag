@@ -25,10 +25,12 @@ void main(void) {
     vec3 toLight = normalize( vec3( 10.0, 10.0, 10.0) - v_pos.rgb ); // TODO temp
 	float lambertTerm = clamp(dot(normal.rgb, toLight), 0.0, 0.5); // TODO temp
 	color = (normal + 1.0) * 0.5; // TODO temp
-	color *= lambertTerm * 2.0; // TODO temp
+	color *= lambertTerm * 1.0; // TODO temp
+	color -= 0.4;
 	color.rgb = clamp( color.rgb, 0.0, 1.9); // TODO temp
+
 	float distance = length(v_pos.xyz);
-	float distColor = (distance - 7.0) / 6.0; // TODO temp
+	float distColor = (distance - 1.0) / 6.0; // TODO temp
 	distColor = distColor * distColor; // TODO temp
 	gl_FragData[0] = vec4( distColor, distColor, distColor, 1.0); // TODO replace with gl_FragData[0] = vec4( v_pos.rgb, 1.0);
 	gl_FragData[1] = normal;

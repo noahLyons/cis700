@@ -56,9 +56,15 @@ var myRenderLoop = function() {
 var myRender = function() {
     //TODO getter / only call once
     if( ! demo.gBufferFilled ) {
-        SEC3.renderer.fillGPass( sph.projectors[0].gBuffer, sph.projectors[0] );
+        for( var i = 0; i < sph.projectors.length; i++) {
+
+            gl.cullFace( gl.BACK );
+            gl.frontFace( gl.CW );
+            SEC3.renderer.fillGPass( sph.projectors[i].gBuffer, sph.projectors[i] );
+        }
+
         demo.gBufferFilled = true;
-        // sph.updateBuckets();
+        sph.updateBuckets();
         // SEC3.postFx.blurGaussian( sph.projectors[0].gBuffer.texture(1),  demo.blurFBO, 4.0 );
         // sph.projectors[0].gBuffer.setTexture( 1, demo.blurFBO.texture(0), gl);
     }
@@ -68,7 +74,7 @@ var myRender = function() {
 
     if( ! sph.paused ) {
         // bucketStats.begin();
-        sph.updateBuckets();
+        // sph.updateBuckets();
         // bucketStats.end();
     
         // positionStats.begin();
@@ -90,11 +96,11 @@ var myRender = function() {
         SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); // TEMP
     }
     else if( sph.viewDepth ) {
-        SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(0) );
+        SEC3.postFx.finalPass( sph.projectors[sph.currentProjector].gBuffer.texture(0) );
     }
 
     else if( sph.viewNormals ) {
-        SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(1));
+        SEC3.postFx.finalPass( sph.projectors[sph.currentProjector].gBuffer.texture(1));
          // SEC3.postFx.finalPass( demo.blurFBO.texture(0) );
     }
     else {
@@ -230,48 +236,52 @@ var initParticleSystem = function() {
         // numParticles : 4096,
 		numParticles : 16384,
         // numParticles : 65536,
-        // numParticles : 30276,
         // numParticles : 262144,
         // numParticles : 1048576,
         // numParticles : 4194304,
         // numParticles : 102144,
-		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
-		particleSize : 1.0,
+        RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
+        particleSize : 1.0,
         stepsPerFrame : 1.0,
-		gravity : 9.8,
-		pressureK : 477,
+        gravity : 9.8,
+        pressureK : 477,
         nearPressureK : 813,
         restDensity : 1.3,
         restPressure : 100.0,
         viscosityK : 12,
         viscosityLinearK : 0.5,
-		h : 0.12,   
+        h : 0.12,   
         mass : 0.001,
         surfaceTension : 0.0,
         maxVelocity : 10.0
-	}
+    }
 
     var specsFast = {
-        numParticles : 65536,
+        // numParticles : 65536,
+        numParticles : 30276,
         // numParticles : 16384,
         RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
         particleSize : 1.0,
-        stepsPerFrame : 2.0,
+        stepsPerFrame : 2.8,
         gravity : 9.8,
-        pressureK : 40,
-        nearPressureK : 80,
-        restDensity : 1.48,
+        pressureK : 400,
+        nearPressureK : 600,
+        restDensity : 1.4,
         restPressure : 100.0,
         viscosityK : 12,
         viscosityLinearK : 0.5,
         h : 0.12,   
         mass : 0.001,
         surfaceTension : 0.02,
-        maxVelocity : 12.0
+        maxVelocity : 10.0
     }
 
 	sph = new SEC3.SPH(specsFast);
-    sph.addDetectorProjector( [8.0, 12.0, 8.0], 0.0, -90.0, 1024, 12.0 );
+    // sph.addDetectorProjector( [8.0, 12.0, 0.0], 0.0, -120.0, 1024, 20.0 );
+    sph.addDetectorProjector( [8.0, 12.0, 16.0], 0.0, -60.0, 1024, 20.0 );     
+    sph.addDetectorProjector( [8.0, 12.0, 0.0], 0.0, -120.0, 1024, 20.0 );         
+      // sph.addDetectorProjector( [8.0, 22.0, 16.0], 0.0, -70.0, 1024, 30.0 );
+
     // TODO:
     // particleSize : 0.7,
     // stepsPerFrame : 4,
@@ -344,6 +354,7 @@ var initUI = function() {
     gui.add(sph, 'showGrid' ).name('Show voxel grid');
     gui.add(sph, 'showDepth' ).name('Show collision depth');
     gui.add(sph, 'showNormals' ).name('Show collision normal');
+    gui.add(sph, 'currentProjector', 0, 1).name('show Next projector');
     gui.add(sph, 'particleSize', 0.1, 2.0 );
 }
 
@@ -355,9 +366,9 @@ var loadObjects = function() {
     var objLoader = SEC3.createOBJLoader(scene);
     
     
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
-    
+     // objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/body3.obj', 'Sec3Engine/models/alien/body3.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere.obj', 'Sec3Engine/models/sphere/sphere.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain6.obj', 'Sec3Engine/models/thickPlane/terrain6.mtl');
     
         
     //Register a callback function that extracts vertex and normal 

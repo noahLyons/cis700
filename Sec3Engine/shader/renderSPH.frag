@@ -14,20 +14,21 @@ void main(void) {
 	if( depth > 0.0 && camDistance > depth ) {
 		discard;
 	}
-	vec3 u_lPos = vec3( 0.1, 5.0, 1.0);
-	vec3 toLight = (u_lPos - worldPosition); 
-	float falloff = 40.0 / (dot(toLight, toLight));
-	toLight = normalize(toLight);
-	float lambertTerm = max(dot(normalize(normal), toLight), 0.0);
-	lambertTerm *= falloff;
-	lambertTerm = clamp( lambertTerm, 0.8, 1.0);
+	// vec3 u_lPos = vec3( 0.1, 5.0, 1.0);
+	// vec3 toLight = (u_lPos - worldPosition); 
+	// float falloff = 40.0 / (dot(toLight, toLight));
+	// toLight = normalize(toLight);
+	// float lambertTerm = max(dot(normalize(normal), toLight), 0.0);
+	// lambertTerm *= falloff;
+	// lambertTerm = clamp( lambertTerm, 0.9, 1.0);
 	// float softenEdge = max(1.0 - length(2.0 * gl_PointCoord - 1.0), 0.0);
 	// gl_FragData[0] = testColor;
 	// gl_FragData[0] = vec4(testColor.r, testColor.g, 0.0, 1.0);
 	// gl_FragData[0] = sqrt(vec4( lambertTerm * 0.2 * (length(testColor.rgb)) * normalize(testColor.rgb), 1.0));
 	// gl_FragData[0] = vec4(0.00001 * testColor.r, 0.0, 0.2, 1.0);
 	// gl_FragData[0] = vec4(testColor.r, 0.0, 0.2, 1.0);
-	gl_FragData[0] = vec4(lambertTerm * mix(vec3(0.1, 0.3, 0.4), vec3(1.0), length(testColor.rgb) / 14.0), 1.0);
+	float speed = length(testColor.rgb);
+	gl_FragData[0] = vec4(mix(vec3(0.1, 0.3, 0.4), vec3(1.0), (speed * speed) / 81.0), 1.0);
  } 
 
  
