@@ -56,6 +56,9 @@ var myRenderLoop = function() {
 var myRender = function() {
     //TODO getter / only call once
     if( ! demo.gBufferFilled ) {
+        gl.enable( gl.CULL_FACE );
+        gl.cullFace( gl.BACK );
+        gl.frontFace( gl.CCW );
         SEC3.renderer.fillGPass( sph.projectors[0].gBuffer, sph.projectors[0] );
         demo.gBufferFilled = true;
         // sph.updateBuckets();
@@ -63,7 +66,7 @@ var myRender = function() {
         // sph.projectors[0].gBuffer.setTexture( 1, demo.blurFBO.texture(0), gl);
     }
     SEC3.renderer.fillGPass( scene.gBuffer, scene.getCamera() );
-    // SEC3.renderer.deferredRender( scene, scene.gBuffer );
+    // // SEC3.renderer.deferredRender( scene, scene.gBuffer );
     SEC3.postFx.finalPass( scene.gBuffer.texture(2));
 
     if( ! sph.paused ) {
@@ -252,26 +255,27 @@ var initParticleSystem = function() {
 	}
 
     var specsFast = {
-       
+        // numParticles : 65536,
+         // numParticles : 30276,
         numParticles : 16384,
         RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
         particleSize : 1.0,
         stepsPerFrame : 2.0,
         gravity : 9.8,
-        pressureK : 444,
-        nearPressureK : 80,
-        restDensity : 1.48,
+        pressureK : 40,
+        nearPressureK : 100,
+        restDensity : 1.2,
         restPressure : 100.0,
         viscosityK : 12,
         viscosityLinearK : 0.5,
         h : 0.12,   
         mass : 0.001,
-        surfaceTension : 0.02,
+        surfaceTension : 0.01,
         maxVelocity : 12.0
     }
 
 	sph = new SEC3.SPH(specsFast);
-    sph.addDetectorProjector( [8.0, 12.0, 8.0], 0.0, -90.0, 1024, 12.0 );
+    sph.addDetectorProjector( [8.0, 12.0, 8.0], 0.0, -90.0, 2048, 14.0 );
     // TODO:
     // particleSize : 0.7,
     // stepsPerFrame : 4,
@@ -330,15 +334,15 @@ var initUI = function() {
 
     var gui = new dat.GUI();
     gui.add(sph, 'pause' );
-    gui.add(sph, 'stepsPerFrame', 1, 60).name('Time step divisor');
-    gui.add(sph, 'maxVelocity', 0.01, 100);
+    gui.add(sph, 'stepsPerFrame', 1, 15).name('Time step divisor');
+    gui.add(sph, 'maxVelocity', 1, 50);
 	gui.add(sph, 'h', 0.01, 1.0);
-    gui.add(sph, 'pressureK', 0.0, 1000.0 );
-    gui.add(sph, 'nearPressureK', 0.0, 1000.0 ); //TODO combine
-    gui.add(sph, 'viscosityK', 0.0, 12.0);
-    gui.add(sph, 'viscosityLinearK', 0.0, 2.0);
+    gui.add(sph, 'pressureK', 0.0, 250.0 );
+    gui.add(sph, 'nearPressureK', 0.0, 500.0 ); //TODO combine
+    gui.add(sph, 'viscosityK', 0.0, 24.0);
+    gui.add(sph, 'viscosityLinearK', 0.0, 6.0);
     gui.add(sph, 'surfaceTension', 0.0, 1.0);
-    gui.add(sph, 'restDensity', 0.01, 1000.0);
+    gui.add(sph, 'restDensity', 0.01, 10.0);
     gui.add(sph, 'initFBOs' ).name('restart');
     
     gui.add(sph, 'showGrid' ).name('Show voxel grid');
@@ -356,7 +360,8 @@ var loadObjects = function() {
     
     
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
+    // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated2.obj', 'Sec3Engine/models/alien/decimated2.mtl');
     
     
         

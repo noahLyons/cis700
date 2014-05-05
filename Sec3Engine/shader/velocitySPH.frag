@@ -57,8 +57,8 @@ struct Particle {
 //--------------------------------------------------------HELPERS:
 
 float getPressure( float density ) {
-	// return  u_k * (pow(density / u_restDensity, 7.0) - 1.0);
-	return  u_k * (  density - u_restDensity );
+	return  u_k * (pow(density / u_restDensity, 1.0) - 1.0);
+	// return  u_k * (  density - u_restDensity );
 }
 
 float getNearPressure( float neardensity ) {
@@ -198,7 +198,7 @@ vec3 assembleForces( Particle particle  ) {
 		}
 	}
 	if( length(surfaceTensionDirection) > 0.0 ) {
-		displacement += dT2 * normalize(surfaceTensionDirection) * u_surfaceTension * pow(surfaceTensionMagnitude, 2.0);
+		displacement += dT2 * normalize(surfaceTensionDirection) * u_surfaceTension * pow(surfaceTensionMagnitude, 1.0);
 	}
 	return displacement;
 }
@@ -265,13 +265,13 @@ Particle applyCollisions( Particle p ) {
 
 	// return vec3(particleDepth );
 	// if particle is within support radius of the pixel it covers:
-	if ( wallDist < u_h ) { 
+	if ( abs(wallDist) < u_h ) { 
 		float wallWeight = 1.0 - wallDist / u_h;
 		vec3 sceneNormal = texture2D( u_sceneNormals, uv ).rgb;
 		sceneNormal = normalize(sceneNormal);
 		vec3 vNormal = dot(p.velocity, sceneNormal) * sceneNormal;
 		vec3 vTangent = p.velocity - vNormal;
-		vec3 impulse = (vNormal + (0.01 * vTangent)) * wallWeight * wallWeight;
+		vec3 impulse = (vNormal + (0.01 * vTangent)) * wallWeight * wallWeight; 
 		p.velocity -= impulse;
 		// vec3 direction = normalize(p.prevPos - p.position);
 		// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;

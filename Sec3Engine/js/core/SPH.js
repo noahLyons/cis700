@@ -350,7 +350,7 @@ SEC3.SPH.prototype = {
 		projector.goHome ( pos ); 
 	    projector.setAzimuth( azimuth );    
 	    projector.setElevation( elevation);
-	    projector.setOrtho( this.grid.xSpan * this.h * 0.5, this.grid.zSpan * this.h * 0.5, 0.001, farClip );
+	    projector.setOrtho( this.grid.xSpan * this.h, this.grid.zSpan * this.h, 0.001, farClip );
 
 	    projector.gBuffer = SEC3.createFBO();
 	    if ( ! projector.gBuffer.initialize( gl, resolution, resolution )) {
@@ -378,7 +378,7 @@ SEC3.SPH.prototype = {
 
     genCubeStartPositions : function () {
 
-    	var scale = 1 / 10; //TODO slider
+    	var scale = 1 / 8; //TODO slider
     	var jitter = 0.0001;
     	var width = 16;
     	var height = 64;
@@ -391,9 +391,9 @@ SEC3.SPH.prototype = {
     	for ( var i = 0; i < width; i++) {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
-    				startPositions.push(i * scale + 4 + Math.random() * jitter);
+    				startPositions.push(i * scale + 1 + Math.random() * jitter);
     				startPositions.push(j * scale + 3 + Math.random() * jitter);
-    				startPositions.push(k * scale + 4 + Math.random() * jitter);
+    				startPositions.push(k * scale + 1 + Math.random() * jitter);
     				startPositions.push( 1.0 );
     			}
     		}
@@ -442,9 +442,9 @@ SEC3.SPH.prototype = {
 
     genGridTexture : function() {
 
-    	var xSpan = 121.0;
-    	var ySpan = 121.0;
-    	var zSpan = 121.0;
+    	var xSpan = 64.0;
+    	var ySpan = 81.0;
+    	var zSpan = 64.0;
     	var sqrtY = Math.sqrt(ySpan);
     	this.grid.xSpan = xSpan;
     	this.grid.ySpan = ySpan;
