@@ -93,11 +93,11 @@ var myRender = function() {
         SEC3.postFx.finalPass(sph.bucketFBO.texture(0)); // TEMP
     }
     else if( sph.viewDepth ) {
-        SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(0) );
+        SEC3.postFx.finalPass( sph.projectors[sph.currentProjector].gBuffer.texture(0) );
     }
 
     else if( sph.viewNormals ) {
-        SEC3.postFx.finalPass( sph.projectors[0].gBuffer.texture(1));
+        SEC3.postFx.finalPass( sph.projectors[sph.currentProjector].gBuffer.texture(1));
          // SEC3.postFx.finalPass( demo.blurFBO.texture(0) );
     }
     else {
@@ -275,7 +275,11 @@ var initParticleSystem = function() {
     }
 
 	sph = new SEC3.SPH(specsFast);
-    sph.addDetectorProjector( [8.0, 12.0, 8.0], 0.0, -90.0, 2048, 14.0 );
+    // sph.addDetectorProjector( [8.0, 12.0, 0.0], 0.0, -120.0, 1024, 20.0 );
+    sph.addDetectorProjector( [8.0, 12.0, 16.0], 0.0, -60.0, 1024, 20.0 );     
+    sph.addDetectorProjector( [8.0, 12.0, 0.0], 0.0, -120.0, 1024, 20.0 );         
+      // sph.addDetectorProjector( [8.0, 22.0, 16.0], 0.0, -70.0, 1024, 30.0 );
+
     // TODO:
     // particleSize : 0.7,
     // stepsPerFrame : 4,
@@ -348,6 +352,7 @@ var initUI = function() {
     gui.add(sph, 'showGrid' ).name('Show voxel grid');
     gui.add(sph, 'showDepth' ).name('Show collision depth');
     gui.add(sph, 'showNormals' ).name('Show collision normal');
+    gui.add(sph, 'currentProjector', 0, 1).name('show Next projector');
     gui.add(sph, 'particleSize', 0.1, 2.0 );
 }
 
@@ -362,7 +367,6 @@ var loadObjects = function() {
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
     objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated2.obj', 'Sec3Engine/models/alien/decimated2.mtl');
-    
     
         
     //Register a callback function that extracts vertex and normal 

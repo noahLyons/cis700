@@ -1,3 +1,4 @@
+#extension GL_EXT_draw_buffers : require
 precision highp float;
 
 //--------------------------------------------------------GLOBALS:
@@ -13,6 +14,8 @@ uniform float u_mass;
 uniform float u_restDensity;
 uniform float u_textureSize;
 uniform sampler2D u_positions;
+uniform sampler2D u_velocity;
+uniform sampler2D u_prevPos;
 uniform sampler2D u_voxelGrid;
 varying vec2 v_texCoord;
 float h2 = u_h * u_h;
@@ -119,7 +122,10 @@ void main() {
 // Saves the new position and accelleration to location determined in vertex shader
 
 	vec3 myPosition = texture2D(u_positions, v_texCoord).rgb;
+	vec3 velocity = texture2D(u_velocity, v_texCoord).rgb;
+	vec4 prevPos = texture2D( u_prevPos, v_texCoord);
 	vec2 density = getDensity( myPosition );
-
-	gl_FragColor = vec4( density, 0.0, 0.0 );
+	gl_FragData[0] = vec4( myPosition, density.x);
+	gl_FragData[1] = vec4( velocity, density.y );
+	gl_FragData[2] = prevPos;
 }
