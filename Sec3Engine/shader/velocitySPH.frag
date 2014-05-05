@@ -25,6 +25,12 @@ uniform vec3 u_projectorPos0;
 uniform mat4 u_projectorViewMat1;
 uniform mat4 u_projectorProjectionMat1;
 uniform vec3 u_projectorPos1;
+uniform mat4 u_projectorViewMat2;
+uniform mat4 u_projectorProjectionMat2;
+uniform vec3 u_projectorPos2;
+uniform mat4 u_projectorViewMat3;
+uniform mat4 u_projectorProjectionMat3;
+uniform vec3 u_projectorPos3;
 uniform sampler2D u_positions;
 uniform sampler2D u_velocity;
 uniform sampler2D u_prevPos;
@@ -34,6 +40,10 @@ uniform sampler2D u_sceneDepth0;
 uniform sampler2D u_sceneNormals0;
 uniform sampler2D u_sceneDepth1;
 uniform sampler2D u_sceneNormals1;
+uniform sampler2D u_sceneDepth2;
+uniform sampler2D u_sceneNormals2;
+uniform sampler2D u_sceneDepth3;
+uniform sampler2D u_sceneNormals3;
 
 varying vec2 v_texCoord;
 
@@ -257,11 +267,11 @@ Particle applyCollisions0( Particle p ) {
 	if( sceneDist != 0.0 ) {
 		vec3 particleToProjector = p.position - u_projectorPos0;
 		float particleDepth = length(particleToProjector);
-		float wallDist = abs(sceneDist - particleDepth);
+		float wallDist = (sceneDist - particleDepth);
 
 		// return vec3(particleDepth );
 		// if particle is within support radius of the pixel it covers:
-		if ( wallDist < u_h ) { 
+		if ( abs(wallDist) < u_h ) { 
 			float wallWeight = 1.0 - wallDist / u_h;
 			vec3 sceneNormal = texture2D( u_sceneNormals0, uv ).rgb;
 			sceneNormal = normalize(sceneNormal);
@@ -271,7 +281,7 @@ Particle applyCollisions0( Particle p ) {
 			p.velocity -= impulse;
 			// vec3 direction = normalize(p.prevPos - p.position);
 			// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
-			if ( wallDist < 0.0 ) {
+			if ( wallDist < 0.1 * u_h ){
 				p.position = p.position - (wallDist) * sceneNormal;
 			}
 		
@@ -294,11 +304,11 @@ Particle applyCollisions1( Particle p ) {
 	if( sceneDist != 0.0 ) {
 		vec3 particleToProjector = p.position - u_projectorPos1;
 		float particleDepth = length(particleToProjector);
-		float wallDist = abs(sceneDist - particleDepth);
+		float wallDist = (sceneDist - particleDepth);
 
 		// return vec3(particleDepth );
 		// if particle is within support radius of the pixel it covers:
-		if ( wallDist < u_h ) { 
+		if ( abs(wallDist) < u_h ) { 
 			float wallWeight = 1.0 - wallDist / u_h;
 			vec3 sceneNormal = texture2D( u_sceneNormals1, uv ).rgb;
 			sceneNormal = normalize(sceneNormal);
@@ -308,7 +318,81 @@ Particle applyCollisions1( Particle p ) {
 			p.velocity -= impulse;
 			// vec3 direction = normalize(p.prevPos - p.position);
 			// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
-			if ( wallDist < 0.0 ) {
+			if ( wallDist < 0.1 * u_h ){
+				p.position = p.position - (wallDist) * sceneNormal;
+			}
+		
+		}
+	}	
+	return p;
+
+}
+
+Particle applyCollisions2( Particle p ) {
+	vec4 posProjectorSpace = u_projectorViewMat2 * vec4(p.position, 1.0);
+
+	// coordinate of gBuffer covered by particle 
+	vec4 posClipSpace = u_projectorProjectionMat2 * posProjectorSpace;
+	posClipSpace = posClipSpace / posClipSpace.w;
+	vec2 uv = posClipSpace.xy * 0.5 + 0.5;
+
+	// distance from projector to covered pixel in gBuffer
+	float sceneDist = texture2D( u_sceneDepth2, uv ).r;
+	if( sceneDist != 0.0 ) {
+		vec3 particleToProjector = p.position - u_projectorPos2;
+		float particleDepth = length(particleToProjector);
+		float wallDist = (sceneDist - particleDepth);
+
+		// return vec3(particleDepth );
+		// if particle is within support radius of the pixel it covers:
+		if ( abs(wallDist) < u_h ) { 
+			float wallWeight = 1.0 - wallDist / u_h;
+			vec3 sceneNormal = texture2D( u_sceneNormals2, uv ).rgb;
+			sceneNormal = normalize(sceneNormal);
+			vec3 vNormal = dot(p.velocity, sceneNormal) * sceneNormal;
+			vec3 vTangent = p.velocity - vNormal;
+			vec3 impulse = (vNormal + (0.01 * vTangent)) * wallWeight * wallWeight;
+			p.velocity -= impulse;
+			// vec3 direction = normalize(p.prevPos - p.position);
+			// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
+			if ( wallDist < 0.1 * u_h ){
+				p.position = p.position - (wallDist) * sceneNormal;
+			}
+		
+		}
+	}	
+	return p;
+
+}
+
+Particle applyCollisions3( Particle p ) {
+	vec4 posProjectorSpace = u_projectorViewMat3 * vec4(p.position, 1.0);
+
+	// coordinate of gBuffer covered by particle 
+	vec4 posClipSpace = u_projectorProjectionMat3 * posProjectorSpace;
+	posClipSpace = posClipSpace / posClipSpace.w;
+	vec2 uv = posClipSpace.xy * 0.5 + 0.5;
+
+	// distance from projector to covered pixel in gBuffer
+	float sceneDist = texture2D( u_sceneDepth3, uv ).r;
+	if( sceneDist != 0.0 ) {
+		vec3 particleToProjector = p.position - u_projectorPos3;
+		float particleDepth = length(particleToProjector);
+		float wallDist = (sceneDist - particleDepth);
+
+		// return vec3(particleDepth );
+		// if particle is within support radius of the pixel it covers:
+		if ( abs(wallDist) < u_h ) { 
+			float wallWeight = 1.0 - wallDist / u_h;
+			vec3 sceneNormal = texture2D( u_sceneNormals3, uv ).rgb;
+			sceneNormal = normalize(sceneNormal);
+			vec3 vNormal = dot(p.velocity, sceneNormal) * sceneNormal;
+			vec3 vTangent = p.velocity - vNormal;
+			vec3 impulse = (vNormal + (0.01 * vTangent)) * wallWeight * wallWeight;
+			p.velocity -= impulse;
+			// vec3 direction = normalize(p.prevPos - p.position);
+			// p.velocity -= (1.0 + (0.01 * abs(wallDist) / (dT * length(p.velocity)))) * dot(p.velocity, sceneNormal) * sceneNormal;
+			if ( wallDist < 0.1 * u_h ){
 				p.position = p.position - (wallDist) * sceneNormal;
 			}
 		
@@ -339,6 +423,8 @@ void main() {
 	particle.velocity = (particle.position - particle.prevPos) / dT;
 	particle = applyCollisions0( particle );
 	particle = applyCollisions1( particle );
+	particle = applyCollisions2( particle );
+	particle = applyCollisions3( particle );
 	//clamp velocity
 	float speed = length(particle.velocity);
 	if(speed > u_maxVelocity) {

@@ -68,6 +68,12 @@ SEC3.SPH = function(specs) {
 		this.viewNormals = false;
 		this.viewDepth = false;
 	};
+	this.showNextProjector = function() {
+		this.currentProjector++;
+		if( this.currentProjector >= this.projectors.length ) {
+			this.currentProjector = 0;
+		}
+	};
 
 };
 //--------------------------------------------------------------------------METHODS:
@@ -320,6 +326,12 @@ SEC3.SPH.prototype = {
 	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorViewMatLoc1, 0, this.projectors[1].getViewTransform());
 	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorProjectionMatLoc1, 0, this.projectors[1].getProjectionMat());
 	    gl.uniform3fv( this.velocityProgram.uProjectorPosLoc1, this.projectors[1].getPosition());
+	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorViewMatLoc2, 0, this.projectors[2].getViewTransform());
+	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorProjectionMatLoc2, 0, this.projectors[2].getProjectionMat());
+	    gl.uniform3fv( this.velocityProgram.uProjectorPosLoc2, this.projectors[2].getPosition());
+	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorViewMatLoc3, 0, this.projectors[3].getViewTransform());
+	    gl.uniformMatrix4fv( this.velocityProgram.uProjectorProjectionMatLoc3, 0, this.projectors[3].getProjectionMat());
+	    gl.uniform3fv( this.velocityProgram.uProjectorPosLoc3, this.projectors[3].getPosition());
 	    gl.activeTexture(gl.TEXTURE0);
 	    gl.bindTexture(gl.TEXTURE_2D, this.movementFBOs[this.srcIndex].texture(0));
 	    gl.uniform1i(this.velocityProgram.uPositionsLoc, 0);
@@ -355,6 +367,22 @@ SEC3.SPH.prototype = {
 	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[1].gBuffer.texture(3));
 	    gl.uniform1i(this.velocityProgram.uSceneDepthLoc1, 7);
 
+	      gl.activeTexture(gl.TEXTURE8); //scene normals
+	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[2].gBuffer.texture(1));
+	    gl.uniform1i(this.velocityProgram.uSceneNormalsLoc2, 8);
+	    
+	    gl.activeTexture(gl.TEXTURE9); //scene depth
+	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[2].gBuffer.texture(3));
+	    gl.uniform1i(this.velocityProgram.uSceneDepthLoc2, 9);
+
+	     gl.activeTexture(gl.TEXTURE10); //scene normals
+	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[3].gBuffer.texture(1));
+	    gl.uniform1i(this.velocityProgram.uSceneNormalsLoc3, 10);
+	    
+	    gl.activeTexture(gl.TEXTURE11); //scene depth
+	    gl.bindTexture(gl.TEXTURE_2D, this.projectors[3].gBuffer.texture(3));
+	    gl.uniform1i(this.velocityProgram.uSceneDepthLoc3, 11);
+
 
 	    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0); 
 	    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, null );
@@ -371,7 +399,8 @@ SEC3.SPH.prototype = {
 		projector.goHome ( pos ); 
 	    projector.setAzimuth( azimuth );    
 	    projector.setElevation( elevation);
-	    projector.setOrtho( this.grid.xSpan * this.h, this.grid.zSpan * this.h, 0.001, farClip );
+	    // projector.setOrtho( this.grid.xSpan * this.h, this.grid.zSpan * this.h, 0.001, farClip );
+	    projector.setOrtho(6.0, 6.0, 0.001, farClip );
 
 	    projector.gBuffer = SEC3.createFBO();
 	    if ( ! projector.gBuffer.initialize( gl, resolution, resolution )) {
@@ -399,22 +428,20 @@ SEC3.SPH.prototype = {
 
     genCubeStartPositions : function () {
 
-    	var scale = 1 / 8; //TODO slider
+    	var scale = 1 / 14; //TODO slider
     	var jitter = 0.0001;
     	var width = 32;
     	var height = 64;
     	var depth = 32;
-    	// var width = 64;
-    	// var height = 1024;
-    	// var depth = 64;
+   
 
 		var startPositions = [];
     	for ( var i = 0; i < width; i++) {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
-    				startPositions.push(i * scale + 1 + Math.random() * jitter);
-    				startPositions.push(j * scale + 3 + Math.random() * jitter);
-    				startPositions.push(k * scale + 1 + Math.random() * jitter);
+    				startPositions.push(i * scale + 3.4 + Math.random() * jitter);
+    				startPositions.push(j * scale + 0.1 + Math.random() * jitter);
+    				startPositions.push(k * scale + 0.4 + Math.random() * jitter);
     				startPositions.push( 1.0 );
     			}
     		}
@@ -465,7 +492,7 @@ SEC3.SPH.prototype = {
 
     	var xSpan = 64.0;
     	var ySpan = 81.0;
-    	var zSpan = 64.0;
+    	var zSpan = 36.0;
     	var sqrtY = Math.sqrt(ySpan);
     	this.grid.xSpan = xSpan;
     	this.grid.ySpan = ySpan;
@@ -668,7 +695,17 @@ SEC3.SPH.prototype = {
 			velocityProgram.uSceneNormalsLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneNormals1");
 			velocityProgram.uProjectorViewMatLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorViewMat1");
 			velocityProgram.uProjectorProjectionMatLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorProjectionMat1");			
-			velocityProgram.uProjectorPosLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorPos1");	
+			velocityProgram.uProjectorPosLoc1 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorPos1");
+			velocityProgram.uSceneDepthLoc2 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneDepth2");
+			velocityProgram.uSceneNormalsLoc2 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneNormals2");
+			velocityProgram.uProjectorViewMatLoc2 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorViewMat2");
+			velocityProgram.uProjectorProjectionMatLoc2 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorProjectionMat2");			
+			velocityProgram.uProjectorPosLoc2 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorPos2");	
+			velocityProgram.uSceneDepthLoc3 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneDepth3");
+			velocityProgram.uSceneNormalsLoc3 = gl.getUniformLocation( velocityProgram.ref(), "u_sceneNormals3");
+			velocityProgram.uProjectorViewMatLoc3 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorViewMat3");
+			velocityProgram.uProjectorProjectionMatLoc3 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorProjectionMat3");			
+			velocityProgram.uProjectorPosLoc3 = gl.getUniformLocation( velocityProgram.ref(), "u_projectorPos3");	
 			velocityProgram.uMassLoc = gl.getUniformLocation( velocityProgram.ref(), "u_mass");
 			velocityProgram.uSurfaceTensionLoc = gl.getUniformLocation( velocityProgram.ref(), "u_surfaceTension");
 
