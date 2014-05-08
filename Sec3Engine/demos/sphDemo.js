@@ -280,7 +280,7 @@ var initParticleSystem = function() {
          // numParticles : 30276,
         numParticles : 16384,
         RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
-        particleSize : 1.0,
+        particleSize : 1.3,
         stepsPerFrame : 1.0,
         gravity : 9.8,
         pressureK : 10,
