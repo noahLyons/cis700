@@ -118,8 +118,11 @@ SEC3.renderer.fillGPass = function( framebuffer, camera ) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
      //update the model-view matrix
     var mvpMat = mat4.create();
-    mat4.multiply( mvpMat, camera.getProjectionMat(), camera.getViewTransform() );
-    gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uModelViewLoc, false, camera.getViewTransform());
+    mat4.multiply( mvpMat, camera.getViewTransform(), demo.sphereModelMatrix );
+    mat4.multiply( mvpMat, camera.getProjectionMat(), mvpMat );
+    var mvMat = mat4.create();
+    mat4.multiply( mvMat, camera.getViewTransform(), demo.sphereModelMatrix );
+    gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uModelViewLoc, false, mvMat);
     gl.uniformMatrix4fv( SEC3.renderer.fillGProg.uMVPLoc, false, mvpMat ); 
     gl.uniform3fv( SEC3.renderer.fillGProg.uCPosLoc, camera.getPosition() );
     SEC3.renderer.drawModel( SEC3.renderer.fillGProg, 0, camera );
@@ -176,7 +179,7 @@ SEC3.renderer.drawShadowMap = function(light, index){
 
     //----------------DRAW MODEL:
 
-    for ( var i = 0; i < model_vertexVBOs.length; ++i ){
+    for ( var i = 1; i < model_vertexVBOs.length; ++i ){
         //Bind vertex pos buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[i] );
         gl.vertexAttribPointer( SEC3.renderer.buildShadowMapProg.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
@@ -206,11 +209,12 @@ SEC3.renderer.drawModel = function (program, textureOffset, camera) {
     var nmlMat = mat4.create();
     mat4.invert( nmlMat, camera.getViewTransform() );
     mat4.transpose( nmlMat, nmlMat);
+
     gl.uniformMatrix4fv( program.uNormalMatLoc, false, nmlMat)
 
     //------------------DRAW MODEL:
     
-    for ( var i = 0; i < model_vertexVBOs.length; ++i ){
+    for ( var i = 1; i < model_vertexVBOs.length; ++i ){
         //Bind vertex pos buffer
         gl.bindBuffer( gl.ARRAY_BUFFER, model_vertexVBOs[i] );
         gl.vertexAttribPointer( program.aVertexPosLoc, 3, gl.FLOAT, false, 0, 0 );
@@ -227,7 +231,7 @@ SEC3.renderer.drawModel = function (program, textureOffset, camera) {
         gl.enableVertexAttribArray( program.aVertexTexcoordLoc );
         
         if ( model_texcoordVBOs[i].texture ) {
-            //Bind texture    
+            //Bind texture
             gl.activeTexture( gl.TEXTURE0 + textureOffset );
             gl.bindTexture( gl.TEXTURE_2D, model_texcoordVBOs[i].texture );
             gl.uniform1i( program.uSamplerLoc, textureOffset );

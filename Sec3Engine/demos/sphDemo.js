@@ -26,6 +26,14 @@ var demo = (function () {
     demo.SHADOWMAP_SIZE = 1024.0;
     demo.FAR_CASCADE_SIZE = 256;
     demo.NEAR_CASCADE_SIZE = 1024;
+    demo.spherePosition = vec3.fromValues(2.6,2,2);
+    demo.sphereModelMatrix = mat4.create();
+    mat4.translate( demo.sphereModelMatrix, demo.sphereModelMatrix, demo.spherePosition);
+    demo.resetSphere = function() {
+        demo.spherePosition = vec3.fromValues(0,0,1);
+        demo.sphereModelMatrix = mat4.create();
+        mat4.translate( demo.sphereModelMatrix, demo.sphereModelMatrix, demo.spherePosition);
+    }
     return demo;
 
 })();
@@ -53,9 +61,42 @@ var myRenderLoop = function() {
 
 };
 
+var getSphereMovementVector = function( screenX, screenY ) {
+    var sphereScreenCenter = vec4.fromValues( demo.spherePosition[0], demo.spherePosition[1], 0.0, 1.0 );
+    vec4.transformMat4( sphereScreenCenter, sphereScreenCenter, scene.getCamera().getMVP() );
+    vec4.scale( sphereScreenCenter, sphereScreenCenter, 1.0 / sphereScreenCenter[3] );
+    // vec4.add( sphereScreenCenter, sphereScreenCenter, vec4.fromValues( 0.5, 0.5, 0.5, 0.0));
+    var movementVector = vec4.fromValues( screenX - sphereScreenCenter[0], screenY - sphereScreenCenter[1], 0.0, 1.0 );
+     // vec4.subtract( movementVector, movementVector, sphereScreenCenter );
+
+    // vec4.transformMat4( movementVector, movementVector, scene.getCamera().getInverseMVP() );
+    vec4.normalize( movementVector, movementVector );
+    return [ movementVector[0], movementVector[1], movementVector[2] ];
+};
+
+var moveSphere = function(screenX, screenY){
+    var scale = 0.2;
+    screenX /= SEC3.canvas.width * 0.5;
+    screenY /= SEC3.canvas.height * 0.5;
+    screenX -= 1.0;
+    screenY -= 1.0;
+    screenY = - screenY;
+    var xyz = getSphereMovementVector( screenX, screenY );
+    var x = scale * xyz[0];
+    var y = scale * xyz[1];
+    var z = scale * xyz[2];
+
+    mat4.translate( demo.sphereModelMatrix, demo.sphereModelMatrix, vec3.fromValues( x, y, z ));
+    demo.spherePosition = vec3.add( demo.spherePosition, demo.spherePosition, vec3.fromValues( x, y, z ));
+
+};
+
 var myRender = function() {
+    if(interactor.button == 0 && interactor.dragging) {
+        moveSphere( interactor.x, interactor.y );
+    }
     //TODO getter / only call once
-    if( ! demo.gBufferFilled ) {
+    // if( ! demo.gBufferFilled ) {
         gl.enable( gl.CULL_FACE );
         gl.cullFace( gl.BACK );
         gl.frontFace( gl.CCW );
@@ -63,10 +104,10 @@ var myRender = function() {
             SEC3.renderer.fillGPass( sph.projectors[i].gBuffer, sph.projectors[i] );
         }
         demo.gBufferFilled = true;
-        sph.updateBuckets();
+        // sph.updateBuckets();
         // SEC3.postFx.blurGaussian( sph.projectors[0].gBuffer.texture(1),  demo.blurFBO, 4.0 );
         // sph.projectors[0].gBuffer.setTexture( 1, demo.blurFBO.texture(0), gl);
-    }
+    // }
     SEC3.renderer.fillGPass( scene.gBuffer, scene.getCamera() );
     // // SEC3.renderer.deferredRender( scene, scene.gBuffer );
     SEC3.postFx.finalPass( scene.gBuffer.texture(2));
@@ -148,10 +189,11 @@ var initCamera = function() {
 
 	var canvas = SEC3.canvas;
 	var camera = new SEC3.Camera();
-    camera.goHome( [0.0, 6.0, 10.0] ); //initial camera posiiton
-    camera.setAzimuth( -30.0 );
+    camera.goHome( [5.0, 5.0, 8.0] ); //initial camera posiiton
+    // camera.setAzimuth( -30.0 );
     camera.setElevation( -30.0 );
-    interactor = SEC3.CameraInteractor( camera, canvas );
+    interactor = new SEC3.CameraInteractor( camera, canvas );
+    // interactor.update();
     camera.setPerspective( 60, canvas.width / canvas.height, 0.1, 30.0 );
     scene.setCamera(camera);
     SEC3.canvas = canvas;
@@ -215,6 +257,8 @@ var initFBOs = function() {
 var initGL = function(canvasId, messageId) {
     //get WebGL context
     var canvas = document.getElementById( canvasId );
+    canvas.width = document.body.clientWidth;
+    canvas.height = document.body.clientHeight;
     SEC3.canvas = canvas;
     var msg = document.getElementById( messageId );
     gl = SEC3.getWebGLContext( canvas, msg );
@@ -231,57 +275,32 @@ var initGL = function(canvasId, messageId) {
 }
 var initParticleSystem = function() {
 
-	var specs = {
-        // numParticles : 4096,
-		numParticles : 16384,
-        // numParticles : 65536,
-        // numParticles : 30276,
-        // numParticles : 262144,
-        // numParticles : 1048576,
-        // numParticles : 4194304,
-        // numParticles : 102144,
-		RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
-		particleSize : 1.0,
-        stepsPerFrame : 1.0,
-		gravity : 9.8,
-		pressureK : 477,
-        nearPressureK : 813,
-        restDensity : 1.3,
-        restPressure : 100.0,
-        viscosityK : 12,
-        viscosityLinearK : 0.5,
-		h : 0.12,   
-        mass : 0.001,
-        surfaceTension : 0.0,
-        maxVelocity : 10.0
-	}
-
     var specsFast = {
-        numParticles : 65536,
+        // numParticles : 65536,
          // numParticles : 30276,
-        // numParticles : 16384,
+        numParticles : 16384,
         RGBA : vec4.fromValues( 0.0, 0.0, 1.0, 1.0 ),
-        particleSize : 0.5,
-        stepsPerFrame : 2.0,
+        particleSize : 1.0,
+        stepsPerFrame : 1.0,
         gravity : 9.8,
-        pressureK : 40,
-        nearPressureK : 100,
-        restDensity : 1.2,
+        pressureK : 10,
+        nearPressureK : 24,
+        restDensity : 0.3,
         restPressure : 100.0,
-        viscosityK : 20,
-        viscosityLinearK : 0.0,
-        h : 0.085,   
+        viscosityK : 16,
+        viscosityLinearK : 15,
+        h : 0.1625,   
         mass : 0.001,
-        surfaceTension : 0.46,
-        maxVelocity : 10.0
+        surfaceTension : 0.26,
+        maxVelocity : 8.0
     }
 
 	sph = new SEC3.SPH(specsFast);
 
-    sph.addDetectorProjector( [12.0, 12.0, 12.0], 45.0, -45.0, 512, 30.0 );     
-    sph.addDetectorProjector( [-2.0, 12.0, -2.0], -135.0, -45.0, 512, 30.0 );         
-    sph.addDetectorProjector( [-2.0, 12.0, 12.0], -45.0, -45.0, 512, 30.0 );         
-    sph.addDetectorProjector( [12.0, 12.0, -2.0], 135.0, -45.0, 512, 30.0 );         
+    sph.addDetectorProjector( [12.0, 12.0, 12.0], 45.0, -45.0, 256, 30.0 );     
+    sph.addDetectorProjector( [-2.0, -12.0, -2.0], -135.0, 45.0, 256, 30.0 );         
+    sph.addDetectorProjector( [-2.0, 12.0, 12.0], -45.0, -45.0, 256, 30.0 );         
+    sph.addDetectorProjector( [12.0, -12.0, -2.0], 135.0, 45.0, 256, 30.0 );         
 
 
     // TODO:
@@ -341,23 +360,27 @@ var initUI = function() {
     // document.body.appendChild( velocityStats.domElement );
 
     var gui = new dat.GUI();
-    gui.add(sph, 'pause' );
-    gui.add(sph, 'stepsPerFrame', 1, 15).name('Time step divisor');
-    gui.add(sph, 'maxVelocity', 1, 50);
-	gui.add(sph, 'h', 0.01, 1.0);
-    gui.add(sph, 'pressureK', 0.0, 250.0 );
-    gui.add(sph, 'nearPressureK', 0.0, 500.0 ); //TODO combine
-    gui.add(sph, 'viscosityK', 0.0, 24.0);
-    gui.add(sph, 'viscosityLinearK', 0.0, 6.0);
-    gui.add(sph, 'surfaceTension', 0.0, 1.0);
-    gui.add(sph, 'restDensity', 0.01, 10.0);
-    gui.add(sph, 'initFBOs' ).name('restart');
+    gui.add(sph, 'stepsPerFrame', 1, 10).name('Time Step');
+    gui.add(sph, 'maxVelocity', 1, 20).name('Max Velocity');
+    gui.add(sph, 'h', 0.04, 0.2).name('Scale');
+    var pressureSlider = gui.add(sph, 'pressureK', 0.0, 40.0 ).name('Incompressibility');
+    pressureSlider.onChange = (function(value) {
+        sph.nearPressureK = 2.4 * value;
+    });
+    // gui.add(sph, 'nearPressureK', 0.0, 500.0 ); //TODO combine
+    // gui.add(sph, 'viscosityK', 0.0, 24.0);
+    // gui.add(sph, 'viscosityLinearK', 0.0, 100.0).name('Viscostity');
+    gui.add(sph, 'surfaceTension', 0.0, 2.0).name('Surface Tension');
+    gui.add(sph, 'restDensity', 0.001, 1.0).name('Rest Density');
     
+    // gui.add(sph, 'showDepth' ).name('Show collision depth');
+    // gui.add(sph, 'showNormals' ).name('Show collision normal');
+    // gui.add(sph, 'showNextProjector').name('Show next projector');
+    gui.add(sph, 'particleSize', 0.1, 2.0 ).name('Size');
     gui.add(sph, 'showGrid' ).name('Show voxel grid');
-    gui.add(sph, 'showDepth' ).name('Show collision depth');
-    gui.add(sph, 'showNormals' ).name('Show collision normal');
-    gui.add(sph, 'showNextProjector').name('Show next projector');
-    gui.add(sph, 'particleSize', 0.1, 2.0 );
+    gui.add(sph, 'pause' ).name('Pause');
+    gui.add(sph, 'initFBOs' ).name('Restart');
+    // gui.add(demo, 'resetSphere').name('Reset Sphere');
 }
 
 /*
@@ -370,7 +393,8 @@ var loadObjects = function() {
     
     objLoader.loadFromFile( gl, 'Sec3Engine/models/sphere/sphere2.obj', 'Sec3Engine/models/sphere/sphere.mtl');
     // objLoader.loadFromFile( gl, 'Sec3Engine/models/thickPlane/terrain4.obj', 'Sec3Engine/models/thickPlane/terrain4.mtl');
-    objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated5.obj', 'Sec3Engine/models/alien/decimated5.mtl');
+    // objLoader.loadFromFile( gl, 'Sec3Engine/models/alien/decimated5.obj', 'Sec3Engine/models/alien/decimated5.mtl');
+    objLoader.loadFromFile( gl, 'Sec3Engine/models/bigSphere/sphere.obj', 'Sec3Engine/models/bigSphere/sphere.mtl');
     
         
     //Register a callback function that extracts vertex and normal 

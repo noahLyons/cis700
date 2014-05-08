@@ -50,16 +50,16 @@ SEC3.Projector.prototype.dolly = function(s){
     
     var newPosition = vec3.create();
     
-    if(type == CAMERA_TRACKING_TYPE){
+    // if(type == CAMERA_TRACKING_TYPE){
         newPosition[0] = p[0] - step*n[0];
         newPosition[1] = p[1] - step*n[1];
         newPosition[2] = p[2] - step*n[2];
-    }
-    else{
-        newPosition[0] = p[0];
-        newPosition[1] = p[1];
-        newPosition[2] = p[2] - step; 
-    }
+    // }
+    // else{
+    //     newPosition[0] = p[0];
+    //     newPosition[1] = p[1];
+    //     newPosition[2] = p[2] - step; 
+    // }
 	
     this.setPosition(newPosition);
     this.steps = s;
@@ -69,6 +69,12 @@ SEC3.Projector.prototype.getViewTransform = function(){
     var m = mat4.create();
     mat4.invert( m, this.matrix );
     return m;
+};
+
+SEC3.Projector.prototype.getInverseMVP = function() {
+    var mvp = this.getMVP();
+    mat4.invert( mvp, mvp );
+    return mvp;
 };
 
 SEC3.Projector.prototype.getMVP = function() {

@@ -18,6 +18,10 @@ SEC3.SceneObject = function() {
     this.home        = vec3.create();
     this.azimuth     = 0.0;
     this.elevation   = 0.0;
+    this.vertices    = [];
+    this.indices    = [];
+    this.normals    = [];
+    this.uvs        = [];
    
 };
 

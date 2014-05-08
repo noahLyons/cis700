@@ -428,19 +428,19 @@ SEC3.SPH.prototype = {
 
     genCubeStartPositions : function () {
 
-    	var scale = 1 / 14; //TODO slider
+    	var scale = 1 / 9; //TODO slider
     	var jitter = 0.0001;
     	var width = 32;
     	var height = 64;
-    	var depth = 32;
+    	var depth = 8;
    
 
 		var startPositions = [];
     	for ( var i = 0; i < width; i++) {
     		for ( var j = 0; j < height; j++ ) {
     			for ( var k = 0; k < depth; k++ ) {
-    				startPositions.push(i * scale + 3.4 + Math.random() * jitter);
-    				startPositions.push(j * scale + 0.1 + Math.random() * jitter);
+    				startPositions.push(i * scale + 2.4 + Math.random() * jitter);
+    				startPositions.push(j * scale + 4.1 + Math.random() * jitter);
     				startPositions.push(k * scale + 0.4 + Math.random() * jitter);
     				startPositions.push( 1.0 );
     			}
@@ -490,9 +490,9 @@ SEC3.SPH.prototype = {
 
     genGridTexture : function() {
 
-    	var xSpan = 64.0;
+    	var xSpan = 49.0;
     	var ySpan = 81.0;
-    	var zSpan = 36.0;
+    	var zSpan = 25.0;
     	var sqrtY = Math.sqrt(ySpan);
     	this.grid.xSpan = xSpan;
     	this.grid.ySpan = ySpan;

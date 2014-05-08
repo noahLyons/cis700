@@ -11,157 +11,150 @@ var SEC3 = SEC3 || {};
 
 SEC3.CameraInteractor = function(camera,canvas){
     
-    var camera = camera;
-    var canvas = canvas;
+    this.camera = camera;
+    this.canvas = canvas;
   
     
-    var dragging = false;
-    var x = 0;
-    var y = 0;
-    var lastX = 0;
-    var lastY = 0;
-    var button = 0;
-    var ctrl = false;
-    var key = 0;
+    this.dragging = false;
+    this.x = 0;
+    this.y = 0;
+    this.lastX = 0;
+    this.lastY = 0;
+    this.button = 0;
+    this.ctrl = false;
+    this.alt = true;
+    this.key = 0;
     
-    var MOTION_FACTOR = 10.0;
-    var newObj={}; 
+    this.MOTION_FACTOR = 10.0;
 
-	var onMouseUp = function(ev){
-	    dragging = false;
+	this.onMouseUp = function(ev){
+	    this.dragging = false;
 	};
 
-	var  onMouseDown = function(ev){
-	    dragging = true;
-	    x = ev.clientX;
-		y = ev.clientY;
-		button = ev.button;
+	this. onMouseDown = function(ev){
+	    this.dragging = true;
+	    this.x = ev.clientX;
+		this.y = ev.clientY;
+		this.button = ev.button;
+		this.alt = ev.altKey;
 	};
 
-	var onMouseMove = function(ev){
-		lastX = x;
-		lastY = y;
-		x = ev.clientX;
-	    y = ev.clientY;
+	this.onMouseMove = function(ev){
+		this.lastX = this.x;
+		this.lastY = this.y;
+		this.x = ev.clientX;
+	    this.y = ev.clientY;
+		this.alt = ev.altKey;
 		
-		if (!dragging) return;
-		ctrl = ev.ctrlKey;
-		alt = ev.altKey;
-		var dx = x - lastX;
-		var dy = y - lastY;
+		if (! this.dragging) return;
+		this.ctrl = ev.ctrlKey;
+		var dx = this.x - this.lastX;
+		var dy = this.y - this.lastY;
 		
-		if (button == 0) { 
-			if(ctrl){
-				translate(dy);
-			}
-			else{ 
-				rotate(dx,dy);
-			}
+
+
+
+		if (this.button == 0) { 
+			moveSphere(this.x, this.y);
+		}
+		else {
+				this.rotate(dx,dy);
 		}
 	};
 
-	var onKeyDown = function(ev){
+	this.onKeyDown = function(ev){
 		
-		key = ev.keyCode;
-		ctrl = ev.ctrlKey;
+		this.key = ev.keyCode;
+		this.ctrl = ev.ctrlKey;
 		
-		if (!ctrl){
-			if (key == 38){
-				camera.changeElevation(10);
+		if (!this.ctrl){
+			if (this.key == 38){
+				this.camera.changeElevation(10);
 			}
-			else if (key == 40){
-				camera.changeElevation(-10);
+			else if (this.key == 40){
+				this.camera.changeElevation(-10);
 			}
-			else if (key == 37){
-				camera.changeAzimuth(-10);
+			else if (this.key == 37){
+				this.camera.changeAzimuth(-10);
 			}
-			else if (key == 39){
-				camera.changeAzimuth(10);
+			else if (this.key == 39){
+				this.camera.changeAzimuth(10);
 			}
-			else if( key == 87 ){
-				camera.moveForward();
+			else if( this.key == 87 ){
+				this.camera.moveForward();
 			}
-			else if( key == 65){
-				camera.moveLeft();
+			else if( this.key == 65){
+				this.camera.moveLeft();
 			}
-			else if( key == 83 ){
-				camera.moveBackward();
+			else if( this.key == 83 ){
+				this.camera.moveBackward();
 			}
-			else if( key == 68 ){
-				camera.moveRight();
+			else if( this.key == 68 ){
+				this.camera.moveRight();
 			}
-			else if( key == 82 ){
-				camera.moveUp();
+			else if( this.key == 82 ){
+				this.camera.moveUp();
 			}
-			else if( key == 70 ){
-				camera.moveDown();
+			else if( this.key == 70 ){
+				this.camera.moveDown();
 			}
 	
 		}
 	     
 	};
 
-	var onKeyUp = function(ev){
+	this.onKeyUp = function(ev){
 	    if (ev.keyCode == 17){
-			ctrl = false;
+			this.ctrl = false;
 		}
 	};
 
-	var update = function(){
+	this.update = function(self){
 	   
 
 		canvas.onmousedown = function(ev) {
-			onMouseDown(ev);
+			self.onMouseDown(ev);
 	    }
 
 	    window.onmouseup = function(ev) {
-			onMouseUp(ev);
+			self.onMouseUp(ev);
 	    }
 		
 		window.onmousemove = function(ev) {
-			onMouseMove(ev);
+			self.onMouseMove(ev);
 	    }
 		
 		window.onkeydown = function(ev){
-			onKeyDown(ev);
+			self.onKeyDown(ev);
 			
 		}
 		
 		window.onkeyup = function(ev){
-			onKeyUp(ev);
+			self.onKeyUp(ev);
 		}
 	};
 
-	var translate = function(value){
+	this.translate = function(value){
 		
-		var c = camera;
-		var dv = 2 * MOTION_FACTOR * value / camera.view.canvas.height;
+		var c = this.camera;
+		var dv = 2 * this.MOTION_FACTOR * value / this.canvas.height;
 		
 		c.dolly(Math.pow(1.1,dv));
 	};
 
-	var rotate = function(dx, dy){
+	this.rotate = function(dx, dy){
 		
 		
-		var delta_elevation = -20.0 / canvas.height;
-		var delta_azimuth   = -20.0 / canvas.width;
+		var delta_elevation = -20.0 / this.canvas.height;
+		var delta_azimuth   = -20.0 / this.canvas.width;
 					
-		var nAzimuth = dx * delta_azimuth * MOTION_FACTOR;
-		var nElevation = dy * delta_elevation * MOTION_FACTOR;
+		var nAzimuth = dx * delta_azimuth * this.MOTION_FACTOR;
+		var nElevation = dy * delta_elevation * this.MOTION_FACTOR;
 		
-		camera.changeAzimuth(nAzimuth);
-		camera.changeElevation(nElevation);
+		this.camera.changeAzimuth(nAzimuth);
+		this.camera.changeElevation(nElevation);
 	};
 
-    update();
+   this.update(this);
 
-    newObj.onMouseUp = onMouseUp;
-    newObj.onMouseDown = onMouseDown;
-    newObj.onMouseMove = onMouseMove;
-    newObj.onKeyDown  = onKeyDown;
-    newObj.onKeyUp = onKeyUp;
-    newObj.update = update;
-    newObj.translate = translate;
-    newObj.rotate =rotate;
-    return newObj;
 };

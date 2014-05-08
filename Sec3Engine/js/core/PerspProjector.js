@@ -224,6 +224,7 @@ SEC3.PerspProjector.prototype.getNearPlaneVerts = function () {
     return vertices;
 }
 
+
 SEC3.PerspProjector.prototype.getEyeRays = function () {
 
     var farVertices = this.getFarPlaneVerts();
