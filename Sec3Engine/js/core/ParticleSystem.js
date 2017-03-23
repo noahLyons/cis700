@@ -21,7 +21,7 @@
 
 */
 
-var SHADOWMAP_SIZE = 256;
+var SHADOWMAP_SIZE = 128;
 
 var SEC3 = SEC3 || {};
 
@@ -98,7 +98,7 @@ SEC3.createParticleSystem = function(specs) {
 	    gl.enableVertexAttribArray(stepProgram.aVertexPosition);
 	    var center = vec3.clone(scene.getCamera().getPosition());
 	    var offset = vec3.clone(camera.normal);
-	    vec3.scale(offset, offset, -8.0);
+	    vec3.scale(offset, offset, -4.0);
 	    vec3.add(center, center, offset);
 	    gl.uniform4f(stepProgram.uAttractor, center[0], center[1], center[2], interactor.attractor[3]);
 
