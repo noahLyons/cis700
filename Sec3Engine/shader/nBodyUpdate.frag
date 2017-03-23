@@ -1,5 +1,3 @@
-
-
 #extension GL_EXT_draw_buffers : require
 precision highp float;
 
@@ -12,6 +10,16 @@ uniform float uInteractions;
 const int max_Iterations = 64;
 
 varying vec2 textureCoord;
+
+highp float rand(vec2 co)
+{
+    highp float a = 12.9898;
+    highp float b = 78.233;
+    highp float c = 43758.5453;
+    highp float dt= dot(co.xy ,vec2(a,b));
+    highp float sn= mod(dt,3.14);
+    return fract(sin(sn) * c);
+}
 
 vec3 accumulateAcceleration(vec4 position, float uvStep) {
 	vec3 accelleration = vec3(0.0);
@@ -58,7 +66,22 @@ void main(void) {
 	float distanceSquared = dot(distance, distance);
 	accellerationFinal += distanceSquared * distance * (uAttractor.w) * 0.00001; // anti-diffusion
 	accellerationFinal += (uAttractor.w * normalize(distance)) * min((0.1/ distanceSquared),0.05);
+
+	vec3 randomAcceleration = vec3(rand(oldPosition.xy), rand(oldPosition.yz), rand(oldPosition.xz));
+	accellerationFinal += 0.0002 * randomAcceleration * ( 1.0  / max(length(oldVelocity.xyz), 0.005) );
+
+	if (length(accellerationFinal) > 0.06)
+	{
+		accellerationFinal = normalize(accellerationFinal) * 0.06;
+	}
+
 	vec3 newVelocity = (oldVelocity.rgb + accellerationFinal) / uDamping;
+	
+	// if (length(newVelocity) > 0.5)
+	// {
+	// 	newVelocity = normalize(newVelocity) * 0.5;
+	// }
+
 	vec4 newPosition = vec4(oldPosition.rgb + newVelocity,oldPosition.a);
 		
 	gl_FragData[0] = (newPosition);
