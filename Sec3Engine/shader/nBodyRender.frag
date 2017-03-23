@@ -64,11 +64,9 @@ void main(void) {
    	float amount;
    	// if point transformed into light space is inside of light view frustum, 
 	if( ! withinLightFrustum(lightSpacePos.xyz)) {
-		shadowDepth = 1.0 * lightDistance / 30.0;
-		// luminence = uShadowMultiply;
+		shadowDepth = 0.0;
+		luminence = uShadowMultiply;
 		amount = 0.5;
-		luminence = 0.023 * lightSquaredDistance;
-
 	}
 	else {
 		v_color = vec4(shadowColor, alpha);

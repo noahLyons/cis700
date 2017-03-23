@@ -51,11 +51,13 @@ void main(void) {
 
 	// particle interactor 
 	vec3 attractorPos = vec3(uAttractor.xyz);
-	
+	// if(uAttractor.z < 0.1) {
+	// 	attractorPos = vec3(0.0);
+	// }
 	vec3 distance = attractorPos - oldPosition.rgb;
 	float distanceSquared = dot(distance, distance);
-	accellerationFinal += distanceSquared * distance * (uAttractor.w) * 0.000001; // anti-diffusion
-	accellerationFinal += (uAttractor.w * normalize(distance)) * min((0.2/ distanceSquared),0.01);
+	accellerationFinal += distanceSquared * distance * (uAttractor.w) * 0.00001; // anti-diffusion
+	accellerationFinal += (uAttractor.w * normalize(distance)) * min((0.1/ distanceSquared),0.05);
 	vec3 newVelocity = (oldVelocity.rgb + accellerationFinal) / uDamping;
 	vec4 newPosition = vec4(oldPosition.rgb + newVelocity,oldPosition.a);
 		

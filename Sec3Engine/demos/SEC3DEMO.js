@@ -70,7 +70,7 @@ var forwardRenderPass = function(scene, index){
 
     // SEC3.postFx.blurGaussian(shadowFBO.texture(0), shadowFBO, demo.blurSigma);
     //Now render from the camera
-
+    
     gl.bindTexture( gl.TEXTURE_2D, null );
     fbo.bind(gl);
     gl.viewport(0, 0, SEC3.canvas.width, SEC3.canvas.height );
@@ -195,7 +195,7 @@ var main = function( canvasId, messageId ){
 
     setupScene(canvasId, messageId);
 
-    TODO: setKeyInputs();
+    setKeyInputs();
         //'1' = Attachment 1: vertex position
         //'2' = Attachment 2: vertex normal
         //'3' = Attachment 3: vertex color
@@ -540,14 +540,14 @@ var setupScene = function(canvasId, messageId ) {
     loadObjects();
 
     var particleSpecs = {
-        maxParticles : 100000,
+        maxParticles : 500000,
         emitters : [],
-        gravityModifier : -800.0,
+        gravityModifier : -8000.0,
         RGBA : [0.0, 0.2, 0.9, 0.311],
-        damping : 1.015,
+        damping : 1.08,
         type : "nBody",
-        activeBodies : 2,
-        particleSize : 0.6,
+        activeBodies : 3,
+        particleSize : 0.4,
         luminence : 40.0,
         scatterMultiply : 2.0,
         shadowMultiply : 0.1,
@@ -556,8 +556,7 @@ var setupScene = function(canvasId, messageId ) {
     };
     particleSystem = SEC3.createParticleSystem(particleSpecs);
 
-    //Create FBO's 
-    //TODO: modularize
+    //Create a FBO
 
     SEC3.gBuffer = SEC3.createFBO();
     if (! SEC3.gBuffer.initialize( gl, canvas.width, canvas.height )) {
