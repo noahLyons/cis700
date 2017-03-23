@@ -177,10 +177,10 @@ var myRenderLoop = function() {
 
     if(!SEC3.setup) {
         
-        initLightUi();
-        initBlurButtons();
-        initDofButtons();
-        demo.secondPass = "bufferRenderProg";
+        // initLightUi();
+        // initBlurButtons();
+        // initDofButtons();
+        demo.secondPass = "dofProg";
         
         SEC3.setup = true;
     }
@@ -288,155 +288,155 @@ var setKeyInputs = function() {
     };
 };
 
-var initLightUi = function() {
+// var initLightUi = function() {
 
-    SEC3.ui = SEC3.ui || new UI("uiWrapper");
+//     SEC3.ui = SEC3.ui || new UI("uiWrapper");
 
 
-    var numCascadesCallback = function(e) {
+//     var numCascadesCallback = function(e) {
 
-        var newSliderVal = e.target.value;
+//         var newSliderVal = e.target.value;
 
-        var light = scene.getLight(demo.selectedLight);
-        light.setupCascades(newSliderVal, light.nearResolution, gl, scene);
+//         var light = scene.getLight(demo.selectedLight);
+//         light.setupCascades(newSliderVal, light.nearResolution, gl, scene);
 
-        buildShadowMapProg.dispose(gl);
-        buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
-        renderWithCascadesProg.dispose(gl);
-        renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
-        SEC3.run(gl);
-        return newSliderVal + " :Cascades";
-    };
+//         buildShadowMapProg.dispose(gl);
+//         buildShadowMapProg = SEC3.ShaderCreator.buildShadowMapPrograms(gl, scene);
+//         renderWithCascadesProg.dispose(gl);
+//         renderWithCascadesProg = SEC3.ShaderCreator.renderCascShadowProg(gl, scene);
+//         SEC3.run(gl);
+//         return newSliderVal + " :Cascades";
+//     };
 
-    SEC3.ui.addSlider( scene.getLight(demo.selectedLight).numCascades + " :Cascades" ,
-                 numCascadesCallback,
-                 scene.getLight(demo.selectedLight).numCascades,
-                 1, demo.MAX_CASCADES,
-                 1);
+//     SEC3.ui.addSlider( scene.getLight(demo.selectedLight).numCascades + " :Cascades" ,
+//                  numCascadesCallback,
+//                  scene.getLight(demo.selectedLight).numCascades,
+//                  1, demo.MAX_CASCADES,
+//                  1);
 
-    var numLightsCallback = function(e) {
+//     var numLightsCallback = function(e) {
 
-        var newSliderVal = e.target.value;
+//         var newSliderVal = e.target.value;
 
-        updateLightCount(newSliderVal);
+//         updateLightCount(newSliderVal);
        
 
-        return newSliderVal + " :Lights";
-    };
+//         return newSliderVal + " :Lights";
+//     };
 
-    SEC3.ui.addSlider( scene.getNumLights() + " :Lights" ,
-                 numLightsCallback,
-                 scene.getNumLights(),
-                 1, demo.MAX_LIGHTS,
-                 1);
+//     SEC3.ui.addSlider( scene.getNumLights() + " :Lights" ,
+//                  numLightsCallback,
+//                  scene.getNumLights(),
+//                  1, demo.MAX_LIGHTS,
+//                  1);
 
-    var selectedLightCallback = function(e) {
+//     var selectedLightCallback = function(e) {
 
-        var newSliderVal = e.target.value;
+//         var newSliderVal = e.target.value;
 
-        demo.selectedLight = Math.min( newSliderVal, scene.getNumLights() - 1 );
+//         demo.selectedLight = Math.min( newSliderVal, scene.getNumLights() - 1 );
         
-        return ( demo.selectedLight + 1 ) + " :Selected light";
-    };
+//         return ( demo.selectedLight + 1 ) + " :Selected light";
+//     };
 
-    SEC3.ui.addSlider( (demo.selectedLight + 1) + " :Selected light" ,
-                 selectedLightCallback,
-                 demo.selectedLight,
-                 0, demo.MAX_LIGHTS - 1,
-                 1);
-};
+//     SEC3.ui.addSlider( (demo.selectedLight + 1) + " :Selected light" ,
+//                  selectedLightCallback,
+//                  demo.selectedLight,
+//                  0, demo.MAX_LIGHTS - 1,
+//                  1);
+// };
 
-function initDofButtons() {
+// function initDofButtons() {
 
-    SEC3.ui = SEC3.ui || new UI("uiWrapper");
+//     SEC3.ui = SEC3.ui || new UI("uiWrapper");
 
-    var slopeCallback = function(e) {
+//     var slopeCallback = function(e) {
 
-        var newSliderVal = e.target.value;
-        gl.useProgram(dofDownsampleProg.ref());
-        demo.nearSlope = newSliderVal;
-        gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( demo.nearSlope, demo.nearIntercept ));
+//         var newSliderVal = e.target.value;
+//         gl.useProgram(dofDownsampleProg.ref());
+//         demo.nearSlope = newSliderVal;
+//         gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( demo.nearSlope, demo.nearIntercept ));
 
-        return demo.nearSlope + " :Near slope";
-    };
+//         return demo.nearSlope + " :Near slope";
+//     };
 
-    SEC3.ui.addSlider( demo.nearSlope + " :Near slope" ,
-                 slopeCallback,
-                 demo.nearSlope,
-                 -10.0, -1.0,
-                 0.01);
+//     SEC3.ui.addSlider( demo.nearSlope + " :Near slope" ,
+//                  slopeCallback,
+//                  demo.nearSlope,
+//                  -10.0, -1.0,
+//                  0.01);
 
-    var interceptCallback = function(e) {
+//     var interceptCallback = function(e) {
 
-        var newSliderVal = e.target.value;
-        gl.useProgram(dofDownsampleProg.ref());
-        demo.nearIntercept = newSliderVal;
-        gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( demo.nearSlope, demo.nearIntercept ));
+//         var newSliderVal = e.target.value;
+//         gl.useProgram(dofDownsampleProg.ref());
+//         demo.nearIntercept = newSliderVal;
+//         gl.uniform2fv(dofDownsampleProg.uDofEqLoc, vec2.fromValues( demo.nearSlope, demo.nearIntercept ));
 
-        return demo.nearIntercept + " :Near intercept";
-    };
+//         return demo.nearIntercept + " :Near intercept";
+//     };
 
-    SEC3.ui.addSlider( demo.nearIntercept + " :Near intercept",
-                 interceptCallback,
-                 demo.nearIntercept,
-                 1.0, 3.0,
-                 0.01);
+//     SEC3.ui.addSlider( demo.nearIntercept + " :Near intercept",
+//                  interceptCallback,
+//                  demo.nearIntercept,
+//                  1.0, 3.0,
+//                  0.01);
 
-    var largeBlurrCallback = function(e) {
+//     var largeBlurrCallback = function(e) {
 
-        demo.LARGE_BLUR = e.target.value;
-        return demo.LARGE_BLUR + " :Large blur";
-    }
-    SEC3.ui.addSlider( demo.LARGE_BLUR + " :Large blur",
-                                 largeBlurrCallback,
-                                 demo.LARGE_BLUR,
-                                 2.0, 16.0,
-                                 0.1);
+//         demo.LARGE_BLUR = e.target.value;
+//         return demo.LARGE_BLUR + " :Large blur";
+//     }
+//     SEC3.ui.addSlider( demo.LARGE_BLUR + " :Large blur",
+//                                  largeBlurrCallback,
+//                                  demo.LARGE_BLUR,
+//                                  2.0, 16.0,
+//                                  0.1);
 
-    var mediumBlurrCallback = function(e) {
+//     var mediumBlurrCallback = function(e) {
 
-        demo.MEDIUM_BLUR = e.target.value;
-        return demo.MEDIUM_BLUR + " :Medium blur";
-    }
-    SEC3.ui.addSlider( demo.MEDIUM_BLUR + " :Medium blur",
-                                 mediumBlurrCallback,
-                                 demo.MEDIUM_BLUR,
-                                 1.0, 8.0,
-                                 0.1);
+//         demo.MEDIUM_BLUR = e.target.value;
+//         return demo.MEDIUM_BLUR + " :Medium blur";
+//     }
+//     SEC3.ui.addSlider( demo.MEDIUM_BLUR + " :Medium blur",
+//                                  mediumBlurrCallback,
+//                                  demo.MEDIUM_BLUR,
+//                                  1.0, 8.0,
+//                                  0.1);
 
-    var smallBlurrCallback = function(e) {
+//     var smallBlurrCallback = function(e) {
 
-        demo.SMALL_BLUR = e.target.value;
-        return demo.SMALL_BLUR + " :Small blur";
-    }
-    SEC3.ui.addSlider( demo.SMALL_BLUR + " :Small blur",
-                                 smallBlurrCallback,
-                                 demo.SMALL_BLUR,
-                                 0.0, 3.0,
-                                 0.1);
-};
+//         demo.SMALL_BLUR = e.target.value;
+//         return demo.SMALL_BLUR + " :Small blur";
+//     }
+//     SEC3.ui.addSlider( demo.SMALL_BLUR + " :Small blur",
+//                                  smallBlurrCallback,
+//                                  demo.SMALL_BLUR,
+//                                  0.0, 3.0,
+//                                  0.1);
+// };
 
-function initBlurButtons() {
+// function initBlurButtons() {
     
-    SEC3.ui = SEC3.ui || new UI("uiWrapper");
+//     SEC3.ui = SEC3.ui || new UI("uiWrapper");
 
-    var lilSigCallback = function(e) {
+//     var lilSigCallback = function(e) {
 
-        var newSliderVal = e.target.value;
-        demo.blurSigma = newSliderVal;
-        var sigmaSquared = demo.blurSigma * demo.blurSigma;
-        gl.useProgram(blurProg.ref());
-        gl.uniform1f(blurProg.uLilSigLoc, sigmaSquared);
+//         var newSliderVal = e.target.value;
+//         demo.blurSigma = newSliderVal;
+//         var sigmaSquared = demo.blurSigma * demo.blurSigma;
+//         gl.useProgram(blurProg.ref());
+//         gl.uniform1f(blurProg.uLilSigLoc, sigmaSquared);
 
-        return "Sigma: " + demo.blurSigma;
-    };
+//         return "Sigma: " + demo.blurSigma;
+//     };
 
-    SEC3.ui.addSlider("Sigma: " + demo.blurSigma,
-                 lilSigCallback,
-                 demo.blurSigma * demo.blurSigma,
-                 0.1, 6.0,
-                 0.1);
-};
+//     SEC3.ui.addSlider("Sigma: " + demo.blurSigma,
+//                  lilSigCallback,
+//                  demo.blurSigma * demo.blurSigma,
+//                  0.1, 6.0,
+//                  0.1);
+// };
 
 var updateLightCount = function( newCount ) {
 
@@ -540,16 +540,16 @@ var setupScene = function(canvasId, messageId ) {
     loadObjects();
 
     var particleSpecs = {
-        maxParticles : 500000,
+        maxParticles : 200000,
         emitters : [],
-        gravityModifier : -8000.0,
+        gravityModifier : -6000.0,
         RGBA : [0.0, 0.2, 0.9, 0.311],
-        damping : 1.08,
+        damping : 1.2,
         type : "nBody",
         activeBodies : 3,
-        particleSize : 0.4,
+        particleSize : 0.7,
         luminence : 40.0,
-        scatterMultiply : 2.0,
+        scatterMultiply : 3.0,
         shadowMultiply : 0.1,
         scale : 30.0
         //TODO phi and theta?
