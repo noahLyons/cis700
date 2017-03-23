@@ -540,7 +540,7 @@ var setupScene = function(canvasId, messageId ) {
     loadObjects();
 
     var particleSpecs = {
-        maxParticles : 200000,
+        maxParticles : 220000,
         emitters : [],
         gravityModifier : -6000.0,
         RGBA : [0.0, 0.2, 0.9, 0.311],
